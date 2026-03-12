@@ -25,26 +25,62 @@ class ParticlesVisualization(AbstractVisualization):
         "max_particles": {
             "type": "int", "default": 2000, "min": 100, "max": 10000,
             "label": "Max Particles",
+            "description": "Maximum number of particles alive at once.",
         },
         "particle_size": {
-            "type": "float", "default": 4.0, "min": 1.0, "max": 20.0,
+            "type": "float", "default": 4.0, "min": 0.5, "max": 100.0,
             "label": "Particle Size",
+            "description": "Base size of each particle in pixels.",
         },
         "spawn_rate": {
-            "type": "float", "default": 1.0, "min": 0.1, "max": 5.0,
+            "type": "float", "default": 1.0, "min": 0.01, "max": 20.0,
             "label": "Spawn Rate",
+            "description": "Particle spawn multiplier. Higher = more particles per beat.",
         },
         "lifetime": {
-            "type": "float", "default": 2.0, "min": 0.5, "max": 10.0,
+            "type": "float", "default": 2.0, "min": 0.1, "max": 30.0,
             "label": "Lifetime (seconds)",
+            "description": "How long each particle lives before fading out.",
         },
         "spread": {
-            "type": "float", "default": 0.5, "min": 0.1, "max": 2.0,
+            "type": "float", "default": 0.5, "min": 0.01, "max": 5.0,
             "label": "Spread",
+            "description": "How far particles spread from the spawn point.",
         },
         "gravity_y": {
-            "type": "float", "default": -0.1, "min": -1.0, "max": 1.0,
+            "type": "float", "default": -0.1, "min": -5.0, "max": 5.0,
             "label": "Gravity Y",
+            "description": "Vertical gravity force. Negative = downward, positive = upward.",
+        },
+        "spawn_x": {
+            "type": "float", "default": 0.5, "min": 0.0, "max": 1.0,
+            "label": "Spawn X",
+            "description": "Horizontal spawn position (0=left, 0.5=center, 1=right).",
+        },
+        "spawn_y": {
+            "type": "float", "default": 0.5, "min": 0.0, "max": 1.0,
+            "label": "Spawn Y",
+            "description": "Vertical spawn position (0=bottom, 0.5=center, 1=top).",
+        },
+        "gravity_x": {
+            "type": "float", "default": 0.0, "min": -1.0, "max": 1.0,
+            "label": "Gravity X",
+            "description": "Horizontal gravity force. Negative = left, positive = right.",
+        },
+        "speed_min": {
+            "type": "float", "default": 0.05, "min": 0.01, "max": 0.5,
+            "label": "Min Speed",
+            "description": "Minimum initial particle speed.",
+        },
+        "speed_max": {
+            "type": "float", "default": 0.3, "min": 0.1, "max": 1.0,
+            "label": "Max Speed",
+            "description": "Maximum initial particle speed.",
+        },
+        "drag": {
+            "type": "float", "default": 0.0, "min": 0.0, "max": 0.99,
+            "label": "Drag",
+            "description": "Velocity damping per frame. Higher = particles slow down faster.",
         },
     }
 
@@ -130,10 +166,19 @@ class ParticlesVisualization(AbstractVisualization):
 
         # Update velocity (gravity)
         active[:, 3] += gravity_y * dt
+        gravity_x = self.get_param("gravity_x", 0.0)
+        active[:, 2] += gravity_x * dt
 
         # Update position
         active[:, 0] += active[:, 2] * dt  # x += vx * dt
         active[:, 1] += active[:, 3] * dt  # y += vy * dt
+
+        # Apply drag
+        drag = self.get_param("drag", 0.0)
+        if drag > 0.0:
+            drag_factor = 1.0 - drag
+            active[:, 2] *= drag_factor  # vx
+            active[:, 3] *= drag_factor  # vy
 
         # Update age
         active[:, 4] += dt
@@ -170,6 +215,11 @@ class ParticlesVisualization(AbstractVisualization):
         if spawn_count <= 0:
             return
 
+        spawn_x = self.get_param("spawn_x", 0.5)
+        spawn_y = self.get_param("spawn_y", 0.5)
+        speed_min = self.get_param("speed_min", 0.05)
+        speed_max = self.get_param("speed_max", 0.3)
+
         colors = self.params.params.get("_colors", [(0.0, 1.0, 0.67)])
 
         start = self._active_count
@@ -178,11 +228,11 @@ class ParticlesVisualization(AbstractVisualization):
         for i in range(start, end):
             color = colors[np.random.randint(0, len(colors))]
             angle = np.random.uniform(0, 2 * np.pi)
-            speed = np.random.uniform(0.05, 0.3) * spread * (1.0 + frame.amplitude)
+            speed = np.random.uniform(speed_min, speed_max) * spread * (1.0 + frame.amplitude)
 
             self._particles[i] = [
-                0.5,                                    # x (center)
-                0.5,                                    # y (center)
+                spawn_x,                                # x
+                spawn_y,                                # y
                 np.cos(angle) * speed,                  # vx
                 np.sin(angle) * speed,                  # vy
                 0.0,                                    # age

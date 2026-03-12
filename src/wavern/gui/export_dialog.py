@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from wavern.core.export import ExportConfig, ExportPipeline
-from wavern.presets.schema import Preset
+from wavern.presets.schema import Preset, ProjectSettings
 
 logger = logging.getLogger(__name__)
 
@@ -62,13 +62,18 @@ class ExportDialog(QDialog):
     """Export settings and progress dialog."""
 
     def __init__(
-        self, audio_path: Path, preset: Preset, parent=None
+        self,
+        audio_path: Path,
+        preset: Preset,
+        project_settings: ProjectSettings | None = None,
+        parent=None,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle("Export Video")
         self.setMinimumWidth(450)
         self._audio_path = audio_path
         self._preset = preset
+        self._project_settings = project_settings or ProjectSettings()
         self._worker: ExportWorker | None = None
 
         self._setup_ui()
@@ -78,13 +83,18 @@ class ExportDialog(QDialog):
 
         form = QFormLayout()
 
-        # Output path — default to ./video/
+        ps = self._project_settings
+
+        # Output path — use project settings output_dir or default to ./video/
         output_layout = QHBoxLayout()
         self._output_edit = QLineEdit()
-        default_dir = Path(__file__).resolve().parents[3] / "video"
+        if ps.output_dir:
+            default_dir = Path(ps.output_dir)
+        else:
+            default_dir = Path(__file__).resolve().parents[3] / "video"
         default_dir.mkdir(exist_ok=True)
         stem = self._audio_path.stem if self._audio_path else "output"
-        ext = "webm" if self._preset.background.type == "none" else "mp4"
+        ext = "webm" if self._preset.background.type == "none" else ps.container
         self._output_edit.setText(str(default_dir / f"{stem}.{ext}"))
         output_layout.addWidget(self._output_edit)
         browse_btn = QPushButton("Browse...")
@@ -92,31 +102,34 @@ class ExportDialog(QDialog):
         output_layout.addWidget(browse_btn)
         form.addRow("Output:", output_layout)
 
-        # Resolution
+        # Resolution — pre-fill from project settings
         res_layout = QHBoxLayout()
         self._width_spin = QSpinBox()
         self._width_spin.setRange(320, 7680)
-        self._width_spin.setValue(1920)
+        self._width_spin.setValue(ps.resolution[0])
         res_layout.addWidget(self._width_spin)
         res_layout.addWidget(QLabel("x"))
         self._height_spin = QSpinBox()
         self._height_spin.setRange(240, 4320)
-        self._height_spin.setValue(1080)
+        self._height_spin.setValue(ps.resolution[1])
         res_layout.addWidget(self._height_spin)
         form.addRow("Resolution:", res_layout)
 
-        # FPS
+        # FPS — pre-fill from project settings
         self._fps_spin = QSpinBox()
         self._fps_spin.setRange(24, 144)
-        self._fps_spin.setValue(self._preset.fps)
+        self._fps_spin.setValue(ps.fps)
         form.addRow("FPS:", self._fps_spin)
 
-        # Format
+        # Format — pre-fill from project settings
         self._format_combo = QComboBox()
         self._format_combo.addItems(["mp4", "webm"])
-        # Auto-select webm for transparent background
+        # Auto-select webm for transparent background, otherwise use project setting
         if self._preset.background.type == "none":
-            self._format_combo.setCurrentIndex(1)  # webm
+            self._format_combo.setCurrentText("webm")
+        else:
+            self._format_combo.setCurrentText(ps.container)
+        self._format_combo.currentTextChanged.connect(self._on_format_changed)
         form.addRow("Format:", self._format_combo)
 
         # Alpha hint
@@ -125,10 +138,10 @@ class ExportDialog(QDialog):
             alpha_hint.setStyleSheet("color: #4FC3F7; font-style: italic;")
             form.addRow(alpha_hint)
 
-        # CRF
+        # CRF — pre-fill from project settings
         self._crf_spin = QSpinBox()
         self._crf_spin.setRange(0, 51)
-        self._crf_spin.setValue(18)
+        self._crf_spin.setValue(ps.crf)
         form.addRow("Quality (CRF):", self._crf_spin)
 
         layout.addLayout(form)
@@ -155,6 +168,16 @@ class ExportDialog(QDialog):
         self._export_btn.clicked.connect(self._on_export)
         self._cancel_btn.clicked.connect(self._on_cancel)
         layout.addWidget(self._button_box)
+
+    def _on_format_changed(self, new_format: str) -> None:
+        """Auto-update the output file extension when the format changes."""
+        current_path = self._output_edit.text().strip()
+        if not current_path:
+            return
+        path = Path(current_path)
+        new_ext = f".{new_format}"
+        if path.suffix.lower() in (".mp4", ".webm") and path.suffix.lower() != new_ext:
+            self._output_edit.setText(str(path.with_suffix(new_ext)))
 
     def _on_browse(self) -> None:
         default_dir = Path(__file__).resolve().parents[3] / "video"

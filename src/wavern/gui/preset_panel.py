@@ -4,7 +4,6 @@ import logging
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
-    QGroupBox,
     QHBoxLayout,
     QInputDialog,
     QLineEdit,
@@ -12,6 +11,7 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QMessageBox,
     QPushButton,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -37,6 +37,7 @@ class PresetPanel(QWidget):
         self.refresh_list()
 
     def _setup_ui(self) -> None:
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
 
@@ -49,7 +50,7 @@ class PresetPanel(QWidget):
         # Preset list
         self._preset_list = QListWidget()
         self._preset_list.itemClicked.connect(self._on_preset_clicked)
-        layout.addWidget(self._preset_list, stretch=1)
+        layout.addWidget(self._preset_list)
 
         # Buttons
         btn_layout = QHBoxLayout()

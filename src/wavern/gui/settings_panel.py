@@ -10,17 +10,17 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
     QFormLayout,
-    QGroupBox,
     QHBoxLayout,
     QLabel,
     QPushButton,
-    QScrollArea,
     QSpinBox,
     QVBoxLayout,
     QWidget,
 )
 
 from wavern.gui.background_picker import open_background_image
+from wavern.gui.collapsible_section import CollapsibleSection
+from wavern.gui.help_button import make_help_button
 from wavern.presets.schema import BackgroundConfig, ColorStop, Preset, VisualizationParams
 from wavern.visualizations.registry import VisualizationRegistry
 
@@ -39,31 +39,24 @@ class SettingsPanel(QWidget):
         self._widgets: dict[str, QWidget] = {}
         self._color_buttons: list[QPushButton] = []
         self._rebuilding: bool = False
+        self._section_states: dict[str, bool] = {}
 
         self._setup_ui()
 
     def _setup_ui(self) -> None:
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(4, 4, 4, 4)
-
-        # Scroll area for all settings
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-
-        self._content = QWidget()
-        self._content_layout = QVBoxLayout(self._content)
+        self._content_layout = QVBoxLayout(self)
+        self._content_layout.setContentsMargins(0, 0, 0, 0)
         self._content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-
-        scroll.setWidget(self._content)
-        main_layout.addWidget(scroll)
 
     def set_preset(self, preset: Preset) -> None:
         """Rebuild the settings panel for the given preset."""
         self._preset = preset
         self._widgets.clear()
         self._color_buttons.clear()
-        self._rebuilding = True  # Block signals during rebuild
+        self._rebuilding = True
+
+        # Save section expanded states before clearing
+        self._save_section_states()
 
         # Clear existing widgets
         while self._content_layout.count():
@@ -71,53 +64,99 @@ class SettingsPanel(QWidget):
             if item.widget():
                 item.widget().deleteLater()
 
-        # Visualization type selector
-        viz_group = QGroupBox("Visualization")
-        viz_layout = QFormLayout(viz_group)
+        # --- Visualization (type + parameters merged) ---
+        self._viz_section = CollapsibleSection("Visualization")
+        viz_content = QWidget()
+        viz_layout = QVBoxLayout(viz_content)
+        viz_layout.setContentsMargins(4, 0, 4, 0)
 
+        # Type selector
+        type_form = QFormLayout()
         registry = VisualizationRegistry()
         self._viz_combo = QComboBox()
-        # Block signals while populating to prevent spurious callbacks
         self._viz_combo.blockSignals(True)
         for info in registry.list_all():
             self._viz_combo.addItem(info["display_name"], info["name"])
 
-        # Set current
         current_type = preset.visualization.visualization_type
         for i in range(self._viz_combo.count()):
             if self._viz_combo.itemData(i) == current_type:
                 self._viz_combo.setCurrentIndex(i)
                 break
         self._viz_combo.blockSignals(False)
-
         self._viz_combo.currentIndexChanged.connect(self._on_viz_type_changed)
-        viz_layout.addRow("Type:", self._viz_combo)
-        self._content_layout.addWidget(viz_group)
+        type_form.addRow("Type:", self._viz_combo)
+        viz_layout.addLayout(type_form)
 
-        # Visualization parameters
-        self._params_group = QGroupBox("Parameters")
-        self._params_layout = QFormLayout(self._params_group)
+        # Parameters
+        self._params_container = QWidget()
+        self._params_layout = QFormLayout(self._params_container)
+        self._params_layout.setContentsMargins(0, 4, 0, 0)
         self._build_param_widgets(current_type, preset.visualization.params)
-        self._content_layout.addWidget(self._params_group)
+        viz_layout.addWidget(self._params_container)
 
-        # Colors
+        self._viz_section.set_content(viz_content)
+        self._content_layout.addWidget(self._viz_section)
+
+        # --- Colors ---
+        self._color_section = CollapsibleSection("Colors")
         self._build_color_section(preset)
+        self._content_layout.addWidget(self._color_section)
 
-        # Background
+        # --- Background ---
+        self._bg_section = CollapsibleSection("Background")
         self._build_background_section(preset)
+        self._content_layout.addWidget(self._bg_section)
 
-        # Analysis settings
+        # --- Analysis ---
+        self._analysis_section = CollapsibleSection("Analysis")
         self._build_analysis_section(preset)
+        self._content_layout.addWidget(self._analysis_section)
+
+        # Restore section states
+        self._restore_section_states()
 
         self._rebuilding = False
 
+    def _save_section_states(self) -> None:
+        """Save expanded/collapsed state of all sections."""
+        for section_name in ("Visualization", "Colors", "Background", "Analysis"):
+            attr_map = {
+                "Visualization": "_viz_section",
+                "Colors": "_color_section",
+                "Background": "_bg_section",
+                "Analysis": "_analysis_section",
+            }
+            attr = attr_map[section_name]
+            if hasattr(self, attr):
+                self._section_states[section_name] = getattr(self, attr).is_expanded()
+
+    def _restore_section_states(self) -> None:
+        """Restore expanded/collapsed state of all sections."""
+        for section_name, expanded in self._section_states.items():
+            attr_map = {
+                "Visualization": "_viz_section",
+                "Colors": "_color_section",
+                "Background": "_bg_section",
+                "Analysis": "_analysis_section",
+            }
+            attr = attr_map.get(section_name)
+            if attr and hasattr(self, attr):
+                getattr(self, attr).set_expanded(expanded)
+
     def _build_param_widgets(self, viz_type: str, current_params: dict[str, Any]) -> None:
         """Build parameter widgets from the visualization's PARAM_SCHEMA."""
-        # Clear existing
+        # Clear existing (handles both direct widgets and nested layouts from help buttons)
         while self._params_layout.count():
             item = self._params_layout.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
+            elif item.layout():
+                sub = item.layout()
+                while sub.count():
+                    sub_item = sub.takeAt(0)
+                    if sub_item.widget():
+                        sub_item.widget().deleteLater()
 
         registry = VisualizationRegistry()
         try:
@@ -133,19 +172,27 @@ class SettingsPanel(QWidget):
 
             widget: QWidget
 
+            range_label: QLabel | None = None
+
             if param_type == "int":
                 widget = QSpinBox()
-                widget.setRange(schema.get("min", 0), schema.get("max", 9999))
+                p_min = schema.get("min", 0)
+                p_max = schema.get("max", 9999)
+                widget.setRange(p_min, p_max)
                 widget.setValue(int(current_val or 0))
                 widget.valueChanged.connect(lambda v, n=param_name: self._on_param_changed(n, v))
+                range_label = self._make_range_label(f"<{p_min}, {p_max}>")
 
             elif param_type == "float":
                 widget = QDoubleSpinBox()
-                widget.setRange(schema.get("min", 0.0), schema.get("max", 100.0))
+                p_min = schema.get("min", 0.0)
+                p_max = schema.get("max", 100.0)
+                widget.setRange(p_min, p_max)
                 widget.setSingleStep(0.01)
                 widget.setDecimals(3)
                 widget.setValue(float(current_val or 0.0))
                 widget.valueChanged.connect(lambda v, n=param_name: self._on_param_changed(n, v))
+                range_label = self._make_range_label(f"<{p_min:g}, {p_max:g}>")
 
             elif param_type == "bool":
                 widget = QCheckBox()
@@ -170,25 +217,41 @@ class SettingsPanel(QWidget):
                 continue
 
             self._widgets[param_name] = widget
-            self._params_layout.addRow(f"{label}:", widget)
+            description = schema.get("description")
+            if range_label or description:
+                row = QHBoxLayout()
+                row.addWidget(widget, stretch=1)
+                if range_label:
+                    row.addWidget(range_label)
+                if description:
+                    row.addWidget(make_help_button(description))
+                self._params_layout.addRow(f"{label}:", row)
+            else:
+                self._params_layout.addRow(f"{label}:", widget)
+
+    @staticmethod
+    def _make_range_label(text: str) -> QLabel:
+        """Create a small muted label showing a parameter's min–max range."""
+        lbl = QLabel(text)
+        lbl.setStyleSheet("color: #666; font-size: 10px;")
+        return lbl
 
     def _build_color_section(self, preset: Preset) -> None:
         """Build color palette editor."""
-        color_group = QGroupBox("Colors")
-        color_layout = QVBoxLayout(color_group)
+        color_content = QWidget()
+        color_layout = QVBoxLayout(color_content)
+        color_layout.setContentsMargins(4, 0, 4, 0)
 
         for i, color_hex in enumerate(preset.color_palette):
             row = QHBoxLayout()
 
-            # Move up button
-            up_btn = QPushButton("▲")
+            up_btn = QPushButton("\u25B2")
             up_btn.setFixedSize(24, 24)
             up_btn.setEnabled(i > 0)
             up_btn.clicked.connect(lambda _, idx=i: self._on_move_color_up(idx))
             row.addWidget(up_btn)
 
-            # Move down button
-            down_btn = QPushButton("▼")
+            down_btn = QPushButton("\u25BC")
             down_btn.setFixedSize(24, 24)
             down_btn.setEnabled(i < len(preset.color_palette) - 1)
             down_btn.clicked.connect(lambda _, idx=i: self._on_move_color_down(idx))
@@ -215,12 +278,13 @@ class SettingsPanel(QWidget):
         add_btn.clicked.connect(self._on_add_color)
         color_layout.addWidget(add_btn)
 
-        self._content_layout.addWidget(color_group)
+        self._color_section.set_content(color_content)
 
     def _build_background_section(self, preset: Preset) -> None:
         """Build background settings with type-specific widgets."""
-        self._bg_group = QGroupBox("Background")
-        self._bg_layout = QFormLayout(self._bg_group)
+        bg_content = QWidget()
+        self._bg_layout = QFormLayout(bg_content)
+        self._bg_layout.setContentsMargins(4, 0, 4, 0)
 
         self._bg_type_combo = QComboBox()
         self._bg_type_combo.blockSignals(True)
@@ -240,7 +304,7 @@ class SettingsPanel(QWidget):
         self._bg_layout.addRow(self._bg_type_container)
 
         self._rebuild_bg_type_widgets(preset.background)
-        self._content_layout.addWidget(self._bg_group)
+        self._bg_section.set_content(bg_content)
 
     def _rebuild_bg_type_widgets(self, bg: BackgroundConfig) -> None:
         """Rebuild the type-specific background widgets inside the container."""
@@ -250,7 +314,6 @@ class SettingsPanel(QWidget):
             if item.widget():
                 item.widget().deleteLater()
             elif item.layout():
-                # Clear sub-layout items
                 sub = item.layout()
                 while sub.count():
                     sub_item = sub.takeAt(0)
@@ -324,31 +387,53 @@ class SettingsPanel(QWidget):
 
     def _build_analysis_section(self, preset: Preset) -> None:
         """Build audio analysis settings."""
-        analysis_group = QGroupBox("Analysis")
-        analysis_layout = QFormLayout(analysis_group)
+        analysis_content = QWidget()
+        analysis_layout = QFormLayout(analysis_content)
+        analysis_layout.setContentsMargins(4, 0, 4, 0)
 
         self._fft_size_spin = QSpinBox()
         self._fft_size_spin.setRange(256, 16384)
         self._fft_size_spin.setSingleStep(256)
         self._fft_size_spin.setValue(preset.fft_size)
         self._fft_size_spin.valueChanged.connect(self._on_analysis_changed)
-        analysis_layout.addRow("FFT Size:", self._fft_size_spin)
+        fft_row = QHBoxLayout()
+        fft_row.addWidget(self._fft_size_spin, stretch=1)
+        fft_row.addWidget(self._make_range_label("<256, 16384>"))
+        fft_row.addWidget(make_help_button(
+            "Number of frequency bins. Higher = finer frequency detail but slower response. "
+            "Must be power of 2. 2048=balanced, 4096=detailed, 8192=very detailed."
+        ))
+        analysis_layout.addRow("FFT Size:", fft_row)
 
         self._smoothing_spin = QDoubleSpinBox()
         self._smoothing_spin.setRange(0.0, 0.99)
         self._smoothing_spin.setSingleStep(0.05)
         self._smoothing_spin.setValue(preset.smoothing)
         self._smoothing_spin.valueChanged.connect(self._on_analysis_changed)
-        analysis_layout.addRow("Smoothing:", self._smoothing_spin)
+        smoothing_row = QHBoxLayout()
+        smoothing_row.addWidget(self._smoothing_spin, stretch=1)
+        smoothing_row.addWidget(self._make_range_label("<0, 0.99>"))
+        smoothing_row.addWidget(make_help_button(
+            "Temporal smoothing (0\u20130.99). Higher values make visuals react more slowly. "
+            "0=raw, 0.3=moderate, 0.8=very smooth."
+        ))
+        analysis_layout.addRow("Smoothing:", smoothing_row)
 
         self._beat_sens_spin = QDoubleSpinBox()
         self._beat_sens_spin.setRange(0.1, 5.0)
         self._beat_sens_spin.setSingleStep(0.1)
         self._beat_sens_spin.setValue(preset.beat_sensitivity)
         self._beat_sens_spin.valueChanged.connect(self._on_analysis_changed)
-        analysis_layout.addRow("Beat Sensitivity:", self._beat_sens_spin)
+        beat_row = QHBoxLayout()
+        beat_row.addWidget(self._beat_sens_spin, stretch=1)
+        beat_row.addWidget(self._make_range_label("<0.1, 5.0>"))
+        beat_row.addWidget(make_help_button(
+            "How easily beats are detected. Lower=only strong beats, "
+            "higher=triggers on quiet transients. 1.0=default."
+        ))
+        analysis_layout.addRow("Beat Sensitivity:", beat_row)
 
-        self._content_layout.addWidget(analysis_group)
+        self._analysis_section.set_content(analysis_content)
 
     def _on_viz_type_changed(self, index: int) -> None:
         if self._preset is None or self._rebuilding:
@@ -474,7 +559,6 @@ class SettingsPanel(QWidget):
     def _on_move_color_up(self, index: int) -> None:
         if self._preset is None or index <= 0:
             return
-        # Swap with previous color
         self._preset.color_palette[index], self._preset.color_palette[index - 1] = (
             self._preset.color_palette[index - 1],
             self._preset.color_palette[index],
@@ -485,7 +569,6 @@ class SettingsPanel(QWidget):
     def _on_move_color_down(self, index: int) -> None:
         if self._preset is None or index >= len(self._preset.color_palette) - 1:
             return
-        # Swap with next color
         self._preset.color_palette[index], self._preset.color_palette[index + 1] = (
             self._preset.color_palette[index + 1],
             self._preset.color_palette[index],

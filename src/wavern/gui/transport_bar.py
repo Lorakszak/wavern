@@ -1,13 +1,46 @@
 """Transport bar — play/pause/seek controls and time display."""
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
     QSlider,
+    QStyleOptionSlider,
+    QStyle,
     QWidget,
 )
+
+
+class _ClickableSlider(QSlider):
+    """QSlider that jumps to the clicked position instead of page-stepping."""
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            opt = QStyleOptionSlider()
+            self.initStyleOption(opt)
+            groove = self.style().subControlRect(
+                QStyle.ComplexControl.CC_Slider, opt,
+                QStyle.SubControl.SC_SliderGroove, self,
+            )
+            if self.orientation() == Qt.Orientation.Horizontal:
+                pos = event.position().x()
+                value = QStyle.sliderValueFromPosition(
+                    self.minimum(), self.maximum(),
+                    int(pos - groove.x()), groove.width(),
+                )
+            else:
+                pos = event.position().y()
+                value = QStyle.sliderValueFromPosition(
+                    self.minimum(), self.maximum(),
+                    int(pos - groove.y()), groove.height(),
+                    upsideDown=True,
+                )
+            self.setValue(value)
+            self.sliderMoved.emit(value)
+            event.accept()
+        super().mousePressEvent(event)
 
 
 def _format_time(seconds: float) -> str:
@@ -47,7 +80,7 @@ class TransportBar(QWidget):
         layout.addWidget(self._time_label)
 
         # Seek slider
-        self._seek_slider = QSlider(Qt.Orientation.Horizontal)
+        self._seek_slider = _ClickableSlider(Qt.Orientation.Horizontal)
         self._seek_slider.setRange(0, 10000)
         self._seek_slider.setValue(0)
         self._seek_slider.sliderPressed.connect(self._on_seek_start)
@@ -96,3 +129,4 @@ class TransportBar(QWidget):
     def _on_slider_moved(self, value: int) -> None:
         timestamp = (value / 10000.0) * self._duration
         self._time_label.setText(_format_time(timestamp))
+        self.seek_requested.emit(timestamp)

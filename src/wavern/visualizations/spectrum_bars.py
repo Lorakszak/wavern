@@ -2,6 +2,8 @@
 
 from typing import Any, ClassVar
 
+import math
+
 import numpy as np
 import moderngl
 
@@ -53,33 +55,71 @@ class SpectrumBarsVisualization(AbstractVisualization):
 
     PARAM_SCHEMA: ClassVar[dict[str, dict[str, Any]]] = {
         "bar_count": {
-            "type": "int", "default": 64, "min": 8, "max": 128,
+            "type": "int", "default": 64, "min": 4, "max": 256,
             "label": "Bar Count",
+            "description": "Number of frequency bars. More bars = finer frequency resolution.",
         },
         "bar_width_ratio": {
             "type": "float", "default": 0.75, "min": 0.1, "max": 1.0,
             "label": "Bar Width",
+            "description": "Width of each bar relative to its slot. 1.0 = no gap between bars.",
         },
         "mirror": {
             "type": "bool", "default": False,
             "label": "Mirror",
+            "description": "Mirror bars vertically around the center line.",
         },
         "min_bar_height": {
             "type": "float", "default": 0.01, "min": 0.0, "max": 0.1,
             "label": "Min Height",
+            "description": "Minimum bar height when silent. Keeps bars visible at low volume.",
         },
         "max_bar_height": {
-            "type": "float", "default": 0.95, "min": 0.3, "max": 1.0,
+            "type": "float", "default": 0.95, "min": 0.1, "max": 1.0,
             "label": "Max Height",
+            "description": "Maximum bar height at peak volume.",
         },
         "frequency_scale": {
             "type": "choice", "default": "logarithmic",
             "choices": ["linear", "logarithmic"],
             "label": "Frequency Scale",
+            "description": "Logarithmic groups low frequencies together (natural). Linear spaces equally.",
         },
         "gravity": {
             "type": "float", "default": 0.85, "min": 0.0, "max": 0.99,
             "label": "Gravity (smoothing)",
+            "description": "How slowly bars fall after a peak. Higher = slower decay.",
+        },
+        "color_mode": {
+            "type": "choice", "default": "position",
+            "choices": ["position", "height"],
+            "label": "Color Mode",
+            "description": "Color by bar position (left-to-right gradient) or by bar height.",
+        },
+        "intensity": {
+            "type": "float", "default": 1.0, "min": 0.5, "max": 2.0,
+            "label": "Intensity",
+            "description": "Brightness multiplier for bar colors.",
+        },
+        "offset_x": {
+            "type": "float", "default": 0.0, "min": -1.0, "max": 1.0,
+            "label": "Offset X",
+            "description": "Horizontal position offset.",
+        },
+        "offset_y": {
+            "type": "float", "default": 0.0, "min": -1.0, "max": 1.0,
+            "label": "Offset Y",
+            "description": "Vertical position offset.",
+        },
+        "scale": {
+            "type": "float", "default": 1.0, "min": 0.1, "max": 3.0,
+            "label": "Scale",
+            "description": "Zoom level. Values below 1.0 zoom in, above 1.0 zoom out.",
+        },
+        "rotation": {
+            "type": "float", "default": 0.0, "min": -180.0, "max": 180.0,
+            "label": "Rotation",
+            "description": "Rotation angle in degrees.",
         },
     }
 
@@ -152,6 +192,12 @@ class SpectrumBarsVisualization(AbstractVisualization):
         self._set_uniform(prog, "u_min_height", self.get_param("min_bar_height", 0.01))
         self._set_uniform(prog, "u_max_height", self.get_param("max_bar_height", 0.95))
         self._set_uniform(prog, "u_mirror", 1 if self.get_param("mirror", False) else 0)
+        self._set_uniform(prog, "u_color_mode", 0 if self.get_param("color_mode", "position") == "position" else 1)
+        self._set_uniform(prog, "u_intensity", self.get_param("intensity", 1.0))
+
+        self._set_uniform(prog, "u_offset", (self.get_param("offset_x", 0.0), self.get_param("offset_y", 0.0)))
+        self._set_uniform(prog, "u_scale", self.get_param("scale", 1.0))
+        self._set_uniform(prog, "u_rotation", math.radians(self.get_param("rotation", 0.0)))
 
         # Upload colors from preset
         colors = self.params.params.get("_colors", [(0.0, 1.0, 0.67), (1.0, 0.0, 0.67)])

@@ -2,6 +2,8 @@
 
 from typing import Any, ClassVar
 
+import math
+
 import numpy as np
 import moderngl
 
@@ -23,20 +25,54 @@ class WaveformVisualization(AbstractVisualization):
 
     PARAM_SCHEMA: ClassVar[dict[str, dict[str, Any]]] = {
         "line_thickness": {
-            "type": "float", "default": 2.0, "min": 0.5, "max": 10.0,
+            "type": "float", "default": 2.0, "min": 0.1, "max": 50.0,
             "label": "Line Thickness",
+            "description": "Thickness of the waveform line in pixels.",
         },
         "filled": {
             "type": "bool", "default": False,
             "label": "Filled Mode",
+            "description": "Fill the area between the waveform and center line.",
         },
         "sample_count": {
-            "type": "int", "default": 512, "min": 64, "max": 1024,
+            "type": "int", "default": 512, "min": 32, "max": 2048,
             "label": "Sample Count",
+            "description": "Number of waveform samples. Higher = more detailed waveform shape.",
         },
         "amplitude_scale": {
-            "type": "float", "default": 1.0, "min": 0.1, "max": 5.0,
+            "type": "float", "default": 1.0, "min": 0.01, "max": 10.0,
             "label": "Amplitude Scale",
+            "description": "Vertical scale multiplier for the waveform amplitude.",
+        },
+        "glow_intensity": {
+            "type": "float", "default": 0.5, "min": 0.0, "max": 2.0,
+            "label": "Glow Intensity",
+            "description": "Strength of the glow effect around the waveform line.",
+        },
+        "wave_range": {
+            "type": "float", "default": 0.4, "min": 0.1, "max": 0.8,
+            "label": "Wave Range",
+            "description": "Vertical range the waveform occupies. Higher = taller wave displacement.",
+        },
+        "offset_x": {
+            "type": "float", "default": 0.0, "min": -1.0, "max": 1.0,
+            "label": "Offset X",
+            "description": "Horizontal position offset.",
+        },
+        "offset_y": {
+            "type": "float", "default": 0.0, "min": -1.0, "max": 1.0,
+            "label": "Offset Y",
+            "description": "Vertical position offset.",
+        },
+        "scale": {
+            "type": "float", "default": 1.0, "min": 0.1, "max": 3.0,
+            "label": "Scale",
+            "description": "Zoom level. Values below 1.0 zoom in, above 1.0 zoom out.",
+        },
+        "rotation": {
+            "type": "float", "default": 0.0, "min": -180.0, "max": 180.0,
+            "label": "Rotation",
+            "description": "Rotation angle in degrees.",
         },
     }
 
@@ -116,6 +152,11 @@ class WaveformVisualization(AbstractVisualization):
         self._set_uniform(prog, "u_resolution", resolution)
         self._set_uniform(prog, "u_amplitude", frame.amplitude)
         self._set_uniform(prog, "u_time", frame.timestamp)
+        self._set_uniform(prog, "u_glow_intensity", self.get_param("glow_intensity", 0.5))
+        self._set_uniform(prog, "u_wave_range", self.get_param("wave_range", 0.4))
+        self._set_uniform(prog, "u_offset", (self.get_param("offset_x", 0.0), self.get_param("offset_y", 0.0)))
+        self._set_uniform(prog, "u_scale", self.get_param("scale", 1.0))
+        self._set_uniform(prog, "u_rotation", math.radians(self.get_param("rotation", 0.0)))
 
         color = self.params.params.get("_primary_color", (0.0, 1.0, 0.67))
         self._set_uniform(prog, "u_color", color)

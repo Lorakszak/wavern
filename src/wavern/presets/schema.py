@@ -42,6 +42,16 @@ class BackgroundConfig(BaseModel):
     )
 
 
+class ProjectSettings(BaseModel):
+    """Project-wide output settings — separate from visualization presets."""
+
+    resolution: tuple[int, int] = (1920, 1080)
+    fps: int = 60
+    container: str = "mp4"  # "mp4" | "webm"
+    crf: int = 18
+    output_dir: str = ""  # default: ./video/
+
+
 class VisualizationParams(BaseModel):
     """Visualization type and its tunable parameters."""
 

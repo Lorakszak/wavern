@@ -2,6 +2,8 @@
 
 from typing import Any, ClassVar
 
+import math
+
 import numpy as np
 import moderngl
 
@@ -24,24 +26,59 @@ class CircularSpectrumVisualization(AbstractVisualization):
 
     PARAM_SCHEMA: ClassVar[dict[str, dict[str, Any]]] = {
         "bar_count": {
-            "type": "int", "default": 64, "min": 16, "max": 128,
+            "type": "int", "default": 64, "min": 8, "max": 256,
             "label": "Bar Count",
+            "description": "Number of radial bars around the circle.",
         },
         "inner_radius": {
-            "type": "float", "default": 0.2, "min": 0.05, "max": 0.5,
+            "type": "float", "default": 0.2, "min": 0.01, "max": 0.8,
             "label": "Inner Radius",
+            "description": "Radius of the inner circle where bars start.",
         },
         "bar_length": {
-            "type": "float", "default": 0.3, "min": 0.05, "max": 0.6,
+            "type": "float", "default": 0.3, "min": 0.01, "max": 1.0,
             "label": "Bar Length",
+            "description": "Maximum length of bars extending outward from the circle.",
         },
         "rotation_speed": {
-            "type": "float", "default": 0.2, "min": 0.0, "max": 2.0,
+            "type": "float", "default": 0.2, "min": 0.0, "max": 10.0,
             "label": "Rotation Speed",
+            "description": "Speed of continuous rotation. 0 = stationary.",
         },
         "gravity": {
             "type": "float", "default": 0.85, "min": 0.0, "max": 0.99,
             "label": "Gravity (smoothing)",
+            "description": "How slowly bars fall after a peak. Higher = slower decay.",
+        },
+        "bar_width_ratio": {
+            "type": "float", "default": 0.7, "min": 0.1, "max": 1.0,
+            "label": "Bar Width",
+            "description": "Angular width of each bar relative to its slot.",
+        },
+        "glow_intensity": {
+            "type": "float", "default": 0.5, "min": 0.0, "max": 2.0,
+            "label": "Glow Intensity",
+            "description": "Strength of tip glow and inner ring glow effects.",
+        },
+        "rotation_offset": {
+            "type": "float", "default": 0.0, "min": 0.0, "max": 360.0,
+            "label": "Rotation Offset",
+            "description": "Static rotation angle in degrees.",
+        },
+        "center_x": {
+            "type": "float", "default": 0.0, "min": -1.0, "max": 1.0,
+            "label": "Center X",
+            "description": "Horizontal center offset for the circle.",
+        },
+        "center_y": {
+            "type": "float", "default": 0.0, "min": -1.0, "max": 1.0,
+            "label": "Center Y",
+            "description": "Vertical center offset for the circle.",
+        },
+        "scale": {
+            "type": "float", "default": 1.0, "min": 0.1, "max": 3.0,
+            "label": "Scale",
+            "description": "Zoom level. Values below 1.0 zoom in, above 1.0 zoom out.",
         },
     }
 
@@ -113,6 +150,11 @@ class CircularSpectrumVisualization(AbstractVisualization):
         self._set_uniform(prog, "u_resolution", resolution)
         self._set_uniform(prog, "u_time", frame.timestamp)
         self._set_uniform(prog, "u_amplitude", frame.amplitude)
+        self._set_uniform(prog, "u_bar_width_ratio", self.get_param("bar_width_ratio", 0.7))
+        self._set_uniform(prog, "u_glow_intensity", self.get_param("glow_intensity", 0.5))
+        self._set_uniform(prog, "u_rotation_offset", math.radians(self.get_param("rotation_offset", 0.0)))
+        self._set_uniform(prog, "u_center_offset", (self.get_param("center_x", 0.0), self.get_param("center_y", 0.0)))
+        self._set_uniform(prog, "u_viz_scale", self.get_param("scale", 1.0))
 
         colors = self.params.params.get("_colors", [(0.0, 1.0, 0.67), (1.0, 0.0, 0.67)])
         color_data = np.zeros((8, 3), dtype="f4")

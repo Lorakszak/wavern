@@ -10,6 +10,11 @@ uniform vec2 u_resolution;
 uniform float u_time;
 uniform float u_rotation_speed;
 uniform float u_amplitude;
+uniform float u_bar_width_ratio;
+uniform float u_glow_intensity;
+uniform float u_rotation_offset;
+uniform vec2 u_center_offset;
+uniform float u_viz_scale;
 
 in vec2 v_texcoord;
 out vec4 fragColor;
@@ -33,11 +38,18 @@ void main() {
     float aspect = u_resolution.x / u_resolution.y;
     uv.x *= aspect;
 
+    // Apply center offset
+    uv -= u_center_offset;
+
+    // Apply scale to radii
+    float scaled_inner = u_inner_radius * u_viz_scale;
+    float scaled_bar_length = u_bar_length * u_viz_scale;
+
     float dist = length(uv);
     float angle = atan(uv.y, uv.x) + PI; // [0, 2PI]
 
-    // Apply rotation
-    angle = mod(angle + u_time * u_rotation_speed, 2.0 * PI);
+    // Apply rotation (dynamic + static offset)
+    angle = mod(angle + u_time * u_rotation_speed + u_rotation_offset, 2.0 * PI);
 
     // Map angle to bar index
     float bar_angle = 2.0 * PI / float(u_bar_count);
@@ -48,7 +60,7 @@ void main() {
     float angle_diff = abs(angle - bar_center_angle);
 
     // Bar width (angular)
-    float bar_angular_width = bar_angle * 0.7;
+    float bar_angular_width = bar_angle * u_bar_width_ratio;
 
     if (angle_diff > bar_angular_width * 0.5) {
         fragColor = vec4(0.0);
@@ -56,10 +68,10 @@ void main() {
     }
 
     float magnitude = u_magnitudes[bar_idx];
-    float outer_radius = u_inner_radius + magnitude * u_bar_length;
+    float outer_radius = scaled_inner + magnitude * scaled_bar_length;
 
-    if (dist >= u_inner_radius && dist <= outer_radius) {
-        float t = (dist - u_inner_radius) / (outer_radius - u_inner_radius);
+    if (dist >= scaled_inner && dist <= outer_radius) {
+        float t = (dist - scaled_inner) / (outer_radius - scaled_inner);
         float bar_pos = float(bar_idx) / float(u_bar_count);
         vec3 color = get_color(bar_pos);
 
@@ -68,13 +80,13 @@ void main() {
         float intensity = (0.7 + 0.3 * t) * edge_fade;
 
         // Glow at tips
-        float tip_glow = smoothstep(0.8, 1.0, t) * magnitude * 0.5;
+        float tip_glow = smoothstep(0.8, 1.0, t) * magnitude * u_glow_intensity;
         color += tip_glow;
 
         fragColor = vec4(color * intensity, 1.0);
-    } else if (dist < u_inner_radius && dist > u_inner_radius - 0.005) {
+    } else if (dist < scaled_inner && dist > scaled_inner - 0.005) {
         // Inner ring glow
-        float ring_glow = u_amplitude * 0.3;
+        float ring_glow = u_amplitude * u_glow_intensity * 0.6;
         vec3 color = get_color(angle / (2.0 * PI));
         fragColor = vec4(color * ring_glow, ring_glow);
     } else {

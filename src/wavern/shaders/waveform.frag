@@ -8,6 +8,11 @@ uniform vec2 u_resolution;
 uniform float u_amplitude;
 uniform float u_time;
 uniform int u_filled;
+uniform float u_glow_intensity;
+uniform float u_wave_range;
+uniform vec2 u_offset;
+uniform float u_scale;
+uniform float u_rotation;
 
 in vec2 v_texcoord;
 out vec4 fragColor;
@@ -19,11 +24,24 @@ float get_sample(float x) {
 void main() {
     vec2 uv = v_texcoord;
 
+    // Apply transform
+    uv -= 0.5;
+    uv /= u_scale;
+    float c = cos(u_rotation), s = sin(u_rotation);
+    uv = mat2(c, s, -s, c) * uv;
+    uv += 0.5;
+    uv -= u_offset;
+
+    if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+        fragColor = vec4(0.0);
+        return;
+    }
+
     // Sample waveform at current x via texture lookup (hardware-interpolated)
     float sample_val = get_sample(uv.x);
 
     // Map sample value to y position (centered at 0.5)
-    float wave_y = 0.5 + sample_val * 0.4;
+    float wave_y = 0.5 + sample_val * u_wave_range;
 
     // Pixel size for anti-aliased line thickness
     float pixel_y = 1.0 / u_resolution.y;
@@ -50,7 +68,7 @@ void main() {
             fragColor = vec4(glow_color, alpha);
         } else {
             // Glow effect
-            float glow = exp(-dist * dist * 500.0) * u_amplitude * 0.3;
+            float glow = exp(-dist * dist * 500.0) * u_amplitude * u_glow_intensity;
             if (glow > 0.01) {
                 fragColor = vec4(u_color * glow, glow);
             } else {
