@@ -20,9 +20,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from wavern.presets.schema import BackgroundConfig, Preset, VisualizationParams
-from wavern.utils.color import hex_to_rgb
-from wavern.visualizations.base import AbstractVisualization
+from wavern.presets.schema import Preset, VisualizationParams
 from wavern.visualizations.registry import VisualizationRegistry
 
 logger = logging.getLogger(__name__)
@@ -112,9 +110,7 @@ class SettingsPanel(QWidget):
 
         self._rebuilding = False
 
-    def _build_param_widgets(
-        self, viz_type: str, current_params: dict[str, Any]
-    ) -> None:
+    def _build_param_widgets(self, viz_type: str, current_params: dict[str, Any]) -> None:
         """Build parameter widgets from the visualization's PARAM_SCHEMA."""
         # Clear existing
         while self._params_layout.count():
@@ -140,9 +136,7 @@ class SettingsPanel(QWidget):
                 widget = QSpinBox()
                 widget.setRange(schema.get("min", 0), schema.get("max", 9999))
                 widget.setValue(int(current_val or 0))
-                widget.valueChanged.connect(
-                    lambda v, n=param_name: self._on_param_changed(n, v)
-                )
+                widget.valueChanged.connect(lambda v, n=param_name: self._on_param_changed(n, v))
 
             elif param_type == "float":
                 widget = QDoubleSpinBox()
@@ -150,9 +144,7 @@ class SettingsPanel(QWidget):
                 widget.setSingleStep(0.01)
                 widget.setDecimals(3)
                 widget.setValue(float(current_val or 0.0))
-                widget.valueChanged.connect(
-                    lambda v, n=param_name: self._on_param_changed(n, v)
-                )
+                widget.valueChanged.connect(lambda v, n=param_name: self._on_param_changed(n, v))
 
             elif param_type == "bool":
                 widget = QCheckBox()
@@ -170,9 +162,7 @@ class SettingsPanel(QWidget):
                     if idx >= 0:
                         widget.setCurrentIndex(idx)
                 widget.currentIndexChanged.connect(
-                    lambda _, n=param_name, w=widget: self._on_param_changed(
-                        n, w.currentData()
-                    )
+                    lambda _, n=param_name, w=widget: self._on_param_changed(n, w.currentData())
                 )
 
             else:
@@ -188,6 +178,21 @@ class SettingsPanel(QWidget):
 
         for i, color_hex in enumerate(preset.color_palette):
             row = QHBoxLayout()
+
+            # Move up button
+            up_btn = QPushButton("▲")
+            up_btn.setFixedSize(24, 24)
+            up_btn.setEnabled(i > 0)
+            up_btn.clicked.connect(lambda _, idx=i: self._on_move_color_up(idx))
+            row.addWidget(up_btn)
+
+            # Move down button
+            down_btn = QPushButton("▼")
+            down_btn.setFixedSize(24, 24)
+            down_btn.setEnabled(i < len(preset.color_palette) - 1)
+            down_btn.clicked.connect(lambda _, idx=i: self._on_move_color_down(idx))
+            row.addWidget(down_btn)
+
             btn = QPushButton()
             btn.setFixedSize(30, 30)
             btn.setStyleSheet(f"background-color: {color_hex}; border: 1px solid #555;")
@@ -267,9 +272,7 @@ class SettingsPanel(QWidget):
         if self._preset is None or self._rebuilding:
             return
         new_type = self._viz_combo.itemData(index)
-        self._preset.visualization = VisualizationParams(
-            visualization_type=new_type, params={}
-        )
+        self._preset.visualization = VisualizationParams(visualization_type=new_type, params={})
         self._build_param_widgets(new_type, {})
         self._emit_update()
 
@@ -330,6 +333,28 @@ class SettingsPanel(QWidget):
                 f"background-color: {hex_color}; border: 1px solid #555;"
             )
             self._emit_update()
+
+    def _on_move_color_up(self, index: int) -> None:
+        if self._preset is None or index <= 0:
+            return
+        # Swap with previous color
+        self._preset.color_palette[index], self._preset.color_palette[index - 1] = (
+            self._preset.color_palette[index - 1],
+            self._preset.color_palette[index],
+        )
+        self.set_preset(self._preset)
+        self._emit_update()
+
+    def _on_move_color_down(self, index: int) -> None:
+        if self._preset is None or index >= len(self._preset.color_palette) - 1:
+            return
+        # Swap with next color
+        self._preset.color_palette[index], self._preset.color_palette[index + 1] = (
+            self._preset.color_palette[index + 1],
+            self._preset.color_palette[index],
+        )
+        self.set_preset(self._preset)
+        self._emit_update()
 
     def _on_analysis_changed(self) -> None:
         if self._preset is None:
