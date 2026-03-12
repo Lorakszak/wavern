@@ -24,6 +24,8 @@ class AudioPlayer:
         self._position: int = 0  # current sample index
         self._playing: bool = False
         self._lock = threading.Lock()
+        self._volume: float = 1.0
+        self._muted: bool = False
 
     def load(self, audio_data: NDArray[np.float32], sample_rate: int) -> None:
         """Load audio data for playback."""
@@ -82,6 +84,22 @@ class AudioPlayer:
         return self._playing
 
     @property
+    def volume(self) -> float:
+        """Current volume level (0.0–1.0)."""
+        return self._volume
+
+    @volume.setter
+    def volume(self, value: float) -> None:
+        self._volume = max(0.0, min(1.0, value))
+
+    @property
+    def muted(self) -> bool:
+        return self._muted
+
+    def toggle_mute(self) -> None:
+        self._muted = not self._muted
+
+    @property
     def duration(self) -> float:
         if self._audio_data is None:
             return 0.0
@@ -111,12 +129,13 @@ class AudioPlayer:
                 self._playing = False
                 return
 
+            gain = 0.0 if self._muted else self._volume
             if end > len(self._audio_data):
                 valid = len(self._audio_data) - start
-                outdata[:valid, 0] = self._audio_data[start : start + valid]
+                outdata[:valid, 0] = self._audio_data[start : start + valid] * gain
                 outdata[valid:, 0] = 0
                 self._position = len(self._audio_data)
                 self._playing = False
             else:
-                outdata[:, 0] = self._audio_data[start:end]
+                outdata[:, 0] = self._audio_data[start:end] * gain
                 self._position = end

@@ -57,13 +57,13 @@ float wave(float x, float freq, float phase, float amp) {
 void main() {
     vec2 uv = v_texcoord;
 
-    // Apply transform
+    // Apply transform (offset in screen space, before scale)
     uv -= 0.5;
+    uv -= u_offset;
     uv /= u_scale;
     float c = cos(u_rotation), s = sin(u_rotation);
     uv = mat2(c, s, -s, c) * uv;
     uv += 0.5;
-    uv -= u_offset;
 
     if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
         fragColor = vec4(0.0);

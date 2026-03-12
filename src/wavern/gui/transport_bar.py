@@ -93,6 +93,11 @@ class TransportBar(QWidget):
         self._duration_label.setFixedWidth(45)
         layout.addWidget(self._duration_label)
 
+        # Volume indicator
+        self._volume_label = QLabel("Vol: 100%")
+        self._volume_label.setFixedWidth(70)
+        layout.addWidget(self._volume_label)
+
     def set_duration(self, duration: float) -> None:
         """Set the total duration in seconds."""
         self._duration = duration
@@ -125,6 +130,13 @@ class TransportBar(QWidget):
         value = self._seek_slider.value()
         timestamp = (value / 10000.0) * self._duration
         self.seek_requested.emit(timestamp)
+
+    def set_volume_display(self, volume: float, muted: bool) -> None:
+        """Update the volume indicator label."""
+        if muted:
+            self._volume_label.setText("Muted")
+        else:
+            self._volume_label.setText(f"Vol: {round(volume * 100)}%")
 
     def _on_slider_moved(self, value: int) -> None:
         timestamp = (value / 10000.0) * self._duration

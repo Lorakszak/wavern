@@ -83,7 +83,17 @@ uv run wavern list-visualizations   # show registered visualization types
 |----------|--------|
 | `Space` | Play / Pause |
 | `Left` / `Right` | Seek ±5 seconds |
+| `Shift+Left` / `Shift+Right` | Seek ±1 second |
 | `Home` | Go to start |
+| `0` – `9` | Jump to 0% – 90% of track |
+
+### Volume
+
+| Shortcut | Action |
+|----------|--------|
+| `Up` | Volume +5% |
+| `Down` | Volume −5% |
+| `M` | Mute / Unmute |
 
 ### File
 
@@ -100,12 +110,13 @@ uv run wavern list-visualizations   # show registered visualization types
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl+B` | Toggle Sidebar |
-| `F11` | Toggle Fullscreen |
+| `F` / `F11` | Toggle Fullscreen |
 
 ### Visualization
 
 | Shortcut | Action |
 |----------|--------|
+| `Tab` | Cycle to next visualization |
 | `Ctrl+1` | Switch to Spectrum Bars |
 | `Ctrl+2` | Switch to Classic Waveform |
 | `Ctrl+3` | Switch to Circular Spectrum |
