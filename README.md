@@ -1,4 +1,12 @@
-# Wavern
+# Wavern - Local Music Visualizer
+
+<p align="center">
+  <img src="assets/logo.jpeg" alt="Wavern logo" width="320"/>
+</p>
+
+[![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
+[![uv](https://img.shields.io/badge/uv-package%20manager-blueviolet)](https://docs.astral.sh/uv/)
 
 Highly customizable local music visualizer with real-time GPU-accelerated preview, preset system, and video export.
 
@@ -24,7 +32,7 @@ Highly customizable local music visualizer with real-time GPU-accelerated previe
 ## Installation
 
 ```bash
-git clone <repo-url> && cd wavern
+git clone https://github.com/Lorakszak/wavern && cd wavern
 uv sync
 ```
 
@@ -102,4 +110,4 @@ uv run ruff check src/    # lint
 
 ## License
 
-GPL-3.0
+[GPL-3.0](LICENSE)
