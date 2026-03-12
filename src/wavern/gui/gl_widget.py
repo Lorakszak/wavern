@@ -2,14 +2,16 @@
 
 import logging
 
+import numpy as np
 import moderngl
 from PySide6.QtCore import QTimer, Signal
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 
-from wavern.core.audio_analyzer import AudioAnalyzer, FrameAnalysis
+from wavern.core.audio_analyzer import AudioAnalyzer
 from wavern.core.audio_player import AudioPlayer
 from wavern.core.renderer import Renderer
 from wavern.presets.schema import Preset
+from wavern.shaders import load_shader
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +34,8 @@ class GLPreviewWidget(QOpenGLWidget):
         self._player: AudioPlayer | None = None
         self._preset: Preset | None = None
         self._target_fps: int = 60
+        self._checker_program: moderngl.Program | None = None
+        self._checker_vao: moderngl.VertexArray | None = None
 
     def set_analyzer(self, analyzer: AudioAnalyzer) -> None:
         self._analyzer = analyzer
@@ -88,7 +92,11 @@ class GLPreviewWidget(QOpenGLWidget):
 
         resolution = (self.width(), self.height())
         fbo = self._ctx.detect_framebuffer()
+
         self._renderer.render_frame(frame, fbo, resolution)
+
+        if self._preset and self._preset.background.type == "none":
+            self._render_checkerboard(fbo, resolution)
 
         self.frame_rendered.emit()
 
@@ -107,8 +115,64 @@ class GLPreviewWidget(QOpenGLWidget):
         if self._timer is not None:
             self._timer.stop()
 
+    def _ensure_checker_quad(self) -> None:
+        """Lazily compile the checkerboard shader and build the fullscreen quad VAO."""
+        if self._checker_program is not None:
+            return
+
+        vert_src = load_shader("common.vert")
+        frag_src = load_shader("checkerboard.frag")
+        self._checker_program = self._ctx.program(
+            vertex_shader=vert_src, fragment_shader=frag_src
+        )
+
+        vertices = np.array(
+            [
+                # x,    y,   u,   v
+                -1.0, -1.0, 0.0, 0.0,
+                 1.0, -1.0, 1.0, 0.0,
+                -1.0,  1.0, 0.0, 1.0,
+                 1.0,  1.0, 1.0, 1.0,
+            ],
+            dtype="f4",
+        )
+        vbo = self._ctx.buffer(vertices.tobytes())
+        self._checker_vao = self._ctx.vertex_array(
+            self._checker_program,
+            [(vbo, "2f 2f", "in_position", "in_texcoord")],
+        )
+
+    def _render_checkerboard(self, fbo: moderngl.Framebuffer, resolution: tuple[int, int]) -> None:
+        """Render a checkerboard pattern behind existing pixels using destination-over blending.
+
+        Destination-over: checker appears where dst alpha=0 (transparent), visualization
+        pixels (dst alpha>0) win. This keeps the checker behind the visualization without
+        clearing the framebuffer.
+        """
+        self._ensure_checker_quad()
+        fbo.use()
+        self._ctx.viewport = (0, 0, resolution[0], resolution[1])
+        # Destination-over blend: src_factor=ONE_MINUS_DST_ALPHA, dst_factor=ONE
+        self._ctx.enable(moderngl.BLEND)
+        self._ctx.blend_func = (moderngl.ONE_MINUS_DST_ALPHA, moderngl.ONE)
+        # Tile size in UV space: ~0.04 gives ~20px tiles on a 500px canvas
+        tile_size = 0.04
+        if "u_tile_size" in self._checker_program:
+            self._checker_program["u_tile_size"].value = tile_size
+        self._checker_vao.render(moderngl.TRIANGLE_STRIP)
+        # Restore standard blend state — renderer relies on BLEND staying enabled
+        # across frames (it only enables it, never disables). Using dest-over above
+        # would leave the wrong blend_func if we don't restore it here.
+        self._ctx.blend_func = (moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA)
+
     def cleanup(self) -> None:
         """Release GPU resources."""
         self.stop_preview()
+        if self._checker_vao is not None:
+            self._checker_vao.release()
+            self._checker_vao = None
+        if self._checker_program is not None:
+            self._checker_program.release()
+            self._checker_program = None
         if self._renderer is not None:
             self._renderer.cleanup()

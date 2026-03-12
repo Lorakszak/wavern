@@ -33,6 +33,13 @@ class BackgroundConfig(BaseModel):
     opacity: float = Field(default=1.0, ge=0.0, le=1.0)
     blur_radius: float = Field(default=0.0, ge=0.0)
     scale_mode: str = Field(default="cover", pattern=r"^(cover|contain|stretch|tile)$")
+    gradient_stops: list[ColorStop] = Field(
+        default_factory=lambda: [
+            ColorStop(position=0.0, color="#000000"),
+            ColorStop(position=1.0, color="#FFFFFF"),
+        ],
+        description="Color stops for gradient background type",
+    )
 
 
 class VisualizationParams(BaseModel):
