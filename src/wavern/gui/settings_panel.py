@@ -435,6 +435,12 @@ class SettingsPanel(QWidget):
 
         self._analysis_section.set_content(analysis_content)
 
+    def set_viz_by_index(self, index: int) -> None:
+        """Switch visualization type by combo index (0-based). No-op if out of range."""
+        if self._preset is None or index >= self._viz_combo.count():
+            return
+        self._viz_combo.setCurrentIndex(index)
+
     def _on_viz_type_changed(self, index: int) -> None:
         if self._preset is None or self._rebuilding:
             return

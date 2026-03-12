@@ -59,6 +59,10 @@ class PresetPanel(QWidget):
         self._save_btn.clicked.connect(self._on_save)
         btn_layout.addWidget(self._save_btn)
 
+        self._rename_btn = QPushButton("Rename")
+        self._rename_btn.clicked.connect(self._on_rename)
+        btn_layout.addWidget(self._rename_btn)
+
         self._delete_btn = QPushButton("Delete")
         self._delete_btn.clicked.connect(self._on_delete)
         btn_layout.addWidget(self._delete_btn)
@@ -119,6 +123,30 @@ class PresetPanel(QWidget):
             self.preset_saved.emit(name)
         except PresetError as e:
             QMessageBox.warning(self, "Save Error", str(e))
+
+    def _on_rename(self) -> None:
+        item = self._preset_list.currentItem()
+        if item is None:
+            QMessageBox.information(self, "Rename", "Select a preset to rename.")
+            return
+
+        old_name = item.data(Qt.ItemDataRole.UserRole)
+        new_name, ok = QInputDialog.getText(
+            self, "Rename Preset", "New name:", text=old_name
+        )
+        if not ok or not new_name or new_name == old_name:
+            return
+
+        try:
+            preset = self._manager.load(old_name)
+            preset.name = new_name
+            self._manager.save(preset)
+            self._manager.delete(old_name)
+            self.refresh_list()
+            if self._current_preset and self._current_preset.name == old_name:
+                self._current_preset.name = new_name
+        except PresetError as e:
+            QMessageBox.warning(self, "Rename Error", str(e))
 
     def _on_delete(self) -> None:
         item = self._preset_list.currentItem()

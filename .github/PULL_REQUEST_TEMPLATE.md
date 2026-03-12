@@ -25,7 +25,7 @@ uv run ruff check src/
 
 ## Checklist
 
-- [ ] All 27 tests pass (`uv run pytest tests/ -v`)
+- [ ] All tests pass (`uv run pytest tests/ -v`)
 - [ ] `uv run ruff check src/` reports no issues
 - [ ] New functions/methods have type hints on all parameters and return types
 - [ ] New public functions/methods have Google-style docstrings

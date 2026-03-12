@@ -1,6 +1,5 @@
 """Tests for preset schema validation."""
 
-import json
 
 import pytest
 from pydantic import ValidationError

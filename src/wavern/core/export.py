@@ -4,12 +4,11 @@ import logging
 import shutil
 import subprocess
 import tempfile
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
 import moderngl
-import numpy as np
 
 from wavern.core.audio_analyzer import AudioAnalyzer
 from wavern.core.audio_loader import AudioLoader

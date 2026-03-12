@@ -50,7 +50,7 @@ uv run pytest tests/ -v          # full suite
 uv run pytest tests/ -v -k foo   # run tests matching "foo"
 ```
 
-The suite must stay at **27 passing tests**. New visualizations and features require corresponding tests. Do not mock internal subsystems (renderer, audio analyzer) — use real objects.
+All existing tests must pass. New features and visualizations must include corresponding tests. Do not mock internal subsystems (renderer, audio analyzer) — use real objects.
 
 ## Linting
 
@@ -78,7 +78,7 @@ See `src/wavern/visualizations/spectrum_bars.py` as a reference implementation.
 
 ## Submitting a Pull Request
 
-1. Ensure all 27 tests pass: `uv run pytest tests/ -v`
+1. Ensure all tests pass: `uv run pytest tests/ -v`
 2. Ensure ruff is clean: `uv run ruff check src/`
 3. Fill out the [pull request template](.github/PULL_REQUEST_TEMPLATE.md)
 4. Open the PR against `main`

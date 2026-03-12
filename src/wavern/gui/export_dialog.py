@@ -69,7 +69,7 @@ class ExportDialog(QDialog):
         parent=None,
     ) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Export Video")
+        self.setWindowTitle("Render Video")
         self.setMinimumWidth(450)
         self._audio_path = audio_path
         self._preset = preset
@@ -134,7 +134,7 @@ class ExportDialog(QDialog):
 
         # Alpha hint
         if self._preset.background.type == "none":
-            alpha_hint = QLabel("Background: none → will export with transparency (WebM)")
+            alpha_hint = QLabel("Background: none → will render with transparency (WebM)")
             alpha_hint.setStyleSheet("color: #4FC3F7; font-style: italic;")
             form.addRow(alpha_hint)
 
@@ -160,7 +160,7 @@ class ExportDialog(QDialog):
         # Buttons
         self._button_box = QDialogButtonBox()
         self._export_btn = self._button_box.addButton(
-            "Export", QDialogButtonBox.ButtonRole.AcceptRole
+            "Render", QDialogButtonBox.ButtonRole.AcceptRole
         )
         self._cancel_btn = self._button_box.addButton(
             QDialogButtonBox.StandardButton.Cancel
@@ -194,7 +194,7 @@ class ExportDialog(QDialog):
     def _on_export(self) -> None:
         output_path = self._output_edit.text().strip()
         if not output_path:
-            QMessageBox.warning(self, "Export", "Please specify an output path.")
+            QMessageBox.warning(self, "Render", "Please specify an output path.")
             return
 
         container = self._format_combo.currentText()
@@ -204,9 +204,9 @@ class ExportDialog(QDialog):
         if has_alpha and container == "mp4":
             QMessageBox.warning(
                 self,
-                "Transparent Export",
+                "Transparent Render",
                 "MP4 (H.264) does not support transparency.\n"
-                "Switching to WebM (VP9) for alpha export.",
+                "Switching to WebM (VP9) for alpha render.",
             )
             container = "webm"
             self._format_combo.setCurrentIndex(
@@ -226,7 +226,7 @@ class ExportDialog(QDialog):
 
         self._export_btn.setEnabled(False)
         self._progress.setVisible(True)
-        self._status_label.setText("Exporting...")
+        self._status_label.setText("Rendering...")
 
         self._worker = ExportWorker(self._audio_path, self._preset, config)
         self._worker.progress.connect(self._on_progress)
@@ -242,16 +242,16 @@ class ExportDialog(QDialog):
 
     def _on_progress(self, value: float) -> None:
         self._progress.setValue(int(value * 100))
-        self._status_label.setText(f"Exporting... {int(value * 100)}%")
+        self._status_label.setText(f"Rendering... {int(value * 100)}%")
 
     def _on_finished(self, output_path: str) -> None:
         self._status_label.setText(f"Done: {output_path}")
         self._export_btn.setEnabled(True)
-        QMessageBox.information(self, "Export Complete", f"Video saved to:\n{output_path}")
+        QMessageBox.information(self, "Render Complete", f"Video saved to:\n{output_path}")
         self.accept()
 
     def _on_error(self, error_msg: str) -> None:
-        self._status_label.setText("Export failed")
+        self._status_label.setText("Render failed")
         self._export_btn.setEnabled(True)
         self._progress.setVisible(False)
-        QMessageBox.critical(self, "Export Error", error_msg)
+        QMessageBox.critical(self, "Render Error", error_msg)

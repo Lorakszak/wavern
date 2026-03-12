@@ -5,7 +5,7 @@
 - **Language**: Python 3.12 (strict: `>=3.12,<3.13`)
 - **Package manager**: `uv` (not pip)
 - **Build**: hatchling, src layout (`src/wavern/`)
-- **Tests**: `uv run pytest tests/ -v` (27 tests, all must pass)
+- **Tests**: `uv run pytest tests/ -v` (all tests must pass)
 - **Run GUI**: `uv run wavern gui`
 - **Lint**: ruff, line-length 100
 

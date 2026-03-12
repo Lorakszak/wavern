@@ -46,7 +46,7 @@ uv run wavern gui audio/song.mp3           # launch with audio file
 uv run wavern gui song.mp3 --preset "Neon Spectrum"  # launch with preset
 ```
 
-Import audio via **File > Import Audio** (Ctrl+O) or pass a file path as argument. Select presets from the sidebar, tweak parameters, colors, and background in the settings panel. Export via **File > Export Video** (Ctrl+E).
+Import audio via **File > Import Audio** (Ctrl+O) or pass a file path as argument. Select presets from the sidebar, tweak parameters, colors, and background in the settings panel. Render via **File > Render Video** (Ctrl+E).
 
 ### Headless Video Export
 
@@ -74,6 +74,43 @@ uv run wavern render audio/song.mp3 \
 uv run wavern list-presets          # show all available presets
 uv run wavern list-visualizations   # show registered visualization types
 ```
+
+## Keyboard Shortcuts
+
+### Playback & Transport
+
+| Shortcut | Action |
+|----------|--------|
+| `Space` | Play / Pause |
+| `Left` / `Right` | Seek ±5 seconds |
+| `Home` | Go to start |
+
+### File
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+O` | Import Audio |
+| `Ctrl+E` | Render Video |
+| `Ctrl+S` | Save Preset |
+| `Ctrl+Shift+S` | Save Preset As… |
+| `Ctrl+Q` | Quit |
+
+### View
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+B` | Toggle Sidebar |
+| `F11` | Toggle Fullscreen |
+
+### Visualization
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+1` | Switch to Spectrum Bars |
+| `Ctrl+2` | Switch to Classic Waveform |
+| `Ctrl+3` | Switch to Circular Spectrum |
+| `Ctrl+4` | Switch to Particle Burst |
+| `Ctrl+5` | Switch to Smoky Waves |
 
 ## Built-in Visualizations
 

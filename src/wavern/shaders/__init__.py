@@ -1,7 +1,6 @@
 """Shader loading utilities."""
 
 from importlib import resources
-from pathlib import Path
 
 
 def load_shader(name: str) -> str:

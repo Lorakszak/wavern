@@ -89,7 +89,6 @@ class VisualizationRegistry:
             sys.path.insert(0, str_path)
 
         for py_file in sorted(path.glob("*.py")):
-            module_name = f"wavern_plugin_{py_file.stem}"
             try:
                 importlib.import_module(py_file.stem)
                 logger.info("Loaded plugin: %s", py_file.name)

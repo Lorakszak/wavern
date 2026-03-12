@@ -57,7 +57,6 @@ def render(
     import wavern.visualizations  # noqa: F401
     from wavern.core.export import ExportConfig, ExportPipeline
     from wavern.presets.manager import PresetManager
-    from wavern.presets.schema import Preset
 
     # Parse resolution
     try:

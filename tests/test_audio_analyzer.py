@@ -1,6 +1,5 @@
 """Tests for AudioAnalyzer."""
 
-import numpy as np
 import pytest
 
 from wavern.core.audio_analyzer import AudioAnalyzer, FrameAnalysis

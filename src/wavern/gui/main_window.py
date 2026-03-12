@@ -1,11 +1,14 @@
 """Main application window — orchestrates all GUI components."""
 
+import copy
 import logging
+import re
 from pathlib import Path
 
 import numpy as np
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QAction, QIcon, QPixmap
+from PySide6.QtCore import QEvent, Qt, QTimer
+from PySide6.QtGui import QAction, QIcon, QKeySequence, QPixmap
+from PySide6.QtWidgets import QAbstractSpinBox, QApplication, QComboBox, QLineEdit
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QMainWindow,
@@ -88,6 +91,9 @@ class MainWindow(QMainWindow):
         # Start maximized
         self.showMaximized()
 
+        # Application-level event filter so transport keys work regardless of focus
+        QApplication.instance().installEventFilter(self)
+
         # Load audio if provided
         if audio_path:
             self._load_audio(audio_path)
@@ -103,7 +109,7 @@ class MainWindow(QMainWindow):
         import_action.triggered.connect(self._on_import_audio)
         file_menu.addAction(import_action)
 
-        export_action = QAction("Export Video...", self)
+        export_action = QAction("Render Video...", self)
         export_action.setShortcut("Ctrl+E")
         export_action.triggered.connect(self._on_export_video)
         file_menu.addAction(export_action)
@@ -115,6 +121,18 @@ class MainWindow(QMainWindow):
         quit_action.triggered.connect(self.close)
         file_menu.addAction(quit_action)
 
+        file_menu.addSeparator()
+
+        save_preset_action = QAction("Save Preset", self)
+        save_preset_action.setShortcut("Ctrl+S")
+        save_preset_action.triggered.connect(self._on_save_preset)
+        file_menu.addAction(save_preset_action)
+
+        save_preset_as_action = QAction("Save Preset As…", self)
+        save_preset_as_action.setShortcut(QKeySequence("Ctrl+Shift+S"))
+        save_preset_as_action.triggered.connect(self._on_save_preset_as)
+        file_menu.addAction(save_preset_as_action)
+
         # View menu
         view_menu = menubar.addMenu("View")
 
@@ -122,6 +140,20 @@ class MainWindow(QMainWindow):
         self._toggle_sidebar_action.setShortcut("Ctrl+B")
         self._toggle_sidebar_action.triggered.connect(self._toggle_sidebar)
         view_menu.addAction(self._toggle_sidebar_action)
+
+        fullscreen_action = QAction("Fullscreen Preview", self)
+        fullscreen_action.setShortcut("F11")
+        fullscreen_action.triggered.connect(self._on_toggle_fullscreen)
+        view_menu.addAction(fullscreen_action)
+
+        # Visualization shortcuts (Ctrl+1…5)
+        viz_menu = menubar.addMenu("Visualization")
+        for i in range(1, 6):
+            action = QAction(f"Switch to Visualization {i}", self)
+            action.setShortcut(f"Ctrl+{i}")
+            action.setData(i - 1)
+            action.triggered.connect(self._on_viz_shortcut)
+            viz_menu.addAction(action)
 
     def _setup_ui(self) -> None:
         central = QWidget()
@@ -325,8 +357,106 @@ class MainWindow(QMainWindow):
         if not self._player.is_playing:
             self._on_pause()
 
+    def eventFilter(self, obj, event) -> bool:
+        """Application-level key filter for transport shortcuts."""
+        if event.type() != QEvent.Type.KeyPress:
+            return super().eventFilter(obj, event)
+
+        focused = QApplication.focusWidget()
+        input_focused = isinstance(focused, (QAbstractSpinBox, QLineEdit, QComboBox))
+        if input_focused:
+            return super().eventFilter(obj, event)
+
+        key = event.key()
+        mods = event.modifiers()
+
+        # Space → play/pause
+        if key == Qt.Key.Key_Space:
+            self._transport._on_play_clicked()
+            return True
+
+        # Home → go to start
+        if key == Qt.Key.Key_Home:
+            self._on_seek(0.0)
+            self._transport.update_position(0.0)
+            return True
+
+        # Left / vim-h → seek backward
+        if key in (Qt.Key.Key_Left, Qt.Key.Key_H):
+            step = 1.0 if mods & Qt.KeyboardModifier.ShiftModifier else 5.0
+            pos = max(0.0, self._player.get_position() - step)
+            self._on_seek(pos)
+            self._transport.update_position(pos)
+            return True
+
+        # Right / vim-l → seek forward
+        if key in (Qt.Key.Key_Right, Qt.Key.Key_L):
+            step = 1.0 if mods & Qt.KeyboardModifier.ShiftModifier else 5.0
+            duration = self._player.duration
+            pos = self._player.get_position() + step
+            if duration > 0:
+                pos = min(duration, pos)
+            self._on_seek(pos)
+            self._transport.update_position(pos)
+            return True
+
+        return super().eventFilter(obj, event)
+
+    def _on_save_preset(self) -> None:
+        """Save a copy of the current preset with the lowest available numbered name."""
+        preset = self._settings_panel._preset
+        if preset is None:
+            return
+
+        # Strip trailing digits to get the root base name (e.g. "Default3" → "Default")
+        base = re.sub(r'\d+$', '', preset.name) or preset.name
+
+        existing = {info["name"] for info in self._preset_manager.list_presets()}
+
+        # Collect all suffix numbers already used for this base
+        used: set[int] = set()
+        for name in existing:
+            if name.startswith(base):
+                suffix = name[len(base):]
+                if suffix.isdigit() and suffix:
+                    used.add(int(suffix))
+
+        # Find lowest N >= 1 not already taken
+        n = 1
+        while n in used:
+            n += 1
+
+        new_preset = copy.deepcopy(preset)
+        new_preset.name = f"{base}{n}"
+        try:
+            self._preset_manager.save(new_preset)
+            self._preset_panel.refresh_list()
+            self._preset_panel.set_current_preset(new_preset)
+        except Exception as e:
+            QMessageBox.critical(self, "Save Preset", str(e))
+
+    def _on_save_preset_as(self) -> None:
+        """Delegate to the preset panel's save flow."""
+        self._preset_panel._on_save()
+
+    def _on_toggle_fullscreen(self) -> None:
+        """Toggle fullscreen state of the main window."""
+        if self.isFullScreen():
+            self.showMaximized()
+        else:
+            self.showFullScreen()
+
+    def _on_viz_shortcut(self) -> None:
+        """Switch visualization type via Ctrl+1…5."""
+        action = self.sender()
+        if action is None:
+            return
+        index = action.data()
+        self._settings_panel.set_viz_by_index(index)
+
     def closeEvent(self, event) -> None:
         """Cleanup on window close."""
+        QApplication.instance().removeEventFilter(self)
         self._player.stop()
         self._gl_widget.stop_preview()
         self._gl_widget.cleanup()
