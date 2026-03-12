@@ -1,6 +1,6 @@
 [project]
 name = "wavern"
-version = "0.1.0"
+version = "0.0.1-alpha.1"
 description = "Highly customizable local music visualizer"
 license = "GPL-3.0-or-later"
 requires-python = ">=3.12,<3.13"
@@ -18,12 +18,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = [
-    "pytest>=8.0",
-    "pytest-qt>=4.3",
-    "ruff>=0.4",
-    "mypy>=1.9",
-]
+dev = ["pytest>=8.0", "pytest-qt>=4.3", "ruff>=0.4", "mypy>=1.9"]
 
 [project.scripts]
 wavern = "wavern.cli:cli"
