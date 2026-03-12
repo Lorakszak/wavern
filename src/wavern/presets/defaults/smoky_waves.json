@@ -1,0 +1,25 @@
+{
+  "name": "Smoky Waves",
+  "description": "Layered fluid wave patterns with turbulence",
+  "author": "wavern",
+  "version": 1,
+  "visualization": {
+    "visualization_type": "smoky_waves",
+    "params": {
+      "wave_count": 6,
+      "speed": 1.2,
+      "turbulence": 0.6,
+      "thickness": 1.5
+    }
+  },
+  "color_palette": ["#667eea", "#764ba2", "#f093fb", "#4facfe"],
+  "blend_mode": "additive",
+  "background": {
+    "type": "solid",
+    "color": "#06060F"
+  },
+  "fft_size": 2048,
+  "smoothing": 0.4,
+  "beat_sensitivity": 1.0,
+  "fps": 60
+}

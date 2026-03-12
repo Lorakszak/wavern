@@ -1,0 +1,28 @@
+{
+  "name": "Neon Spectrum",
+  "description": "Vibrant neon bar spectrum with mirroring",
+  "author": "wavern",
+  "version": 1,
+  "visualization": {
+    "visualization_type": "spectrum_bars",
+    "params": {
+      "bar_count": 64,
+      "bar_width_ratio": 0.75,
+      "mirror": true,
+      "min_bar_height": 0.01,
+      "max_bar_height": 0.95,
+      "frequency_scale": "logarithmic",
+      "gravity": 0.85
+    }
+  },
+  "color_palette": ["#00FFAA", "#FF00AA", "#FFAA00", "#00AAFF"],
+  "blend_mode": "additive",
+  "background": {
+    "type": "solid",
+    "color": "#0A0A0F"
+  },
+  "fft_size": 4096,
+  "smoothing": 0.35,
+  "beat_sensitivity": 1.2,
+  "fps": 60
+}

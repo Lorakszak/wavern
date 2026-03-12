@@ -1,0 +1,27 @@
+{
+  "name": "Particle Burst",
+  "description": "Explosive particle effects driven by beats",
+  "author": "wavern",
+  "version": 1,
+  "visualization": {
+    "visualization_type": "particles",
+    "params": {
+      "max_particles": 3000,
+      "particle_size": 5.0,
+      "spawn_rate": 1.5,
+      "lifetime": 2.5,
+      "spread": 0.6,
+      "gravity_y": -0.05
+    }
+  },
+  "color_palette": ["#FFD700", "#FF4500", "#FF1493", "#00CED1"],
+  "blend_mode": "additive",
+  "background": {
+    "type": "solid",
+    "color": "#050505"
+  },
+  "fft_size": 2048,
+  "smoothing": 0.25,
+  "beat_sensitivity": 1.8,
+  "fps": 60
+}
