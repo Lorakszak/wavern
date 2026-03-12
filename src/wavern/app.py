@@ -4,8 +4,7 @@ import logging
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QSurfaceFormat
+from PySide6.QtGui import QIcon, QPixmap, QSurfaceFormat
 from PySide6.QtWidgets import QApplication
 
 logging.basicConfig(
@@ -30,6 +29,10 @@ def create_app() -> QApplication:
     app = QApplication(sys.argv)
     app.setApplicationName("Wavern")
     app.setApplicationVersion("0.1.0")
+
+    icon_path = Path(__file__).parent.parent.parent / "assets" / "logo.png"
+    pixmap = QPixmap(str(icon_path))
+    app.setWindowIcon(QIcon(pixmap))
 
     return app
 

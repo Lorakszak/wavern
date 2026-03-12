@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy as np
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QIcon, QPixmap
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QMainWindow,
@@ -52,6 +52,10 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Wavern — Music Visualizer")
         self.setMinimumSize(1100, 700)
+
+        icon_path = Path(__file__).parent.parent.parent / "assets" / "logo.png"
+        pixmap = QPixmap(str(icon_path))
+        self.setWindowIcon(QIcon(pixmap))
 
         self._audio_path: Path | None = None
         self._audio_data: np.ndarray | None = None

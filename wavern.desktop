@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Wavern
+Comment=Highly customizable local music visualizer
+Exec=wavern gui
+Icon=wavern
+Type=Application
+Categories=AudioVideo;Audio;Music;Visualization;
+Keywords=audio;visualizer;music;equalizer;spectrum;
+StartupWMClass=Wavern
+Terminal=false
