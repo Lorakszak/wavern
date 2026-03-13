@@ -1,0 +1,27 @@
+{
+  "name": "Square Pulse",
+  "description": "Rectangular spectrum with bars around a rotating square",
+  "author": "wavern",
+  "version": 1,
+  "visualization": {
+    "visualization_type": "rect_spectrum",
+    "params": {
+      "bar_count": 64,
+      "inner_size": 0.25,
+      "bar_length": 0.3,
+      "rotates": true,
+      "rotation_speed": 0.2,
+      "gravity": 0.88
+    }
+  },
+  "color_palette": ["#A855F7", "#EC4899", "#F97316", "#FACC15"],
+  "blend_mode": "additive",
+  "background": {
+    "type": "solid",
+    "color": "#080810"
+  },
+  "fft_size": 4096,
+  "smoothing": 0.4,
+  "beat_sensitivity": 1.5,
+  "fps": 60
+}

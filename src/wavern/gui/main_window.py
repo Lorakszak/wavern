@@ -33,6 +33,7 @@ from wavern.gui.settings_panel import SettingsPanel
 from wavern.gui.transport_bar import TransportBar
 from wavern.presets.manager import PresetManager
 from wavern.presets.schema import Preset, VisualizationParams
+from wavern.visualizations.registry import VisualizationRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +80,7 @@ class MainWindow(QMainWindow):
         self._preset_manager = PresetManager()
         self._prev_format: str = "mp4"  # restored when bg changes away from "none"
         self._bg_type: str = ""  # last known background type
+        self._was_maximized: bool = False  # state before entering fullscreen
 
         self._setup_menu()
         self._setup_ui()
@@ -152,10 +154,14 @@ class MainWindow(QMainWindow):
         fullscreen_action.triggered.connect(self._on_toggle_fullscreen)
         view_menu.addAction(fullscreen_action)
 
-        # Visualization shortcuts (Ctrl+1…5)
+        # Visualization shortcuts (Ctrl+1…N, one per registered visualization)
         viz_menu = menubar.addMenu("Visualization")
-        for i in range(1, 6):
-            action = QAction(f"Switch to Visualization {i}", self)
+        import wavern.visualizations  # noqa: F401 — triggers @register decorators
+        viz_names = VisualizationRegistry().list_names()
+        for i, name in enumerate(viz_names, start=1):
+            if i > 9:
+                break  # Ctrl+0–9 is the practical limit
+            action = QAction(f"Switch to {name} (Ctrl+{i})", self)
             action.setShortcut(f"Ctrl+{i}")
             action.setData(i - 1)
             action.triggered.connect(self._on_viz_shortcut)
@@ -368,18 +374,18 @@ class MainWindow(QMainWindow):
         if event.type() != QEvent.Type.KeyPress:
             return super().eventFilter(obj, event)
 
+        key = event.key()
+        mods = event.modifiers()
+
+        # Space → play/pause (always intercepted regardless of focus)
+        if key == Qt.Key.Key_Space:
+            self._transport._on_play_clicked()
+            return True
+
         focused = QApplication.focusWidget()
         input_focused = isinstance(focused, (QAbstractSpinBox, QLineEdit, QComboBox))
         if input_focused:
             return super().eventFilter(obj, event)
-
-        key = event.key()
-        mods = event.modifiers()
-
-        # Space → play/pause
-        if key == Qt.Key.Key_Space:
-            self._transport._on_play_clicked()
-            return True
 
         # Home → go to start
         if key == Qt.Key.Key_Home:
@@ -406,40 +412,37 @@ class MainWindow(QMainWindow):
             self._transport.update_position(pos)
             return True
 
-        # F → fullscreen toggle
-        if key == Qt.Key.Key_F and mods == Qt.KeyboardModifier.NoModifier:
+        # M → mute / unmute
+        if key == Qt.Key.Key_M:
+            self._player.muted = not self._player.muted
+            self._transport.set_volume(self._player.volume, self._player.muted)
+            return True
+
+        # Up → volume +5% (unmutes if muted)
+        if key == Qt.Key.Key_Up:
+            self._player.muted = False
+            self._player.volume = self._player.volume + 0.05
+            self._transport.set_volume(self._player.volume, self._player.muted)
+            return True
+
+        # Down → volume -5% (unmutes if muted)
+        if key == Qt.Key.Key_Down:
+            self._player.muted = False
+            self._player.volume = self._player.volume - 0.05
+            self._transport.set_volume(self._player.volume, self._player.muted)
+            return True
+
+        # F → toggle fullscreen (same as F11)
+        if key == Qt.Key.Key_F:
             self._on_toggle_fullscreen()
             return True
 
-        # Tab → cycle to next visualization
-        if key == Qt.Key.Key_Tab and mods == Qt.KeyboardModifier.NoModifier:
-            combo = getattr(self._settings_panel, "_viz_combo", None)
-            if combo is not None and combo.count() > 0:
-                self._settings_panel.set_viz_by_index((combo.currentIndex() + 1) % combo.count())
-            return True
-
-        # M → mute/unmute
-        if key == Qt.Key.Key_M and mods == Qt.KeyboardModifier.NoModifier:
-            self._player.toggle_mute()
-            self._transport.set_volume_display(self._player.volume, self._player.muted)
-            return True
-
-        # Up / Down → volume ±5%
-        if key == Qt.Key.Key_Up and mods == Qt.KeyboardModifier.NoModifier:
-            self._player.volume += 0.05
-            self._transport.set_volume_display(self._player.volume, self._player.muted)
-            return True
-
-        if key == Qt.Key.Key_Down and mods == Qt.KeyboardModifier.NoModifier:
-            self._player.volume -= 0.05
-            self._transport.set_volume_display(self._player.volume, self._player.muted)
-            return True
-
-        # 0–9 → seek to 0%–90%
-        if key in _DIGIT_SEEK_KEYS and mods == Qt.KeyboardModifier.NoModifier:
+        # 0–9 → seek to 0%, 10%, 20%, … 90% of duration
+        if Qt.Key.Key_0 <= key <= Qt.Key.Key_9 and not mods:
             duration = self._player.duration
             if duration > 0:
-                pos = duration * (_DIGIT_SEEK_KEYS[key] / 10.0)
+                fraction = (key - Qt.Key.Key_0) / 10.0
+                pos = duration * fraction
                 self._on_seek(pos)
                 self._transport.update_position(pos)
             return True
@@ -484,14 +487,21 @@ class MainWindow(QMainWindow):
         self._preset_panel._on_save()
 
     def _on_toggle_fullscreen(self) -> None:
-        """Toggle fullscreen state of the main window."""
+        """Toggle between fullscreen and the previous window state (maximized or normal).
+
+        Uses setWindowState() directly to avoid the intermediate normal-size flash
+        that showFullScreen() / showMaximized() cause (they strip the current state
+        before applying the new one, briefly showing an unsized window).
+        """
         if self.isFullScreen():
-            self.showMaximized()
+            target = Qt.WindowState.WindowMaximized if self._was_maximized else Qt.WindowState.WindowNoState
+            self.setWindowState(target)
         else:
-            self.showFullScreen()
+            self._was_maximized = self.isMaximized()
+            self.setWindowState(Qt.WindowState.WindowFullScreen)
 
     def _on_viz_shortcut(self) -> None:
-        """Switch visualization type via Ctrl+1…5."""
+        """Switch visualization type via Ctrl+1…N (one per registered visualization)."""
         action = self.sender()
         if action is None:
             return

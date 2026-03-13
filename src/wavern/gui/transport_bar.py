@@ -63,6 +63,7 @@ class TransportBar(QWidget):
         self._seeking: bool = False
 
         self._setup_ui()
+        self.set_volume(1.0, False)
 
     def _setup_ui(self) -> None:
         layout = QHBoxLayout(self)
@@ -95,7 +96,8 @@ class TransportBar(QWidget):
 
         # Volume indicator
         self._volume_label = QLabel("Vol: 100%")
-        self._volume_label.setFixedWidth(70)
+        self._volume_label.setFixedWidth(75)
+        self._volume_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         layout.addWidget(self._volume_label)
 
     def set_duration(self, duration: float) -> None:
@@ -111,6 +113,11 @@ class TransportBar(QWidget):
         if self._duration > 0:
             value = int((timestamp / self._duration) * 10000)
             self._seek_slider.setValue(value)
+
+    def set_volume(self, volume: float, muted: bool) -> None:
+        """Update the volume indicator label."""
+        display_pct = 0 if muted else int(round(volume * 100))
+        self._volume_label.setText(f"Vol: {display_pct}%")
 
     def set_playing(self, playing: bool) -> None:
         """Update button text based on playback state."""

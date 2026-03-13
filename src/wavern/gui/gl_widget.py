@@ -47,7 +47,9 @@ class GLPreviewWidget(QOpenGLWidget):
         self._preset = preset
         self._target_fps = preset.fps
         if self._renderer is not None:
+            self.makeCurrent()
             self._renderer.set_preset(preset)
+            self.doneCurrent()
         if self._timer is not None:
             self._timer.setInterval(int(1000 / self._target_fps))
 
@@ -55,7 +57,9 @@ class GLPreviewWidget(QOpenGLWidget):
         """Update parameters without full reload."""
         self._preset = preset
         if self._renderer is not None:
+            self.makeCurrent()
             self._renderer.update_params(preset)
+            self.doneCurrent()
 
     def initializeGL(self) -> None:
         """Called by Qt when the OpenGL context is ready."""

@@ -206,8 +206,8 @@ class ParticlesVisualization(AbstractVisualization):
         spread = self.get_param("spread", 0.5)
         particle_size = self.get_param("particle_size", 4.0)
 
-        # Spawn count based on amplitude and beat
-        base_spawn = int(frame.amplitude * 20 * spawn_rate)
+        # Spawn count based on amplitude and beat — ensure a minimum trickle
+        base_spawn = max(1, int(frame.amplitude * 50 * spawn_rate))
         if frame.beat:
             base_spawn *= 3
 
@@ -221,26 +221,30 @@ class ParticlesVisualization(AbstractVisualization):
         speed_max = self.get_param("speed_max", 0.3)
 
         colors = self.params.params.get("_colors", [(0.0, 1.0, 0.67)])
+        colors_arr = np.array(colors, dtype="f4")
 
         start = self._active_count
         end = start + spawn_count
+        n = spawn_count
 
-        for i in range(start, end):
-            color = colors[np.random.randint(0, len(colors))]
-            angle = np.random.uniform(0, 2 * np.pi)
-            speed = np.random.uniform(speed_min, speed_max) * spread * (1.0 + frame.amplitude)
+        # Vectorized spawn
+        angles = np.random.uniform(0, 2 * np.pi, n).astype("f4")
+        speeds = (
+            np.random.uniform(speed_min, speed_max, n).astype("f4")
+            * spread * (1.0 + frame.amplitude)
+        )
+        color_indices = np.random.randint(0, len(colors_arr), n)
 
-            self._particles[i] = [
-                spawn_x,                                # x
-                spawn_y,                                # y
-                np.cos(angle) * speed,                  # vx
-                np.sin(angle) * speed,                  # vy
-                0.0,                                    # age
-                lifetime * np.random.uniform(0.5, 1.5), # lifetime
-                particle_size * np.random.uniform(0.5, 1.5),  # size
-                color[0], color[1], color[2],           # rgb
-                1.0,                                    # alpha
-            ]
+        batch = self._particles[start:end]
+        batch[:, 0] = spawn_x
+        batch[:, 1] = spawn_y
+        batch[:, 2] = np.cos(angles) * speeds
+        batch[:, 3] = np.sin(angles) * speeds
+        batch[:, 4] = 0.0
+        batch[:, 5] = lifetime * np.random.uniform(0.5, 1.5, n).astype("f4")
+        batch[:, 6] = particle_size * np.random.uniform(0.5, 1.5, n).astype("f4")
+        batch[:, 7:10] = colors_arr[color_indices]
+        batch[:, 10] = 1.0
 
         self._active_count = end
 

@@ -9,6 +9,18 @@
 - **Run GUI**: `uv run wavern gui`
 - **Lint**: ruff, line-length 100
 
+## Setup
+
+Install runtime dependencies:
+```
+uv sync
+```
+
+Install dev dependencies (pytest, ruff, mypy, pytest-qt) — required before running tests or linting:
+```
+uv sync --extra dev
+```
+
 ## Architecture
 
 ### Source Layout

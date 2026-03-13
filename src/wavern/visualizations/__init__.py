@@ -6,5 +6,6 @@ from wavern.visualizations.registry import VisualizationRegistry  # noqa: F401
 from wavern.visualizations import waveform  # noqa: F401
 from wavern.visualizations import spectrum_bars  # noqa: F401
 from wavern.visualizations import circular_spectrum  # noqa: F401
+from wavern.visualizations import rect_spectrum  # noqa: F401
 from wavern.visualizations import particles  # noqa: F401
 from wavern.visualizations import smoky_waves  # noqa: F401

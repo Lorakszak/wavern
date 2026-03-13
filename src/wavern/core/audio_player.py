@@ -23,9 +23,28 @@ class AudioPlayer:
         self._stream: sd.OutputStream | None = None
         self._position: int = 0  # current sample index
         self._playing: bool = False
+        self._volume: float = 1.0
+        self._muted: bool = False
         self._lock = threading.Lock()
         self._volume: float = 1.0
         self._muted: bool = False
+
+    @property
+    def volume(self) -> float:
+        """Playback volume in range [0.0, 1.0]."""
+        return self._volume
+
+    @volume.setter
+    def volume(self, value: float) -> None:
+        self._volume = max(0.0, min(1.0, value))
+
+    @property
+    def muted(self) -> bool:
+        return self._muted
+
+    @muted.setter
+    def muted(self, value: bool) -> None:
+        self._muted = value
 
     def load(self, audio_data: NDArray[np.float32], sample_rate: int) -> None:
         """Load audio data for playback."""
@@ -123,6 +142,7 @@ class AudioPlayer:
         with self._lock:
             start = self._position
             end = start + frames
+            scale = 0.0 if self._muted else self._volume
 
             if start >= len(self._audio_data):
                 outdata.fill(0)
@@ -132,10 +152,10 @@ class AudioPlayer:
             gain = 0.0 if self._muted else self._volume
             if end > len(self._audio_data):
                 valid = len(self._audio_data) - start
-                outdata[:valid, 0] = self._audio_data[start : start + valid] * gain
+                outdata[:valid, 0] = self._audio_data[start : start + valid] * scale
                 outdata[valid:, 0] = 0
                 self._position = len(self._audio_data)
                 self._playing = False
             else:
-                outdata[:, 0] = self._audio_data[start:end] * gain
+                outdata[:, 0] = self._audio_data[start:end] * scale
                 self._position = end
