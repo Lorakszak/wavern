@@ -384,13 +384,16 @@ class MainWindow(QMainWindow):
         key = event.key()
         mods = event.modifiers()
 
-        # Space → play/pause (always intercepted regardless of focus)
+        focused = QApplication.focusWidget()
+        input_focused = isinstance(focused, (QAbstractSpinBox, QLineEdit, QComboBox))
+
+        # Space → play/pause, but not when a text field has focus (user may be typing)
         if key == Qt.Key.Key_Space:
+            if isinstance(focused, QLineEdit):
+                return super().eventFilter(obj, event)
             self._transport._on_play_clicked()
             return True
 
-        focused = QApplication.focusWidget()
-        input_focused = isinstance(focused, (QAbstractSpinBox, QLineEdit, QComboBox))
         if input_focused:
             return super().eventFilter(obj, event)
 

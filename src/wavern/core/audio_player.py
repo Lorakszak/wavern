@@ -26,8 +26,6 @@ class AudioPlayer:
         self._volume: float = 1.0
         self._muted: bool = False
         self._lock = threading.Lock()
-        self._volume: float = 1.0
-        self._muted: bool = False
 
     @property
     def volume(self) -> float:
@@ -103,22 +101,6 @@ class AudioPlayer:
         return self._playing
 
     @property
-    def volume(self) -> float:
-        """Current volume level (0.0–1.0)."""
-        return self._volume
-
-    @volume.setter
-    def volume(self, value: float) -> None:
-        self._volume = max(0.0, min(1.0, value))
-
-    @property
-    def muted(self) -> bool:
-        return self._muted
-
-    def toggle_mute(self) -> None:
-        self._muted = not self._muted
-
-    @property
     def duration(self) -> float:
         if self._audio_data is None:
             return 0.0
@@ -149,7 +131,6 @@ class AudioPlayer:
                 self._playing = False
                 return
 
-            gain = 0.0 if self._muted else self._volume
             if end > len(self._audio_data):
                 valid = len(self._audio_data) - start
                 outdata[:valid, 0] = self._audio_data[start : start + valid] * scale
