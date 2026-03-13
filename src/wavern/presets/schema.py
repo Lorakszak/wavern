@@ -42,6 +42,36 @@ class BackgroundConfig(BaseModel):
     )
 
 
+class OverlayConfig(BaseModel):
+    """Text overlay settings for title and countdown display."""
+
+    title_enabled: bool = False
+    title_text: str = Field(default="", max_length=200)
+    countdown_enabled: bool = False
+    countdown_format: str = Field(
+        default="elapsed_total",
+        pattern=r"^(elapsed_total|remaining|elapsed)$",
+    )
+    link_positions: bool = True
+    title_x: float = Field(default=0.5, ge=0.0, le=1.0)
+    title_y: float = Field(default=0.05, ge=0.0, le=1.0)
+    countdown_x: float = Field(default=0.5, ge=0.0, le=1.0)
+    countdown_y: float = Field(default=0.05, ge=0.0, le=1.0)
+    font_family: str = Field(default="montserrat")
+    font_bold: bool = False
+    font_size: int = Field(default=28, ge=8, le=120)
+    font_color: str = Field(default="#FFFFFF")
+    font_opacity: float = Field(default=1.0, ge=0.0, le=1.0)
+    outline_enabled: bool = False
+    outline_color: str = Field(default="#000000")
+    outline_width: int = Field(default=2, ge=1, le=10)
+    shadow_enabled: bool = False
+    shadow_color: str = Field(default="#000000")
+    shadow_opacity: float = Field(default=0.7, ge=0.0, le=1.0)
+    shadow_offset_x: int = Field(default=3, ge=-20, le=20)
+    shadow_offset_y: int = Field(default=3, ge=-20, le=20)
+
+
 class ProjectSettings(BaseModel):
     """Project-wide output settings — separate from visualization presets."""
 
@@ -77,6 +107,7 @@ class Preset(BaseModel):
     blend_mode: BlendMode = BlendMode.ADDITIVE
 
     background: BackgroundConfig = Field(default_factory=BackgroundConfig)
+    overlay: OverlayConfig = Field(default_factory=OverlayConfig)
 
     fft_size: int = Field(default=2048, ge=256, le=16384)
     smoothing: float = Field(default=0.3, ge=0.0, le=0.99)

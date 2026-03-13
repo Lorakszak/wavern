@@ -104,6 +104,7 @@ class ExportPipeline:
         # Setup renderer
         renderer = Renderer(ctx)
         renderer.set_preset(self._preset)
+        renderer.set_duration(metadata.duration)
         fbo = renderer.ensure_offscreen_fbo(self._config.resolution)
 
         # Render to temporary video file (no audio)

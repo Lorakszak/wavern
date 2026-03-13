@@ -280,6 +280,13 @@ class MainWindow(QMainWindow):
         self._gl_widget.set_player(self._player)
 
         self._transport.set_duration(metadata.duration)
+        self._gl_widget.set_audio_duration(metadata.duration)
+
+        # Auto-set overlay title from filename if empty
+        preset = self._settings_panel._preset
+        if preset is not None and not preset.overlay.title_text:
+            preset.overlay.title_text = path.stem
+            self._settings_panel.set_preset(preset)
 
         self.setWindowTitle(f"Wavern — {path.name}")
         logger.info("Loaded audio: %s (%.1fs)", path.name, metadata.duration)

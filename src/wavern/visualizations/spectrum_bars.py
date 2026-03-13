@@ -121,6 +121,57 @@ class SpectrumBarsVisualization(AbstractVisualization):
             "label": "Rotation",
             "description": "Rotation angle in degrees.",
         },
+        "mirror_spectrum": {
+            "type": "bool", "default": False,
+            "label": "Mirror Spectrum",
+            "description": "Mirror one half of the spectrum to both sides.",
+        },
+        "mirror_half": {
+            "type": "choice", "default": "left",
+            "choices": ["left", "right"],
+            "label": "Mirror Half",
+            "description": "Which half to use as source (left=low freq, right=high freq).",
+        },
+        "bar_roundness": {
+            "type": "float", "default": 0.0, "min": 0.0, "max": 1.0,
+            "label": "Bar Roundness",
+            "description": "Bar tip rounding. 0=sharp, 1=fully rounded.",
+        },
+        "shadow_enabled": {
+            "type": "bool", "default": False,
+            "label": "Shadow",
+            "description": "Enable bar drop shadow.",
+        },
+        "shadow_color": {
+            "type": "color", "default": "#000000",
+            "label": "Shadow Color",
+            "description": "Shadow color.",
+        },
+        "shadow_opacity": {
+            "type": "float", "default": 0.4, "min": 0.0, "max": 1.0,
+            "label": "Shadow Opacity",
+            "description": "Shadow opacity.",
+        },
+        "shadow_offset_x": {
+            "type": "float", "default": 0.005, "min": -0.1, "max": 0.1,
+            "label": "Shadow Offset X",
+            "description": "Horizontal shadow offset.",
+        },
+        "shadow_offset_y": {
+            "type": "float", "default": -0.005, "min": -0.1, "max": 0.1,
+            "label": "Shadow Offset Y",
+            "description": "Vertical shadow offset.",
+        },
+        "shadow_size": {
+            "type": "float", "default": 1.0, "min": 0.5, "max": 3.0,
+            "label": "Shadow Size",
+            "description": "Shadow scale relative to bar.",
+        },
+        "shadow_blur": {
+            "type": "float", "default": 0.005, "min": 0.0, "max": 0.05,
+            "label": "Shadow Blur",
+            "description": "Shadow edge softness.",
+        },
     }
 
     def __init__(self, ctx: moderngl.Context, params: VisualizationParams) -> None:
@@ -178,6 +229,15 @@ class SpectrumBarsVisualization(AbstractVisualization):
         max_val = max(np.max(magnitudes), 1e-10)
         magnitudes = np.clip(magnitudes / max_val, 0.0, 1.0)
 
+        # Half-spectrum mirroring
+        if self.get_param("mirror_spectrum", False):
+            half = bar_count // 2
+            if self.get_param("mirror_half", "left") == "left":
+                source = magnitudes[:half]
+            else:
+                source = magnitudes[half:half + half]
+            magnitudes = np.concatenate([source, source[::-1]])[:bar_count]
+
         # Set uniforms
         fbo.use()
         prog = self._program
@@ -198,6 +258,27 @@ class SpectrumBarsVisualization(AbstractVisualization):
         self._set_uniform(prog, "u_offset", (self.get_param("offset_x", 0.0), self.get_param("offset_y", 0.0)))
         self._set_uniform(prog, "u_scale", self.get_param("scale", 1.0))
         self._set_uniform(prog, "u_rotation", math.radians(self.get_param("rotation", 0.0)))
+
+        # Bar roundness
+        self._set_uniform(prog, "u_bar_roundness", self.get_param("bar_roundness", 0.0))
+
+        # Shadow uniforms
+        self._set_uniform(
+            prog, "u_shadow_enabled",
+            1 if self.get_param("shadow_enabled", False) else 0,
+        )
+        shadow_hex = self.get_param("shadow_color", "#000000")
+        sr = int(shadow_hex[1:3], 16) / 255.0
+        sg = int(shadow_hex[3:5], 16) / 255.0
+        sb = int(shadow_hex[5:7], 16) / 255.0
+        self._set_uniform(prog, "u_shadow_color", (sr, sg, sb))
+        self._set_uniform(prog, "u_shadow_opacity", self.get_param("shadow_opacity", 0.4))
+        self._set_uniform(prog, "u_shadow_offset", (
+            self.get_param("shadow_offset_x", 0.005),
+            self.get_param("shadow_offset_y", -0.005),
+        ))
+        self._set_uniform(prog, "u_shadow_size", self.get_param("shadow_size", 1.0))
+        self._set_uniform(prog, "u_shadow_blur", self.get_param("shadow_blur", 0.005))
 
         # Upload colors from preset
         colors = self.params.params.get("_colors", [(0.0, 1.0, 0.67), (1.0, 0.0, 0.67)])

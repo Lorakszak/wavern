@@ -52,6 +52,10 @@ def run_gui(
     """
     app = create_app()
 
+    # Pre-download all fonts in background so they're cached before user picks one
+    from wavern.core.font_manager import preload_all_fonts
+    preload_all_fonts()
+
     # Import here to avoid circular imports and ensure GL context is set up
     from wavern.gui.main_window import MainWindow
 

@@ -9,9 +9,11 @@ from PySide6.QtWidgets import (
     QColorDialog,
     QComboBox,
     QDoubleSpinBox,
+    QFileDialog,
     QFormLayout,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QPushButton,
     QSpinBox,
     QVBoxLayout,
@@ -21,7 +23,8 @@ from PySide6.QtWidgets import (
 from wavern.gui.background_picker import open_background_image
 from wavern.gui.collapsible_section import CollapsibleSection
 from wavern.gui.help_button import make_help_button
-from wavern.presets.schema import BackgroundConfig, ColorStop, Preset, VisualizationParams
+from wavern.core.text_overlay import AVAILABLE_FONTS, COUNTDOWN_FORMATS
+from wavern.presets.schema import BackgroundConfig, ColorStop, OverlayConfig, Preset, VisualizationParams
 from wavern.visualizations.registry import VisualizationRegistry
 
 logger = logging.getLogger(__name__)
@@ -108,6 +111,11 @@ class SettingsPanel(QWidget):
         self._build_background_section(preset)
         self._content_layout.addWidget(self._bg_section)
 
+        # --- Overlay ---
+        self._overlay_section = CollapsibleSection("Overlay")
+        self._build_overlay_section(preset)
+        self._content_layout.addWidget(self._overlay_section)
+
         # --- Analysis ---
         self._analysis_section = CollapsibleSection("Analysis")
         self._build_analysis_section(preset)
@@ -120,26 +128,27 @@ class SettingsPanel(QWidget):
 
     def _save_section_states(self) -> None:
         """Save expanded/collapsed state of all sections."""
-        for section_name in ("Visualization", "Colors", "Background", "Analysis"):
-            attr_map = {
-                "Visualization": "_viz_section",
-                "Colors": "_color_section",
-                "Background": "_bg_section",
-                "Analysis": "_analysis_section",
-            }
-            attr = attr_map[section_name]
+        attr_map = {
+            "Visualization": "_viz_section",
+            "Colors": "_color_section",
+            "Background": "_bg_section",
+            "Overlay": "_overlay_section",
+            "Analysis": "_analysis_section",
+        }
+        for section_name, attr in attr_map.items():
             if hasattr(self, attr):
                 self._section_states[section_name] = getattr(self, attr).is_expanded()
 
     def _restore_section_states(self) -> None:
         """Restore expanded/collapsed state of all sections."""
+        attr_map = {
+            "Visualization": "_viz_section",
+            "Colors": "_color_section",
+            "Background": "_bg_section",
+            "Overlay": "_overlay_section",
+            "Analysis": "_analysis_section",
+        }
         for section_name, expanded in self._section_states.items():
-            attr_map = {
-                "Visualization": "_viz_section",
-                "Colors": "_color_section",
-                "Background": "_bg_section",
-                "Analysis": "_analysis_section",
-            }
             attr = attr_map.get(section_name)
             if attr and hasattr(self, attr):
                 getattr(self, attr).set_expanded(expanded)
@@ -200,6 +209,44 @@ class SettingsPanel(QWidget):
                 widget.stateChanged.connect(
                     lambda v, n=param_name: self._on_param_changed(n, bool(v))
                 )
+
+            elif param_type == "color":
+                widget = QPushButton()
+                widget.setFixedSize(30, 30)
+                hex_val = str(current_val or default or "#000000")
+                widget.setStyleSheet(
+                    f"background-color: {hex_val}; border: 1px solid #555;"
+                )
+                widget.clicked.connect(
+                    lambda _, n=param_name, w=widget: self._on_color_param_clicked(n, w)
+                )
+
+            elif param_type == "file":
+                widget = QWidget()
+                file_layout = QHBoxLayout(widget)
+                file_layout.setContentsMargins(0, 0, 0, 0)
+
+                file_label = QLabel(
+                    self._elide_path(str(current_val)) if current_val else "No image"
+                )
+                file_label.setFixedWidth(120)
+                file_layout.addWidget(file_label, stretch=1)
+
+                file_filter = schema.get("file_filter", "All Files (*)")
+                browse_btn = QPushButton("Browse...")
+                browse_btn.clicked.connect(
+                    lambda _, n=param_name, lbl=file_label, ff=file_filter:
+                        self._on_file_param_browse(n, lbl, ff)
+                )
+                file_layout.addWidget(browse_btn)
+
+                clear_btn = QPushButton("\u00d7")
+                clear_btn.setFixedSize(24, 24)
+                clear_btn.clicked.connect(
+                    lambda _, n=param_name, lbl=file_label:
+                        self._on_file_param_clear(n, lbl)
+                )
+                file_layout.addWidget(clear_btn)
 
             elif param_type == "choice":
                 widget = QComboBox()
@@ -435,6 +482,309 @@ class SettingsPanel(QWidget):
 
         self._analysis_section.set_content(analysis_content)
 
+    def _build_overlay_section(self, preset: Preset) -> None:
+        """Build text overlay controls (title, countdown, position, font)."""
+        content = QWidget()
+        layout = QFormLayout(content)
+        layout.setContentsMargins(4, 0, 4, 0)
+
+        cfg = preset.overlay
+
+        # --- Title ---
+        self._overlay_title_cb = QCheckBox()
+        self._overlay_title_cb.setChecked(cfg.title_enabled)
+        self._overlay_title_cb.stateChanged.connect(self._on_overlay_changed)
+        layout.addRow("Show Title:", self._overlay_title_cb)
+
+        self._overlay_title_edit = QLineEdit()
+        self._overlay_title_edit.setText(cfg.title_text)
+        self._overlay_title_edit.setPlaceholderText("Song title...")
+        self._overlay_title_edit.setMaxLength(200)
+        self._overlay_title_edit.textChanged.connect(self._on_overlay_changed)
+        layout.addRow("Title Text:", self._overlay_title_edit)
+
+        # --- Countdown ---
+        self._overlay_countdown_cb = QCheckBox()
+        self._overlay_countdown_cb.setChecked(cfg.countdown_enabled)
+        self._overlay_countdown_cb.stateChanged.connect(self._on_overlay_changed)
+        layout.addRow("Show Countdown:", self._overlay_countdown_cb)
+
+        self._overlay_format_combo = QComboBox()
+        self._overlay_format_combo.blockSignals(True)
+        for key, label in COUNTDOWN_FORMATS.items():
+            self._overlay_format_combo.addItem(label, key)
+        idx = self._overlay_format_combo.findData(cfg.countdown_format)
+        if idx >= 0:
+            self._overlay_format_combo.setCurrentIndex(idx)
+        self._overlay_format_combo.blockSignals(False)
+        self._overlay_format_combo.currentIndexChanged.connect(self._on_overlay_changed)
+        layout.addRow("Format:", self._overlay_format_combo)
+
+        # --- Position ---
+        self._overlay_link_cb = QCheckBox("Link positions")
+        self._overlay_link_cb.setChecked(cfg.link_positions)
+        self._overlay_link_cb.stateChanged.connect(self._on_overlay_link_changed)
+        layout.addRow(self._overlay_link_cb)
+
+        self._overlay_title_x = QDoubleSpinBox()
+        self._overlay_title_x.setRange(0.0, 1.0)
+        self._overlay_title_x.setSingleStep(0.05)
+        self._overlay_title_x.setDecimals(2)
+        self._overlay_title_x.setValue(cfg.title_x)
+        self._overlay_title_x.valueChanged.connect(self._on_overlay_pos_changed)
+
+        self._overlay_title_y = QDoubleSpinBox()
+        self._overlay_title_y.setRange(0.0, 1.0)
+        self._overlay_title_y.setSingleStep(0.05)
+        self._overlay_title_y.setDecimals(2)
+        self._overlay_title_y.setValue(cfg.title_y)
+        self._overlay_title_y.valueChanged.connect(self._on_overlay_pos_changed)
+
+        pos_label = "Position:" if cfg.link_positions else "Title Pos:"
+        pos_row = QHBoxLayout()
+        pos_row.addWidget(QLabel("X"))
+        pos_row.addWidget(self._overlay_title_x)
+        pos_row.addWidget(QLabel("Y"))
+        pos_row.addWidget(self._overlay_title_y)
+        self._overlay_pos_label = QLabel(pos_label)
+        layout.addRow(self._overlay_pos_label, pos_row)
+
+        self._overlay_cd_row_widget = QWidget()
+        cd_row = QHBoxLayout(self._overlay_cd_row_widget)
+        cd_row.setContentsMargins(0, 0, 0, 0)
+
+        self._overlay_countdown_x = QDoubleSpinBox()
+        self._overlay_countdown_x.setRange(0.0, 1.0)
+        self._overlay_countdown_x.setSingleStep(0.05)
+        self._overlay_countdown_x.setDecimals(2)
+        self._overlay_countdown_x.setValue(cfg.countdown_x)
+        self._overlay_countdown_x.valueChanged.connect(self._on_overlay_changed)
+
+        self._overlay_countdown_y = QDoubleSpinBox()
+        self._overlay_countdown_y.setRange(0.0, 1.0)
+        self._overlay_countdown_y.setSingleStep(0.05)
+        self._overlay_countdown_y.setDecimals(2)
+        self._overlay_countdown_y.setValue(cfg.countdown_y)
+        self._overlay_countdown_y.valueChanged.connect(self._on_overlay_changed)
+
+        cd_row.addWidget(QLabel("X"))
+        cd_row.addWidget(self._overlay_countdown_x)
+        cd_row.addWidget(QLabel("Y"))
+        cd_row.addWidget(self._overlay_countdown_y)
+
+        self._overlay_cd_pos_label = QLabel("Countdown Pos:")
+        layout.addRow(self._overlay_cd_pos_label, self._overlay_cd_row_widget)
+
+        # Hide countdown position row when linked
+        self._overlay_cd_pos_label.setVisible(not cfg.link_positions)
+        self._overlay_cd_row_widget.setVisible(not cfg.link_positions)
+
+        # --- Font ---
+        self._overlay_font_combo = QComboBox()
+        self._overlay_font_combo.blockSignals(True)
+        for key, display_name in AVAILABLE_FONTS():
+            self._overlay_font_combo.addItem(display_name, key)
+        idx = self._overlay_font_combo.findData(cfg.font_family)
+        if idx >= 0:
+            self._overlay_font_combo.setCurrentIndex(idx)
+        self._overlay_font_combo.blockSignals(False)
+        self._overlay_font_combo.currentIndexChanged.connect(self._on_overlay_changed)
+        layout.addRow("Font:", self._overlay_font_combo)
+
+        self._overlay_bold_cb = QCheckBox()
+        self._overlay_bold_cb.setChecked(cfg.font_bold)
+        self._overlay_bold_cb.stateChanged.connect(self._on_overlay_changed)
+        layout.addRow("Bold:", self._overlay_bold_cb)
+
+        self._overlay_font_size = QSpinBox()
+        self._overlay_font_size.setRange(8, 120)
+        self._overlay_font_size.setValue(cfg.font_size)
+        self._overlay_font_size.valueChanged.connect(self._on_overlay_changed)
+        layout.addRow("Font Size:", self._overlay_font_size)
+
+        self._overlay_font_color_btn = QPushButton()
+        self._overlay_font_color_btn.setFixedSize(30, 30)
+        self._overlay_font_color_btn.setStyleSheet(
+            f"background-color: {cfg.font_color}; border: 1px solid #555;"
+        )
+        self._overlay_font_color_btn.clicked.connect(self._on_overlay_font_color_clicked)
+        layout.addRow("Font Color:", self._overlay_font_color_btn)
+
+        self._overlay_opacity = QDoubleSpinBox()
+        self._overlay_opacity.setRange(0.0, 1.0)
+        self._overlay_opacity.setSingleStep(0.05)
+        self._overlay_opacity.setDecimals(2)
+        self._overlay_opacity.setValue(cfg.font_opacity)
+        self._overlay_opacity.valueChanged.connect(self._on_overlay_changed)
+        layout.addRow("Opacity:", self._overlay_opacity)
+
+        # --- Outline ---
+        self._overlay_outline_cb = QCheckBox()
+        self._overlay_outline_cb.setChecked(cfg.outline_enabled)
+        self._overlay_outline_cb.stateChanged.connect(self._on_overlay_changed)
+        layout.addRow("Outline:", self._overlay_outline_cb)
+
+        self._overlay_outline_color_btn = QPushButton()
+        self._overlay_outline_color_btn.setFixedSize(30, 30)
+        self._overlay_outline_color_btn.setStyleSheet(
+            f"background-color: {cfg.outline_color}; border: 1px solid #555;"
+        )
+        self._overlay_outline_color_btn.clicked.connect(
+            self._on_overlay_outline_color_clicked
+        )
+        layout.addRow("Outline Color:", self._overlay_outline_color_btn)
+
+        self._overlay_outline_width = QSpinBox()
+        self._overlay_outline_width.setRange(1, 10)
+        self._overlay_outline_width.setValue(cfg.outline_width)
+        self._overlay_outline_width.valueChanged.connect(self._on_overlay_changed)
+        layout.addRow("Outline Width:", self._overlay_outline_width)
+
+        # --- Shadow ---
+        self._overlay_shadow_cb = QCheckBox()
+        self._overlay_shadow_cb.setChecked(cfg.shadow_enabled)
+        self._overlay_shadow_cb.stateChanged.connect(self._on_overlay_changed)
+        layout.addRow("Shadow:", self._overlay_shadow_cb)
+
+        self._overlay_shadow_color_btn = QPushButton()
+        self._overlay_shadow_color_btn.setFixedSize(30, 30)
+        self._overlay_shadow_color_btn.setStyleSheet(
+            f"background-color: {cfg.shadow_color}; border: 1px solid #555;"
+        )
+        self._overlay_shadow_color_btn.clicked.connect(
+            self._on_overlay_shadow_color_clicked
+        )
+        layout.addRow("Shadow Color:", self._overlay_shadow_color_btn)
+
+        self._overlay_shadow_opacity = QDoubleSpinBox()
+        self._overlay_shadow_opacity.setRange(0.0, 1.0)
+        self._overlay_shadow_opacity.setSingleStep(0.05)
+        self._overlay_shadow_opacity.setDecimals(2)
+        self._overlay_shadow_opacity.setValue(cfg.shadow_opacity)
+        self._overlay_shadow_opacity.valueChanged.connect(self._on_overlay_changed)
+        layout.addRow("Shadow Opacity:", self._overlay_shadow_opacity)
+
+        shadow_offset_row = QHBoxLayout()
+        self._overlay_shadow_ox = QSpinBox()
+        self._overlay_shadow_ox.setRange(-20, 20)
+        self._overlay_shadow_ox.setValue(cfg.shadow_offset_x)
+        self._overlay_shadow_ox.valueChanged.connect(self._on_overlay_changed)
+        self._overlay_shadow_oy = QSpinBox()
+        self._overlay_shadow_oy.setRange(-20, 20)
+        self._overlay_shadow_oy.setValue(cfg.shadow_offset_y)
+        self._overlay_shadow_oy.valueChanged.connect(self._on_overlay_changed)
+        shadow_offset_row.addWidget(QLabel("X"))
+        shadow_offset_row.addWidget(self._overlay_shadow_ox)
+        shadow_offset_row.addWidget(QLabel("Y"))
+        shadow_offset_row.addWidget(self._overlay_shadow_oy)
+        layout.addRow("Shadow Offset:", shadow_offset_row)
+
+        self._overlay_section.set_content(content)
+
+    def _on_overlay_changed(self) -> None:
+        """Collect all overlay widget values into preset.overlay and emit update."""
+        if self._preset is None or self._rebuilding:
+            return
+        cfg = self._preset.overlay
+        cfg.title_enabled = self._overlay_title_cb.isChecked()
+        cfg.title_text = self._overlay_title_edit.text()
+        cfg.countdown_enabled = self._overlay_countdown_cb.isChecked()
+        cfg.countdown_format = self._overlay_format_combo.currentData()
+        cfg.link_positions = self._overlay_link_cb.isChecked()
+        cfg.title_x = self._overlay_title_x.value()
+        cfg.title_y = self._overlay_title_y.value()
+        cfg.countdown_x = self._overlay_countdown_x.value()
+        cfg.countdown_y = self._overlay_countdown_y.value()
+        cfg.font_family = self._overlay_font_combo.currentData()
+        cfg.font_bold = self._overlay_bold_cb.isChecked()
+        cfg.font_size = self._overlay_font_size.value()
+        cfg.font_opacity = self._overlay_opacity.value()
+        cfg.outline_enabled = self._overlay_outline_cb.isChecked()
+        cfg.outline_width = self._overlay_outline_width.value()
+        cfg.shadow_enabled = self._overlay_shadow_cb.isChecked()
+        cfg.shadow_opacity = self._overlay_shadow_opacity.value()
+        cfg.shadow_offset_x = self._overlay_shadow_ox.value()
+        cfg.shadow_offset_y = self._overlay_shadow_oy.value()
+        self._emit_update()
+
+    def _on_overlay_pos_changed(self) -> None:
+        """Handle title position change — sync countdown pos when linked."""
+        if self._preset is None or self._rebuilding:
+            return
+        if self._overlay_link_cb.isChecked():
+            self._overlay_countdown_x.blockSignals(True)
+            self._overlay_countdown_y.blockSignals(True)
+            self._overlay_countdown_x.setValue(self._overlay_title_x.value())
+            self._overlay_countdown_y.setValue(self._overlay_title_y.value())
+            self._overlay_countdown_x.blockSignals(False)
+            self._overlay_countdown_y.blockSignals(False)
+        self._on_overlay_changed()
+
+    def _on_overlay_link_changed(self, state: int) -> None:
+        """Toggle linked/independent positions for title and countdown."""
+        linked = bool(state)
+        self._overlay_pos_label.setText("Position:" if linked else "Title Pos:")
+        # Hide/show countdown position row
+        self._overlay_cd_pos_label.setVisible(not linked)
+        self._overlay_cd_row_widget.setVisible(not linked)
+
+        if linked:
+            self._overlay_countdown_x.blockSignals(True)
+            self._overlay_countdown_y.blockSignals(True)
+            self._overlay_countdown_x.setValue(self._overlay_title_x.value())
+            self._overlay_countdown_y.setValue(self._overlay_title_y.value())
+            self._overlay_countdown_x.blockSignals(False)
+            self._overlay_countdown_y.blockSignals(False)
+        self._on_overlay_changed()
+
+    def _on_overlay_font_color_clicked(self) -> None:
+        """Open color picker for overlay font color."""
+        if self._preset is None:
+            return
+        from PySide6.QtGui import QColor
+
+        current = QColor(self._preset.overlay.font_color)
+        color = QColorDialog.getColor(current, self, "Font Color")
+        if color.isValid():
+            hex_color = color.name().upper()
+            self._preset.overlay.font_color = hex_color
+            self._overlay_font_color_btn.setStyleSheet(
+                f"background-color: {hex_color}; border: 1px solid #555;"
+            )
+            self._emit_update()
+
+    def _on_overlay_outline_color_clicked(self) -> None:
+        """Open color picker for outline color."""
+        if self._preset is None:
+            return
+        from PySide6.QtGui import QColor
+
+        current = QColor(self._preset.overlay.outline_color)
+        color = QColorDialog.getColor(current, self, "Outline Color")
+        if color.isValid():
+            hex_color = color.name().upper()
+            self._preset.overlay.outline_color = hex_color
+            self._overlay_outline_color_btn.setStyleSheet(
+                f"background-color: {hex_color}; border: 1px solid #555;"
+            )
+            self._emit_update()
+
+    def _on_overlay_shadow_color_clicked(self) -> None:
+        """Open color picker for shadow color."""
+        if self._preset is None:
+            return
+        from PySide6.QtGui import QColor
+
+        current = QColor(self._preset.overlay.shadow_color)
+        color = QColorDialog.getColor(current, self, "Shadow Color")
+        if color.isValid():
+            hex_color = color.name().upper()
+            self._preset.overlay.shadow_color = hex_color
+            self._overlay_shadow_color_btn.setStyleSheet(
+                f"background-color: {hex_color}; border: 1px solid #555;"
+            )
+            self._emit_update()
+
     def set_viz_by_index(self, index: int) -> None:
         """Switch visualization type by combo index (0-based). No-op if out of range."""
         if self._preset is None or index >= self._viz_combo.count():
@@ -454,6 +804,44 @@ class SettingsPanel(QWidget):
             return
         self._preset.visualization.params[name] = value
         self._emit_update()
+
+    @staticmethod
+    def _elide_path(path: str, max_len: int = 20) -> str:
+        """Shorten a file path for display."""
+        if len(path) <= max_len:
+            return path
+        import os
+        return "..." + os.sep + os.path.basename(path)
+
+    def _on_file_param_browse(
+        self, param_name: str, label: QLabel, file_filter: str,
+    ) -> None:
+        """Open a file dialog for a file-type parameter."""
+        path, _ = QFileDialog.getOpenFileName(self, "Select File", "", file_filter)
+        if path:
+            label.setText(self._elide_path(path))
+            self._on_param_changed(param_name, path)
+
+    def _on_file_param_clear(self, param_name: str, label: QLabel) -> None:
+        """Clear a file-type parameter."""
+        label.setText("No image")
+        self._on_param_changed(param_name, "")
+
+    def _on_color_param_clicked(self, param_name: str, button: QPushButton) -> None:
+        """Handle click on a color-type parameter swatch."""
+        if self._preset is None:
+            return
+        from PySide6.QtGui import QColor
+
+        current_hex = self._preset.visualization.params.get(param_name, "#000000")
+        current = QColor(current_hex)
+        color = QColorDialog.getColor(current, self, "Pick Color")
+        if color.isValid():
+            hex_color = color.name().upper()
+            button.setStyleSheet(
+                f"background-color: {hex_color}; border: 1px solid #555;"
+            )
+            self._on_param_changed(param_name, hex_color)
 
     def _on_color_clicked(self, index: int) -> None:
         if self._preset is None:

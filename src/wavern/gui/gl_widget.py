@@ -61,6 +61,12 @@ class GLPreviewWidget(QOpenGLWidget):
             self._renderer.update_params(preset)
             self.doneCurrent()
 
+    def set_audio_duration(self, duration: float) -> None:
+        """Pass total audio duration to the renderer for countdown overlay."""
+        if self._renderer is not None:
+            self._renderer.set_duration(duration)
+        self._audio_duration = duration
+
     def initializeGL(self) -> None:
         """Called by Qt when the OpenGL context is ready."""
         try:
@@ -69,6 +75,9 @@ class GLPreviewWidget(QOpenGLWidget):
 
             if self._preset is not None:
                 self._renderer.set_preset(self._preset)
+
+            if hasattr(self, "_audio_duration"):
+                self._renderer.set_duration(self._audio_duration)
 
             # Start render timer
             self._timer = QTimer(self)

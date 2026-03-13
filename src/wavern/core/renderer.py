@@ -8,6 +8,7 @@ from numpy.typing import NDArray
 from PIL import Image
 
 from wavern.core.audio_analyzer import FrameAnalysis
+from wavern.core.text_overlay import TextOverlay
 from wavern.presets.schema import BackgroundConfig, ColorStop, Preset
 from wavern.shaders import load_shader
 from wavern.utils.color import hex_to_rgb, hex_to_rgba
@@ -79,6 +80,9 @@ class Renderer:
         self._bg_vao: moderngl.VertexArray | None = None
         self._bg_texture: moderngl.Texture | None = None
         self._bg_image_path: str | None = None  # tracks loaded image to avoid reloading
+
+        # Text overlay (created lazily)
+        self._text_overlay: TextOverlay | None = None
 
     def _ensure_bg_quad(self) -> None:
         """Lazily create the fullscreen quad shader and VAO for background rendering."""
@@ -172,6 +176,10 @@ class Renderer:
             self._bg_color = hex_to_rgba(bg.color)
             self._release_bg_texture()
 
+        # Update text overlay config
+        self._ensure_text_overlay()
+        self._text_overlay.update_config(preset.overlay)
+
         # Prepare color data for the visualization
         colors_rgb = [hex_to_rgb(c) for c in preset.color_palette]
         preset.visualization.params["_colors"] = colors_rgb
@@ -227,8 +235,22 @@ class Renderer:
             self._ensure_bg_quad()
             self._update_bg_texture(bg)
 
+        # Update text overlay config
+        self._ensure_text_overlay()
+        self._text_overlay.update_config(preset.overlay)
+
         if self._visualization is not None:
             self._visualization.update_params(preset.visualization)
+
+    def set_duration(self, total_seconds: float) -> None:
+        """Set total audio duration for countdown overlay."""
+        self._ensure_text_overlay()
+        self._text_overlay.set_duration(total_seconds)
+
+    def _ensure_text_overlay(self) -> None:
+        """Lazily create the text overlay renderer."""
+        if self._text_overlay is None:
+            self._text_overlay = TextOverlay(self.ctx)
 
     def render_frame(
         self,
@@ -272,6 +294,13 @@ class Renderer:
                 self._visualization.render(frame, fbo, resolution)
             except Exception as e:
                 logger.error("Visualization render error: %s", e)
+
+        # Render text overlay on top
+        if self._text_overlay is not None:
+            try:
+                self._text_overlay.render(fbo, resolution, frame.timestamp)
+            except Exception as e:
+                logger.error("Text overlay render error: %s", e)
 
     def read_pixels(
         self,
@@ -318,6 +347,9 @@ class Renderer:
 
     def cleanup(self) -> None:
         """Release all GPU resources."""
+        if self._text_overlay is not None:
+            self._text_overlay.cleanup()
+            self._text_overlay = None
         if self._visualization is not None:
             self._visualization.cleanup()
             self._visualization = None
