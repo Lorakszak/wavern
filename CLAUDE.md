@@ -66,6 +66,18 @@ src/wavern/
 4. Apply `@register` decorator
 5. Add import to `src/wavern/visualizations/__init__.py`
 6. Create matching preset JSON in `src/wavern/presets/defaults/`
+7. Add tests covering registration, PARAM_SCHEMA structure, and preset JSON validity (see existing tests for examples)
+
+## Testing Policy
+
+Every PR must include tests for any new functionality introduced:
+
+- **New visualizations**: test registration via `get_visualization(NAME)`, PARAM_SCHEMA field types, and that the preset JSON loads against the Preset schema.
+- **New core features**: test the public interface of the changed module. Use real objects — do not mock internal subsystems (renderer, audio analyzer, preset manager).
+- **Bug fixes**: add a regression test that would have caught the bug.
+- **Refactors**: all existing tests must continue to pass; add tests for any newly exposed interfaces.
+
+Run tests with: `uv run pytest tests/ -v`
 
 ## Conventions
 

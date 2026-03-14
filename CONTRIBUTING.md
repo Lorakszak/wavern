@@ -11,7 +11,7 @@ Thank you for your interest in contributing. This document covers everything you
    ```
 2. Install all dependencies including dev extras:
    ```bash
-   uv sync --all-extras
+   uv sync --extra dev
    ```
 3. Verify the test suite passes before making any changes:
    ```bash
@@ -57,6 +57,7 @@ All existing tests must pass. New features and visualizations must include corre
 ```bash
 uv run ruff check src/          # lint
 uv run ruff check src/ --fix    # auto-fix safe issues
+uv run mypy src/                # type-check
 ```
 
 Line length is **100 characters** (configured in `pyproject.toml`). All function signatures must have type hints. Use Google-style docstrings.

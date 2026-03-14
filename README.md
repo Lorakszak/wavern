@@ -1,25 +1,70 @@
 # Wavern - Local Music Visualizer
 
 <p align="center">
-  <img src="assets/logo.jpeg" alt="Wavern logo" width="320"/>
+  <img src="assets/logo.jpeg" alt="Wavern logo" width="280" style="border-radius: 50%"/>
 </p>
 
-[![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
-[![uv](https://img.shields.io/badge/uv-package%20manager-blueviolet)](https://docs.astral.sh/uv/)
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPLv3"/></a>
+  <a href="https://www.python.org/downloads/release/python-3120/"><img src="https://img.shields.io/badge/python-3.12-blue.svg" alt="Python 3.12"/></a>
+  <a href="https://docs.astral.sh/uv/"><img src="https://img.shields.io/badge/uv-package%20manager-blueviolet" alt="uv"/></a>
+  <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff"/></a>
+  <a href="https://github.com/Lorakszak/wavern/issues"><img src="https://img.shields.io/github/issues/Lorakszak/wavern" alt="GitHub Issues"/></a>
+  <a href="https://github.com/Lorakszak/wavern/commits/main"><img src="https://img.shields.io/github/last-commit/Lorakszak/wavern" alt="Last Commit"/></a>
+</p>
 
-Highly customizable local music visualizer with real-time GPU-accelerated preview, preset system, and video export.
+
+<p align="center">
+  <img src="https://img.shields.io/badge/platform-linux-orange" alt="Platform: Linux"/>
+  <img src="https://img.shields.io/badge/OpenGL-3.3%2B-blue" alt="OpenGL 3.3+"/>
+  <a href="https://github.com/Lorakszak/wavern/stargazers"><img src="https://img.shields.io/github/stars/Lorakszak/wavern?style=social" alt="GitHub Stars"/></a>
+</p>
+
+Wavern is a local music visualizer for Linux. It renders GPU-accelerated audio visualizations in real time and exports them as video. No cloud, no subscriptions, no latency. Designed for musicians, streamers, and VJs who want full creative control.
+
+## Table of Contents
+
+- [Wavern - Local Music Visualizer](#wavern---local-music-visualizer)
+  - [Table of Contents](#table-of-contents)
+  - [Demo](#demo)
+  - [Features](#features)
+  - [Requirements](#requirements)
+  - [Installation](#installation)
+  - [Project Layout](#project-layout)
+  - [Development](#development)
+  - [Usage](#usage)
+    - [GUI](#gui)
+    - [Headless Video Export](#headless-video-export)
+    - [CLI Reference](#cli-reference)
+  - [Keyboard Shortcuts](#keyboard-shortcuts)
+    - [Playback \& Transport](#playback--transport)
+    - [Volume](#volume)
+    - [File](#file)
+    - [View](#view)
+    - [Visualization](#visualization)
+  - [Built-in Visualizations](#built-in-visualizations)
+  - [Presets](#presets)
+  - [Known Issues](#known-issues)
+  - [Roadmap](#roadmap)
+  - [FAQ](#faq)
+  - [Contributing](#contributing)
+  - [Acknowledgements](#acknowledgements)
+  - [Changelog](#changelog)
+  - [License](#license)
+
+## Demo
+
+**TODO**: *Demo recording coming soon.*
 
 ## Features
 
-- **Real-time preview** — OpenGL 3.3+ GPU-accelerated visualization synced to audio playback
-- **5 built-in visualizations** — Spectrum Bars, Classic Waveform, Circular Spectrum, Particle Burst, Smoky Waves
-- **Full parameter control** — every visualization exposes tunable parameters (bar count, speed, thickness, etc.) with live preview
-- **Color palettes** — multi-color gradients applied across visualizations
-- **Preset system** — save/load/share visualization configurations as JSON files
-- **Transparent export** — render with no background for compositing (WebM/VP9 with alpha)
-- **Headless CLI rendering** — batch export videos from presets without opening the GUI
-- **Plugin system** — drop a Python file in `~/.config/wavern/plugins/` to add custom visualizations
+- **Real-time preview** - OpenGL 3.3+ GPU-accelerated visualization synced to audio playback
+- **6 built-in visualizations** - Spectrum Bars, Classic Waveform, Circular Spectrum, Rectangle Spectrum, Particle Burst, Smoky Waves
+- **Full parameter control** - every visualization exposes tunable parameters (bar count, speed, thickness, etc.) with live preview
+- **Color palettes** - multi-color gradients applied across visualizations
+- **Preset system** - save/load/share visualization configurations as JSON files
+- **Transparent export** - render with no background for compositing (WebM/VP9 with alpha)
+- **Headless CLI rendering** - batch export videos from presets without opening the GUI
 
 ## Requirements
 
@@ -31,14 +76,47 @@ Highly customizable local music visualizer with real-time GPU-accelerated previe
 
 ## Installation
 
+Make sure all requirements are met (Python 3.12 via pyenv/asdf, uv, ffmpeg, OpenGL drivers for your GPU).
+
 ```bash
 git clone https://github.com/Lorakszak/wavern && cd wavern
-uv sync
+uv sync                    # runtime dependencies
+uv sync --extra dev        # + dev dependencies: pytest, ruff, mypy
+```
+
+## Project Layout
+
+```
+wavern/
+  audio/           - place audio files here (default import directory)
+  video/           - exported videos land here (default export directory)
+  src/wavern/      - main package
+  tests/           - pytest test suite
+  plugins/         - plugin development guide
+```
+
+## Development
+
+Install dev dependencies - includes **pytest** and **pytest-qt** (testing), **ruff** (linting), and **mypy** (type checking):
+
+```bash
+uv sync --extra dev
+```
+
+Run the full quality pipeline:
+
+```bash
+uv run pytest tests/ -v        # run test suite
+uv run ruff check src/         # lint
+uv run ruff check src/ --fix   # auto-fix safe issues
+uv run mypy src/               # type-check
 ```
 
 ## Usage
 
 ### GUI
+
+**TODO**: add a screenshot of the main GUI window here
 
 ```bash
 uv run wavern gui                          # launch empty
@@ -68,7 +146,7 @@ uv run wavern render audio/song.mp3 \
   --format webm
 ```
 
-### Other Commands
+### CLI Reference
 
 ```bash
 uv run wavern list-presets          # show all available presets
@@ -82,17 +160,17 @@ uv run wavern list-visualizations   # show registered visualization types
 | Shortcut | Action |
 |----------|--------|
 | `Space` | Play / Pause |
-| `Left` / `Right` | Seek ±5 seconds |
-| `Shift+Left` / `Shift+Right` | Seek ±1 second |
+| `Left` / `Right` | Seek +/-5 seconds |
+| `Shift+Left` / `Shift+Right` | Seek +/-1 second |
 | `Home` | Go to start |
-| `0` – `9` | Jump to 0% – 90% of track |
+| `0` - `9` | Jump to 0% - 90% of track |
 
 ### Volume
 
 | Shortcut | Action |
 |----------|--------|
 | `Up` | Volume +5% |
-| `Down` | Volume −5% |
+| `Down` | Volume -5% |
 | `M` | Mute / Unmute |
 
 ### File
@@ -102,7 +180,7 @@ uv run wavern list-visualizations   # show registered visualization types
 | `Ctrl+O` | Import Audio |
 | `Ctrl+E` | Render Video |
 | `Ctrl+S` | Save Preset |
-| `Ctrl+Shift+S` | Save Preset As… |
+| `Ctrl+Shift+S` | Save Preset As |
 | `Ctrl+Q` | Quit |
 
 ### View
@@ -117,44 +195,112 @@ uv run wavern list-visualizations   # show registered visualization types
 | Shortcut | Action |
 |----------|--------|
 | `Tab` | Cycle to next visualization |
-| `Ctrl+1` | Switch to Spectrum Bars |
-| `Ctrl+2` | Switch to Classic Waveform |
+| `Ctrl+1` | Switch to Classic Waveform |
+| `Ctrl+2` | Switch to Spectrum Bars |
 | `Ctrl+3` | Switch to Circular Spectrum |
-| `Ctrl+4` | Switch to Particle Burst |
-| `Ctrl+5` | Switch to Smoky Waves |
+| `Ctrl+4` | Switch to Rectangle(Square) Spectrum | 
+| `Ctrl+5` | Switch to Particle Burst |
+| `Ctrl+6` | Switch to Smoky Waves |
+
 
 ## Built-in Visualizations
 
-| Name | Description |
-|------|-------------|
-| Spectrum Bars | Classic vertical bar spectrum analyzer with logarithmic frequency binning |
-| Classic Waveform | Audio waveform as a line or filled shape |
-| Circular Spectrum | Radial bars arranged around a rotating circle |
-| Particle Burst | Audio-reactive particle system with burst effects on beats |
-| Smoky Waves | Layered sinusoidal waves with audio-reactive turbulence |
+| Name | Preview | Description |
+|------|---------|-------------|
+| Classic Waveform | <!-- TODO: assets/viz_waveform.gif --> *coming soon* | Audio waveform as a line or filled shape |
+| Spectrum Bars | <!-- TODO: assets/viz_spectrum_bars.gif --> *coming soon* | Classic vertical bar spectrum analyzer with logarithmic frequency binning |
+| Circular Spectrum | <!-- TODO: assets/viz_circular_spectrum.gif --> *coming soon* | Radial bars arranged around a rotating circle |
+| Rectangle Spectrum | <!-- TODO: assets/viz_rect_spectrum.gif --> *coming soon* | Spectrum bars arranged around a rectangle |
+| Particle Burst | <!-- TODO: assets/viz_particles.gif --> *coming soon* | Audio-reactive particle system with burst effects on beats |
+| Smoky Waves | <!-- TODO: assets/viz_smoky_waves.gif --> *coming soon* | Layered sinusoidal waves with audio-reactive turbulence |
 
 ## Presets
 
 Built-in presets ship with the package. Custom presets are saved to `~/.config/wavern/presets/` as JSON files. Use the **Save** button in the GUI or copy preset JSON files directly.
 
-## Project Layout
 
-```
-wavern/
-  audio/           — place audio files here (default import directory)
-  video/           — exported videos land here (default export directory)
-  src/wavern/      — main package
-  tests/           — pytest test suite
-  plugins/         — plugin development guide
-```
 
-## Development
+## Known Issues
+
+- **Linux only** - audio playback relies on PortAudio/PulseAudio/PipeWire. Windows and macOS were **NOT** tested
+- **Display server required for GUI** - the GUI requires a running X11 or Wayland session. Headless CLI export (`wavern render`) works without a display.
+- **Background image stretching** - background images are naively stretched to fill the canvas; cover/contain/letterbox modes are not yet implemented.
+- **Large audio files** - very long tracks (60+ min) may cause elevated memory usage during initial load as the full waveform is pre-analyzed.
+
+## Roadmap
+
+Planned for future releases (not in priority order):
+
+- [ ] Video Demo
+- [ ] Per-visualization preview GIFs in documentation
+- [ ] GitHub Actions CI (lint + test on push)
+- [ ] More built-in visualizations
+  - [ ] Mandala
+  - [ ] Wormhole spectrogram
+- [ ] macOS / Windows investigation (audio backend portability)
+
+Community contributions toward any of these are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## FAQ
+
+**The GUI won't start / crashes immediately.**
+
+Check that your GPU supports OpenGL 3.3+:
+```bash
+glxinfo | grep "OpenGL version"   # X11
+```
+On Wayland you may need to set `QT_QPA_PLATFORM=xcb` if XWayland is available. Ensure OpenGL drivers are installed (Mesa or proprietary).
+
+**No audio playback / PortAudio error.**
+
+Wavern uses sounddevice which requires PortAudio. Install it:
+```bash
+sudo dnf install portaudio        # Fedora
+sudo apt install portaudio19-dev  # Debian/Ubuntu
+```
+Make sure PulseAudio or PipeWire is running (`pactl info` / `pw-cli info`).
+
+**`ffmpeg` not found during export.**
 
 ```bash
-uv sync --all-extras      # install dev dependencies
-uv run pytest tests/ -v   # run tests
-uv run ruff check src/    # lint
+sudo dnf install ffmpeg           # Fedora (enable RPM Fusion first)
+sudo apt install ffmpeg           # Debian/Ubuntu
 ```
+
+**What audio formats are supported?**
+
+Any format that ffmpeg can decode: MP3, FLAC, WAV, OGG, AAC, M4A, and more. The file is decoded to a numpy array at import time.
+
+**Transparent export produces a black background.**
+
+Use `--format webm` (VP9/WebM supports alpha). MP4/H.264 does not support an alpha channel.
+
+**Can I add my own visualizations?**
+
+The plugin infrastructure exists (see `plugins/README.md` and [CONTRIBUTING.md](CONTRIBUTING.md)) but automatic drop-in loading from `~/.config/wavern/plugins/` is not yet wired to the app. For now, the recommended path is to contribute a visualization directly to the source - see [Adding a New Visualization](CONTRIBUTING.md) in the contributing guide.
+
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow: branch naming, commit conventions, how to add a visualization, and the PR checklist.
+
+Bug reports and feature requests: use the [GitHub issue templates](https://github.com/Lorakszak/wavern/issues/new/choose).
+
+## Acknowledgements
+
+Wavern is built on top of these goated projects:
+
+- [moderngl](https://github.com/moderngl/moderngl) - Python OpenGL bindings
+- [PySide6](https://doc.qt.io/qtforpython/) - Qt6 GUI framework
+- [numpy](https://numpy.org/) + [scipy](https://scipy.org/) - audio analysis and DSP
+- [sounddevice](https://python-sounddevice.readthedocs.io/) - audio playback via PortAudio
+- [ffmpeg](https://ffmpeg.org/) - video encoding and audio decoding
+- [pydantic](https://docs.pydantic.dev/) - preset schema validation
+- [uv](https://docs.astral.sh/uv/) - fast Python package management
+- [ruff](https://github.com/astral-sh/ruff) - linting and formatting
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ## License
 
