@@ -105,6 +105,13 @@ class ExportPipeline:
         renderer = Renderer(ctx)
         renderer.set_preset(self._preset)
         renderer.set_duration(metadata.duration)
+
+        # Reset video sources so export starts from frame 0
+        if renderer._video_source is not None:
+            renderer._video_source.reset()
+        if renderer._overlay_video_source is not None:
+            renderer._overlay_video_source.reset()
+
         fbo = renderer.ensure_offscreen_fbo(self._config.resolution)
 
         # Render to temporary video file (no audio)

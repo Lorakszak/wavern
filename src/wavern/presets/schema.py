@@ -14,6 +14,14 @@ class BlendMode(str, Enum):
     MULTIPLY = "multiply"
 
 
+class OverlayBlendMode(str, Enum):
+    """Blend mode for video overlay compositing."""
+
+    ALPHA = "alpha"
+    ADDITIVE = "additive"
+    SCREEN = "screen"
+
+
 class ColorStop(BaseModel):
     """A single color stop in a gradient."""
 
@@ -24,15 +32,32 @@ class ColorStop(BaseModel):
     )
 
 
+class BackgroundMovement(BaseModel):
+    """Animation effect applied to background UV coordinates."""
+
+    type: str = Field(
+        default="none",
+        pattern=r"^(none|drift|shake|wave|zoom_pulse|breathe)$",
+    )
+    speed: float = Field(default=1.0, ge=0.0, le=10.0)
+    intensity: float = Field(default=0.5, ge=0.0, le=2.0)
+    angle: float = Field(default=0.0, ge=0.0, le=360.0)
+    clamp_to_frame: bool = Field(default=False)
+
+
 class BackgroundConfig(BaseModel):
     """Background layer settings."""
 
-    type: str = Field(default="solid", pattern=r"^(solid|image|gradient|none)$")
+    type: str = Field(default="solid", pattern=r"^(solid|image|gradient|none|video)$")
     color: str = Field(default="#000000")
     image_path: str | None = None
+    video_path: str | None = None
     opacity: float = Field(default=1.0, ge=0.0, le=1.0)
     blur_radius: float = Field(default=0.0, ge=0.0)
     scale_mode: str = Field(default="cover", pattern=r"^(cover|contain|stretch|tile)$")
+    rotation: float = Field(default=0.0, ge=0.0, le=360.0)
+    mirror_x: bool = Field(default=False)
+    mirror_y: bool = Field(default=False)
     gradient_stops: list[ColorStop] = Field(
         default_factory=lambda: [
             ColorStop(position=0.0, color="#000000"),
@@ -40,6 +65,19 @@ class BackgroundConfig(BaseModel):
         ],
         description="Color stops for gradient background type",
     )
+    movement: BackgroundMovement = Field(default_factory=BackgroundMovement)
+
+
+class VideoOverlayConfig(BaseModel):
+    """Video overlay composited on top of the visualization."""
+
+    enabled: bool = False
+    video_path: str | None = None
+    blend_mode: OverlayBlendMode = OverlayBlendMode.ADDITIVE
+    opacity: float = Field(default=1.0, ge=0.0, le=1.0)
+    rotation: float = Field(default=0.0, ge=0.0, le=360.0)
+    mirror_x: bool = Field(default=False)
+    mirror_y: bool = Field(default=False)
 
 
 class OverlayConfig(BaseModel):
@@ -109,6 +147,7 @@ class Preset(BaseModel):
 
     background: BackgroundConfig = Field(default_factory=BackgroundConfig)
     overlay: OverlayConfig = Field(default_factory=OverlayConfig)
+    video_overlay: VideoOverlayConfig = Field(default_factory=VideoOverlayConfig)
 
     fft_size: int = Field(default=2048, ge=256, le=16384)
     smoothing: float = Field(default=0.3, ge=0.0, le=0.99)

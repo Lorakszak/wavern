@@ -435,6 +435,7 @@ class MainWindow(QMainWindow):
         # Connect all visual/text/analysis panels from both sidebars
         for panel in self._all_visual_panels():
             panel.params_changed.connect(self._on_params_changed)
+            panel.preview_flags_changed.connect(self._on_preview_flags_changed)
         for panel in self._all_text_panels():
             panel.params_changed.connect(self._on_params_changed)
         for panel in self._all_analysis_panels():
@@ -568,6 +569,12 @@ class MainWindow(QMainWindow):
         for panel in self._all_preset_panels():
             panel.set_current_preset(preset)
 
+        if not self._player.is_playing:
+            self._gl_widget.render_single_frame()
+
+    def _on_preview_flags_changed(self, skip_bg: bool, skip_overlay: bool) -> None:
+        """Update renderer preview-skip flags from visual panel toggles."""
+        self._gl_widget.set_preview_flags(skip_bg, skip_overlay)
         if not self._player.is_playing:
             self._gl_widget.render_single_frame()
 

@@ -1,6 +1,7 @@
 """Render pipeline — orchestrates background, visualization, and post-processing."""
 
 import logging
+import math
 
 import moderngl
 import numpy as np
@@ -9,7 +10,15 @@ from PIL import Image
 
 from wavern.core.audio_analyzer import FrameAnalysis
 from wavern.core.text_overlay import TextOverlay
-from wavern.presets.schema import BackgroundConfig, ColorStop, Preset
+from wavern.core.video_source import VideoSource
+from wavern.presets.schema import (
+    BackgroundConfig,
+    BackgroundMovement,
+    ColorStop,
+    OverlayBlendMode,
+    Preset,
+    VideoOverlayConfig,
+)
 from wavern.shaders import load_shader
 from wavern.utils.color import hex_to_rgb, hex_to_rgba
 from wavern.visualizations.base import AbstractVisualization
@@ -67,6 +76,12 @@ class Renderer:
     and the offline video export. The only difference is the target FBO.
     """
 
+    # Movement type name → integer mapping for the shader uniform
+    _MOVEMENT_TYPE_MAP: dict[str, int] = {
+        "none": 0, "drift": 1, "shake": 2,
+        "wave": 3, "zoom_pulse": 4, "breathe": 5,
+    }
+
     def __init__(self, ctx: moderngl.Context) -> None:
         self.ctx = ctx
         self._visualization: AbstractVisualization | None = None
@@ -81,8 +96,24 @@ class Renderer:
         self._bg_texture: moderngl.Texture | None = None
         self._bg_image_path: str | None = None  # tracks loaded image to avoid reloading
 
+        # Background video source
+        self._video_source: VideoSource | None = None
+        self._bg_video_path: str | None = None
+
+        # Video overlay resources
+        self._overlay_video_source: VideoSource | None = None
+        self._overlay_texture: moderngl.Texture | None = None
+        self._overlay_program: moderngl.Program | None = None
+        self._overlay_vao: moderngl.VertexArray | None = None
+        self._overlay_video_path: str | None = None
+
         # Text overlay (created lazily)
         self._text_overlay: TextOverlay | None = None
+
+        # Preview-mode flags: when True, the layer is skipped during preview
+        # but still rendered during export.
+        self.skip_bg_preview: bool = False
+        self.skip_overlay_preview: bool = False
 
     def _ensure_bg_quad(self) -> None:
         """Lazily create the fullscreen quad shader and VAO for background rendering."""
@@ -119,15 +150,24 @@ class Renderer:
             self._bg_texture = None
         self._bg_image_path = None
 
+    def _close_video_source(self) -> None:
+        """Close the background video source if open."""
+        if self._video_source is not None:
+            self._video_source.close()
+            self._video_source = None
+        self._bg_video_path = None
+
     def _update_bg_texture(self, bg: BackgroundConfig) -> None:
         """Create or update the background texture based on config."""
         if bg.type == "gradient":
             self._release_bg_texture()
+            self._close_video_source()
             data = _gradient_to_rgba(bg.gradient_stops)
             self._bg_texture = self.ctx.texture((data.shape[1], data.shape[0]), 4, data.tobytes())
             self._bg_texture.filter = (moderngl.LINEAR, moderngl.LINEAR)
 
         elif bg.type == "image":
+            self._close_video_source()
             if bg.image_path and bg.image_path != self._bg_image_path:
                 self._release_bg_texture()
                 try:
@@ -141,15 +181,81 @@ class Renderer:
                     self._bg_texture = None
             elif not bg.image_path:
                 self._release_bg_texture()
+
+        elif bg.type == "video":
+            if bg.video_path and bg.video_path != self._bg_video_path:
+                self._release_bg_texture()
+                self._close_video_source()
+                try:
+                    vs = VideoSource(bg.video_path)
+                    vs.open()
+                    w, h = vs.size
+                    # Create RGBA texture at video dimensions — data uploaded per-frame
+                    self._bg_texture = self.ctx.texture((w, h), 4)
+                    self._bg_texture.filter = (moderngl.LINEAR, moderngl.LINEAR)
+                    self._video_source = vs
+                    self._bg_video_path = bg.video_path
+                except Exception as e:
+                    logger.error("Failed to open background video %s: %s", bg.video_path, e)
+                    self._bg_texture = None
+            elif not bg.video_path:
+                self._release_bg_texture()
+                self._close_video_source()
         else:
             self._release_bg_texture()
+            self._close_video_source()
 
-    def _render_bg_quad(self, fbo: moderngl.Framebuffer) -> None:
+    def _set_bg_movement_uniforms(self, movement: BackgroundMovement, timestamp: float) -> None:
+        """Upload movement uniforms to the background shader program."""
+        prog = self._bg_program
+        if prog is None:
+            return
+        mv_type = self._MOVEMENT_TYPE_MAP.get(movement.type, 0)
+        if "u_time" in prog:
+            prog["u_time"].value = timestamp
+        if "u_movement_type" in prog:
+            prog["u_movement_type"].value = mv_type
+        if "u_movement_speed" in prog:
+            prog["u_movement_speed"].value = movement.speed
+        if "u_movement_intensity" in prog:
+            prog["u_movement_intensity"].value = movement.intensity
+        if "u_movement_angle" in prog:
+            prog["u_movement_angle"].value = math.radians(movement.angle)
+        if "u_clamp_to_frame" in prog:
+            prog["u_clamp_to_frame"].value = int(movement.clamp_to_frame)
+
+    def _render_bg_quad(self, fbo: moderngl.Framebuffer, frame: FrameAnalysis) -> None:
         """Render the background texture as a fullscreen quad."""
         if self._bg_texture is None or self._bg_vao is None:
             return
+
+        # Upload video frame if using video background
+        if self._video_source is not None:
+            frame_data = self._video_source.get_frame(frame.timestamp)
+            self._bg_texture.write(frame_data.tobytes())
+
         self._bg_texture.use(location=0)
         self._bg_program["u_background"].value = 0
+
+        # Set transform and movement uniforms
+        if self._preset is not None:
+            bg = self._preset.background
+            movement = bg.movement
+            self._set_bg_movement_uniforms(movement, frame.timestamp)
+
+            # Transform uniforms (rotation, mirror)
+            if "u_rotation" in self._bg_program:
+                self._bg_program["u_rotation"].value = math.radians(bg.rotation)
+            if "u_mirror_x" in self._bg_program:
+                self._bg_program["u_mirror_x"].value = int(bg.mirror_x)
+            if "u_mirror_y" in self._bg_program:
+                self._bg_program["u_mirror_y"].value = int(bg.mirror_y)
+
+            # Enable texture repeat for drift (when not clamped)
+            if movement.type == "drift" and self._bg_texture is not None:
+                self._bg_texture.repeat_x = True
+                self._bg_texture.repeat_y = True
+
         self._bg_vao.render(moderngl.TRIANGLE_STRIP)
 
     def set_preset(self, preset: Preset) -> None:
@@ -165,16 +271,22 @@ class Renderer:
         if bg.type == "solid":
             self._bg_color = hex_to_rgba(bg.color)
             self._release_bg_texture()
+            self._close_video_source()
         elif bg.type == "none":
             self._bg_color = (0.0, 0.0, 0.0, 0.0)
             self._release_bg_texture()
-        elif bg.type in ("gradient", "image"):
+            self._close_video_source()
+        elif bg.type in ("gradient", "image", "video"):
             self._bg_color = (0.0, 0.0, 0.0, 1.0)
             self._ensure_bg_quad()
             self._update_bg_texture(bg)
         else:
             self._bg_color = hex_to_rgba(bg.color)
             self._release_bg_texture()
+            self._close_video_source()
+
+        # Update video overlay
+        self._update_overlay(preset.video_overlay)
 
         # Update text overlay config
         self._ensure_text_overlay()
@@ -227,13 +339,18 @@ class Renderer:
         if bg.type == "solid":
             self._bg_color = hex_to_rgba(bg.color)
             self._release_bg_texture()
+            self._close_video_source()
         elif bg.type == "none":
             self._bg_color = (0.0, 0.0, 0.0, 0.0)
             self._release_bg_texture()
-        elif bg.type in ("gradient", "image"):
+            self._close_video_source()
+        elif bg.type in ("gradient", "image", "video"):
             self._bg_color = (0.0, 0.0, 0.0, 1.0)
             self._ensure_bg_quad()
             self._update_bg_texture(bg)
+
+        # Update video overlay
+        self._update_overlay(preset.video_overlay)
 
         # Update text overlay config
         self._ensure_text_overlay()
@@ -257,6 +374,7 @@ class Renderer:
         frame: FrameAnalysis,
         fbo: moderngl.Framebuffer,
         resolution: tuple[int, int],
+        preview: bool = False,
     ) -> None:
         """Render a complete frame: background + visualization.
 
@@ -264,6 +382,8 @@ class Renderer:
             frame: Audio analysis data for this moment.
             fbo: Target framebuffer.
             resolution: (width, height) in pixels.
+            preview: True when rendering for GUI preview. When True,
+                layers with their preview-skip flag set are not drawn.
         """
         fbo.use()
         self.ctx.viewport = (0, 0, resolution[0], resolution[1])
@@ -276,9 +396,10 @@ class Renderer:
             self._bg_color[3],
         )
 
-        # Render gradient/image background quad
-        if self._bg_texture is not None:
-            self._render_bg_quad(fbo)
+        # Render gradient/image/video background quad
+        skip_bg = preview and self.skip_bg_preview
+        if self._bg_texture is not None and not skip_bg:
+            self._render_bg_quad(fbo, frame)
 
         # Enable blending for transparent compositing
         if self._bg_color[3] < 1.0:
@@ -295,12 +416,116 @@ class Renderer:
             except Exception as e:
                 logger.error("Visualization render error: %s", e)
 
+        # Render video overlay on top of visualization
+        skip_overlay = preview and self.skip_overlay_preview
+        if self._overlay_video_source is not None and not skip_overlay:
+            try:
+                self._render_overlay(frame)
+            except Exception as e:
+                logger.error("Video overlay render error: %s", e)
+
         # Render text overlay on top
         if self._text_overlay is not None:
             try:
                 self._text_overlay.render(fbo, resolution, frame.timestamp)
             except Exception as e:
                 logger.error("Text overlay render error: %s", e)
+
+    def _ensure_overlay_quad(self) -> None:
+        """Lazily create the overlay fullscreen quad shader and VAO."""
+        if self._overlay_program is not None:
+            return
+
+        vert_src = load_shader("common.vert")
+        frag_src = load_shader("overlay.frag")
+        self._overlay_program = self.ctx.program(
+            vertex_shader=vert_src, fragment_shader=frag_src,
+        )
+
+        vertices = np.array(
+            [
+                -1.0, -1.0, 0.0, 0.0,
+                 1.0, -1.0, 1.0, 0.0,
+                -1.0,  1.0, 0.0, 1.0,
+                 1.0,  1.0, 1.0, 1.0,
+            ],
+            dtype="f4",
+        )
+        vbo = self.ctx.buffer(vertices.tobytes())
+        self._overlay_vao = self.ctx.vertex_array(
+            self._overlay_program,
+            [(vbo, "2f 2f", "in_position", "in_texcoord")],
+        )
+
+    def _update_overlay(self, config: VideoOverlayConfig) -> None:
+        """Open/close the overlay video source based on config."""
+        if not config.enabled or not config.video_path:
+            self._close_overlay()
+            return
+
+        if config.video_path != self._overlay_video_path:
+            self._close_overlay()
+            try:
+                vs = VideoSource(config.video_path)
+                vs.open()
+                w, h = vs.size
+                self._ensure_overlay_quad()
+                self._overlay_texture = self.ctx.texture((w, h), 4)
+                self._overlay_texture.filter = (moderngl.LINEAR, moderngl.LINEAR)
+                self._overlay_video_source = vs
+                self._overlay_video_path = config.video_path
+            except Exception as e:
+                logger.error("Failed to open overlay video %s: %s", config.video_path, e)
+
+    def _close_overlay(self) -> None:
+        """Release overlay video source and texture."""
+        if self._overlay_video_source is not None:
+            self._overlay_video_source.close()
+            self._overlay_video_source = None
+        if self._overlay_texture is not None:
+            self._overlay_texture.release()
+            self._overlay_texture = None
+        self._overlay_video_path = None
+
+    def _render_overlay(self, frame: FrameAnalysis) -> None:
+        """Decode and composite the video overlay on top of the current scene."""
+        if (
+            self._overlay_video_source is None
+            or self._overlay_texture is None
+            or self._overlay_program is None
+            or self._overlay_vao is None
+            or self._preset is None
+        ):
+            return
+
+        overlay_cfg = self._preset.video_overlay
+        frame_data = self._overlay_video_source.get_frame(frame.timestamp)
+        self._overlay_texture.write(frame_data.tobytes())
+        self._overlay_texture.use(location=0)
+        self._overlay_program["u_overlay"].value = 0
+
+        if "u_opacity" in self._overlay_program:
+            self._overlay_program["u_opacity"].value = overlay_cfg.opacity
+        if "u_rotation" in self._overlay_program:
+            self._overlay_program["u_rotation"].value = math.radians(overlay_cfg.rotation)
+        if "u_mirror_x" in self._overlay_program:
+            self._overlay_program["u_mirror_x"].value = int(overlay_cfg.mirror_x)
+        if "u_mirror_y" in self._overlay_program:
+            self._overlay_program["u_mirror_y"].value = int(overlay_cfg.mirror_y)
+
+        # Set blend mode
+        self.ctx.enable(moderngl.BLEND)
+        if overlay_cfg.blend_mode == OverlayBlendMode.ALPHA:
+            self.ctx.blend_func = (moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA)
+        elif overlay_cfg.blend_mode == OverlayBlendMode.ADDITIVE:
+            self.ctx.blend_func = (moderngl.SRC_ALPHA, moderngl.ONE)
+        elif overlay_cfg.blend_mode == OverlayBlendMode.SCREEN:
+            self.ctx.blend_func = (moderngl.ONE, moderngl.ONE_MINUS_SRC_COLOR)
+
+        self._overlay_vao.render(moderngl.TRIANGLE_STRIP)
+
+        # Restore default blend state
+        self.ctx.blend_func = (moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA)
 
     def read_pixels(
         self,
@@ -360,9 +585,17 @@ class Renderer:
             self._offscreen_texture.release()
             self._offscreen_texture = None
         self._release_bg_texture()
+        self._close_video_source()
+        self._close_overlay()
         if self._bg_vao is not None:
             self._bg_vao.release()
             self._bg_vao = None
         if self._bg_program is not None:
             self._bg_program.release()
             self._bg_program = None
+        if self._overlay_vao is not None:
+            self._overlay_vao.release()
+            self._overlay_vao = None
+        if self._overlay_program is not None:
+            self._overlay_program.release()
+            self._overlay_program = None

@@ -13,10 +13,11 @@ def open_background_image(parent=None) -> Path | None:
 
     Returns the selected path, or None if cancelled.
     """
+    project_root = str(Path(__file__).resolve().parents[3])
     path, _ = QFileDialog.getOpenFileName(
         parent,
         "Select Background Image",
-        "",
+        project_root,
         IMAGE_FILTER,
     )
     if path:

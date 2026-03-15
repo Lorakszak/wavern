@@ -3,7 +3,8 @@
 import logging
 from pathlib import Path
 
-from PySide6.QtCore import QThread, Signal
+from PySide6.QtCore import QThread, QUrl, Signal
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -247,7 +248,15 @@ class ExportDialog(QDialog):
     def _on_finished(self, output_path: str) -> None:
         self._status_label.setText(f"Done: {output_path}")
         self._export_btn.setEnabled(True)
-        QMessageBox.information(self, "Render Complete", f"Video saved to:\n{output_path}")
+        msg = QMessageBox(self)
+        msg.setWindowTitle("Render Complete")
+        msg.setText(f"Video saved to:\n{output_path}")
+        msg.addButton(QMessageBox.StandardButton.Ok)
+        open_btn = msg.addButton("Open Directory", QMessageBox.ButtonRole.ActionRole)
+        msg.exec()
+        if msg.clickedButton() == open_btn:
+            parent_dir = str(Path(output_path).parent)
+            QDesktopServices.openUrl(QUrl.fromLocalFile(parent_dir))
         self.accept()
 
     def _on_error(self, error_msg: str) -> None:

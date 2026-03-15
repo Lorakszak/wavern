@@ -61,6 +61,12 @@ class GLPreviewWidget(QOpenGLWidget):
             self._renderer.update_params(preset)
             self.doneCurrent()
 
+    def set_preview_flags(self, skip_bg: bool, skip_overlay: bool) -> None:
+        """Set preview-skip flags on the renderer."""
+        if self._renderer is not None:
+            self._renderer.skip_bg_preview = skip_bg
+            self._renderer.skip_overlay_preview = skip_overlay
+
     def set_audio_duration(self, duration: float) -> None:
         """Pass total audio duration to the renderer for countdown overlay."""
         if self._renderer is not None:
@@ -106,7 +112,7 @@ class GLPreviewWidget(QOpenGLWidget):
         resolution = (self.width(), self.height())
         fbo = self._ctx.detect_framebuffer()
 
-        self._renderer.render_frame(frame, fbo, resolution)
+        self._renderer.render_frame(frame, fbo, resolution, preview=True)
 
         if self._preset and self._preset.background.type == "none":
             self._render_checkerboard(fbo, resolution)

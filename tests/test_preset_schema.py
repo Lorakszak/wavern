@@ -6,9 +6,12 @@ from pydantic import ValidationError
 
 from wavern.presets.schema import (
     BackgroundConfig,
+    BackgroundMovement,
     BlendMode,
     ColorStop,
+    OverlayBlendMode,
     Preset,
+    VideoOverlayConfig,
     VisualizationParams,
 )
 
@@ -84,3 +87,60 @@ class TestPresetSchema:
         assert bg.type == "solid"
         assert bg.color == "#000000"
         assert bg.opacity == 1.0
+        assert bg.movement.type == "none"
+
+    def test_video_overlay_defaults(self):
+        ov = VideoOverlayConfig()
+        assert ov.enabled is False
+        assert ov.video_path is None
+        assert ov.blend_mode == OverlayBlendMode.ADDITIVE
+        assert ov.opacity == 1.0
+        assert ov.rotation == 0.0
+        assert ov.mirror_x is False
+        assert ov.mirror_y is False
+
+    def test_preset_has_video_overlay(self):
+        preset = Preset(
+            name="Overlay Test",
+            visualization=VisualizationParams(visualization_type="waveform"),
+            video_overlay=VideoOverlayConfig(
+                enabled=True,
+                video_path="/tmp/particles.webm",
+                blend_mode=OverlayBlendMode.SCREEN,
+                opacity=0.8,
+            ),
+        )
+        assert preset.video_overlay.enabled is True
+        assert preset.video_overlay.blend_mode == OverlayBlendMode.SCREEN
+
+    def test_preset_roundtrip_with_new_fields(self):
+        preset = Preset(
+            name="Full",
+            visualization=VisualizationParams(visualization_type="spectrum_bars"),
+            background=BackgroundConfig(
+                type="video",
+                video_path="/tmp/bg.mp4",
+                rotation=180.0,
+                mirror_x=True,
+                movement=BackgroundMovement(
+                    type="drift", speed=2.0, angle=90.0, clamp_to_frame=True,
+                ),
+            ),
+            video_overlay=VideoOverlayConfig(
+                enabled=True, opacity=0.5,
+                rotation=90.0, mirror_x=True, mirror_y=True,
+            ),
+        )
+        json_str = preset.model_dump_json()
+        restored = Preset.model_validate_json(json_str)
+        assert restored.background.type == "video"
+        assert restored.background.rotation == 180.0
+        assert restored.background.mirror_x is True
+        assert restored.background.movement.type == "drift"
+        assert restored.background.movement.angle == 90.0
+        assert restored.background.movement.clamp_to_frame is True
+        assert restored.video_overlay.enabled is True
+        assert restored.video_overlay.opacity == 0.5
+        assert restored.video_overlay.rotation == 90.0
+        assert restored.video_overlay.mirror_x is True
+        assert restored.video_overlay.mirror_y is True
