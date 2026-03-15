@@ -1,10 +1,10 @@
 """Project settings panel — resolution, FPS, format, quality, output directory."""
 
 import logging
+from pathlib import Path
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
-    QComboBox,
     QFileDialog,
     QFormLayout,
     QHBoxLayout,
@@ -12,10 +12,12 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QPushButton,
     QSizePolicy,
-    QSpinBox,
     QWidget,
 )
 
+from wavern.gui.no_scroll_combo import NoScrollComboBox
+
+from wavern.gui.drag_spinbox import DragSpinBox
 from wavern.gui.help_button import make_help_button
 from wavern.presets.schema import ProjectSettings
 
@@ -62,12 +64,12 @@ class ProjectSettingsPanel(QWidget):
 
         # --- Resolution ---
         separator_res = QLabel("Resolution")
-        separator_res.setStyleSheet("font-weight: bold; color: #888; padding-top: 4px;")
+        separator_res.setObjectName("SectionSeparator")
         form.addRow(separator_res)
 
         # Aspect ratio
         aspect_row = QHBoxLayout()
-        self._aspect_combo = QComboBox()
+        self._aspect_combo = NoScrollComboBox()
         self._aspect_combo.addItems(_ASPECT_RATIOS)
         self._aspect_combo.setCurrentText("16:9")
         aspect_row.addWidget(self._aspect_combo, stretch=1)
@@ -79,8 +81,13 @@ class ProjectSettingsPanel(QWidget):
 
         # Resolution quick-select
         quick_row = QHBoxLayout()
-        self._res_combo = QComboBox()
+        self._res_combo = NoScrollComboBox()
         self._populate_resolution_combo("16:9")
+        # Default to 1920x1080
+        for i in range(self._res_combo.count()):
+            if self._res_combo.itemData(i) == (1920, 1080):
+                self._res_combo.setCurrentIndex(i)
+                break
         quick_row.addWidget(self._res_combo, stretch=1)
         quick_row.addWidget(make_help_button(
             "Resolution is the pixel dimensions of the output video.\n"
@@ -90,24 +97,22 @@ class ProjectSettingsPanel(QWidget):
 
         # Manual width x height
         dim_row = QHBoxLayout()
-        self._width_spin = QSpinBox()
-        self._width_spin.setRange(320, 7680)
+        self._width_spin = DragSpinBox(minimum=320, maximum=7680, step=1, decimals=0, default_value=1920)
         self._width_spin.setValue(1920)
         dim_row.addWidget(self._width_spin)
         dim_row.addWidget(QLabel("x"))
-        self._height_spin = QSpinBox()
-        self._height_spin.setRange(240, 4320)
+        self._height_spin = DragSpinBox(minimum=240, maximum=4320, step=1, decimals=0, default_value=1080)
         self._height_spin.setValue(1080)
         dim_row.addWidget(self._height_spin)
         form.addRow("Size:", dim_row)
 
         # --- Frame Rate ---
         separator_fps = QLabel("Frame Rate")
-        separator_fps.setStyleSheet("font-weight: bold; color: #888; padding-top: 8px;")
+        separator_fps.setObjectName("SectionSeparator")
         form.addRow(separator_fps)
 
         fps_row = QHBoxLayout()
-        self._fps_combo = QComboBox()
+        self._fps_combo = NoScrollComboBox()
         for fps in _FPS_OPTIONS:
             self._fps_combo.addItem(str(fps), fps)
         self._fps_combo.addItem("Custom", -1)
@@ -120,18 +125,17 @@ class ProjectSettingsPanel(QWidget):
         ))
         form.addRow("FPS:", fps_row)
 
-        self._fps_spin = QSpinBox()
-        self._fps_spin.setRange(1, 240)
+        self._fps_spin = DragSpinBox(minimum=1, maximum=240, step=1, decimals=0, default_value=60)
         self._fps_spin.setValue(60)
         form.addRow("Value:", self._fps_spin)
 
         # --- Format ---
         separator_fmt = QLabel("Format")
-        separator_fmt.setStyleSheet("font-weight: bold; color: #888; padding-top: 8px;")
+        separator_fmt.setObjectName("SectionSeparator")
         form.addRow(separator_fmt)
 
         fmt_row = QHBoxLayout()
-        self._format_combo = QComboBox()
+        self._format_combo = NoScrollComboBox()
         self._format_combo.addItems(["mp4", "webm"])
         fmt_row.addWidget(self._format_combo, stretch=1)
         fmt_row.addWidget(make_help_button(
@@ -142,24 +146,23 @@ class ProjectSettingsPanel(QWidget):
 
         # --- Quality ---
         separator_q = QLabel("Quality")
-        separator_q.setStyleSheet("font-weight: bold; color: #888; padding-top: 8px;")
+        separator_q.setObjectName("SectionSeparator")
         form.addRow(separator_q)
 
-        crf_row = QHBoxLayout()
-        self._crf_spin = QSpinBox()
-        self._crf_spin.setRange(0, 51)
+        self._crf_spin = DragSpinBox(
+            minimum=0, maximum=51, step=1, decimals=0, default_value=18,
+            description=(
+                "CRF (Constant Rate Factor) controls video quality.\n"
+                "Lower = better quality, larger file.\n"
+                "0 = lossless, 18 = visually lossless, 23 = default, 28+ = noticeable compression."
+            ),
+        )
         self._crf_spin.setValue(18)
-        crf_row.addWidget(self._crf_spin, stretch=1)
-        crf_row.addWidget(make_help_button(
-            "CRF (Constant Rate Factor) controls video quality.\n"
-            "Lower = better quality, larger file.\n"
-            "0 = lossless, 18 = visually lossless, 23 = default, 28+ = noticeable compression."
-        ))
-        form.addRow("CRF:", crf_row)
+        form.addRow("CRF:", self._crf_spin)
 
         # --- Output Directory ---
         separator_out = QLabel("Output")
-        separator_out.setStyleSheet("font-weight: bold; color: #888; padding-top: 8px;")
+        separator_out.setObjectName("SectionSeparator")
         form.addRow(separator_out)
 
         out_row = QHBoxLayout()
@@ -206,7 +209,7 @@ class ProjectSettingsPanel(QWidget):
         self._populate_resolution_combo(aspect)
 
         if self._res_combo.count() > 0:
-            current = (self._width_spin.value(), self._height_spin.value())
+            current = (int(self._width_spin.value()), int(self._height_spin.value()))
             best_idx = 0
             for i in range(self._res_combo.count()):
                 res = self._res_combo.itemData(i)
@@ -245,13 +248,15 @@ class ProjectSettingsPanel(QWidget):
     def _on_fps_combo_changed(self, index: int) -> None:
         fps_val = self._fps_combo.currentData()
         if fps_val != -1:  # preset selected — sync spinbox
-            self._fps_spin.blockSignals(True)
+            self._rebuilding = True
             self._fps_spin.setValue(fps_val)
-            self._fps_spin.blockSignals(False)
+            self._rebuilding = False
         self._update_settings()
 
     def _on_fps_spin_changed(self) -> None:
-        value = self._fps_spin.value()
+        if self._rebuilding:
+            return
+        value = int(self._fps_spin.value())
         # Find matching preset and select it, or fall back to Custom
         match_idx = -1
         for i in range(self._fps_combo.count()):
@@ -262,7 +267,6 @@ class ProjectSettingsPanel(QWidget):
         if match_idx >= 0:
             self._fps_combo.setCurrentIndex(match_idx)
         else:
-            # Select "Custom" entry
             custom_idx = self._fps_combo.findData(-1)
             if custom_idx >= 0:
                 self._fps_combo.setCurrentIndex(custom_idx)
@@ -279,7 +283,8 @@ class ProjectSettingsPanel(QWidget):
         self._update_settings()
 
     def _on_browse_output(self) -> None:
-        path = QFileDialog.getExistingDirectory(self, "Select Output Directory")
+        default_dir = str(Path(__file__).resolve().parents[3] / "video")
+        path = QFileDialog.getExistingDirectory(self, "Select Output Directory", default_dir)
         if path:
             self._output_edit.setText(path)
 
@@ -295,10 +300,10 @@ class ProjectSettingsPanel(QWidget):
     def _update_settings(self) -> None:
         """Rebuild ProjectSettings from current widget state and emit signal."""
         self._settings = ProjectSettings(
-            resolution=(self._width_spin.value(), self._height_spin.value()),
-            fps=self._fps_spin.value(),
+            resolution=(int(self._width_spin.value()), int(self._height_spin.value())),
+            fps=int(self._fps_spin.value()),
             container=self._format_combo.currentText(),
-            crf=self._crf_spin.value(),
+            crf=int(self._crf_spin.value()),
             output_dir=self._output_edit.text().strip(),
         )
         self.settings_changed.emit(self._settings)

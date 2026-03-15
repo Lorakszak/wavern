@@ -52,6 +52,11 @@ def run_gui(
     """
     app = create_app()
 
+    # Apply saved theme
+    from wavern.gui.theme_manager import ThemeManager
+    theme_mgr = ThemeManager()
+    theme_mgr.apply(app, theme_mgr.load_preference())
+
     # Pre-download all fonts in background so they're cached before user picks one
     from wavern.core.font_manager import preload_all_fonts
     preload_all_fonts()

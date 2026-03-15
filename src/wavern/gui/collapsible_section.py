@@ -18,13 +18,9 @@ class CollapsibleSection(QWidget):
 
         # Header button
         self._header = QPushButton()
+        self._header.setObjectName("CollapsibleHeader")
         self._header.setFlat(True)
         self._header.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._header.setStyleSheet(
-            "QPushButton { text-align: left; padding: 6px 8px; font-weight: bold; "
-            "border: none; border-bottom: 1px solid #444; }"
-            "QPushButton:hover { background: rgba(255, 255, 255, 0.05); }"
-        )
         self._header.clicked.connect(self._toggle)
         layout.addWidget(self._header)
 

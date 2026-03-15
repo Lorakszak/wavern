@@ -60,7 +60,10 @@ Wavern is a local music visualizer for Linux. It renders GPU-accelerated audio v
 
 - **Real-time preview** - OpenGL 3.3+ GPU-accelerated visualization synced to audio playback
 - **6 built-in visualizations** - Spectrum Bars, Classic Waveform, Circular Spectrum, Rectangle Spectrum, Particle Burst, Smoky Waves
-- **Full parameter control** - every visualization exposes tunable parameters (bar count, speed, thickness, etc.) with live preview
+- **Full parameter control** - every visualization exposes tunable parameters (bar count, speed, thickness, etc.) with live preview via drag-to-change spinboxes
+- **Visualization memory** - switching visualization types preserves your parameter tweaks; switch back and your settings are restored
+- **Dual tabbed sidebars** - two independent sidebars with tabs (Visual, Text, Export, Presets, Analysis), each with optional vertical split mode
+- **5 built-in themes** - Dark, Light, Nord, Dracula, Gruvbox — persists across sessions
 - **Color palettes** - multi-color gradients applied across visualizations
 - **Preset system** - save/load/share visualization configurations as JSON files
 - **Transparent export** - render with no background for compositing (WebM/VP9 with alpha)
@@ -124,7 +127,7 @@ uv run wavern gui audio/song.mp3           # launch with audio file
 uv run wavern gui song.mp3 --preset "Neon Spectrum"  # launch with preset
 ```
 
-Import audio via **File > Import Audio** (Ctrl+O) or pass a file path as argument. Select presets from the sidebar, tweak parameters, colors, and background in the settings panel. Render via **File > Render Video** (Ctrl+E).
+Import audio via **File > Import Audio** (Ctrl+O) or pass a file path as argument. The sidebar provides tabbed panels for Visual, Text, Export, Presets, and Analysis settings. Toggle a second sidebar with Ctrl+Shift+B. Switch themes via **View > Theme**. Render via **File > Render Video** (Ctrl+E).
 
 ### Headless Video Export
 
@@ -187,14 +190,14 @@ uv run wavern list-visualizations   # show registered visualization types
 
 | Shortcut | Action |
 |----------|--------|
-| `Ctrl+B` | Toggle Sidebar |
+| `Ctrl+B` | Toggle Left Sidebar |
+| `Ctrl+Shift+B` | Toggle Right Sidebar |
 | `F` / `F11` | Toggle Fullscreen |
 
 ### Visualization
 
 | Shortcut | Action |
 |----------|--------|
-| `Tab` | Cycle to next visualization |
 | `Ctrl+1` | Switch to Classic Waveform |
 | `Ctrl+2` | Switch to Spectrum Bars |
 | `Ctrl+3` | Switch to Circular Spectrum |
@@ -249,7 +252,7 @@ Check that your GPU supports OpenGL 3.3+:
 ```bash
 glxinfo | grep "OpenGL version"   # X11
 ```
-On Wayland you may need to set `QT_QPA_PLATFORM=xcb` if XWayland is available. Ensure OpenGL drivers are installed (Mesa or proprietary).
+Ensure OpenGL drivers are installed (Mesa or proprietary). The menu bar is forced in-window on Wayland, so no extra environment variables are needed.
 
 **No audio playback / PortAudio error.**
 

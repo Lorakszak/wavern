@@ -31,7 +31,9 @@ src/wavern/
   visualizations/ — base ABC + 5 built-in types + registry
   presets/        — pydantic schema + manager + defaults/*.json
   shaders/        — GLSL 3.3 core (.vert/.frag)
-  gui/            — PySide6 widgets (main_window, gl_widget, settings_panel, etc.)
+  gui/            — PySide6 widgets (main_window, gl_widget, sidebar, drag_spinbox, theme_manager, etc.)
+  gui/panels/     — decomposed settings panels (visual, text, analysis, export)
+  gui/themes/     — QSS theme files (dark, light, nord, dracula, gruvbox)
   utils/          — color, math_utils
   cli.py          — click CLI entry point
   app.py          — QApplication bootstrap
@@ -52,7 +54,7 @@ src/wavern/
 
 **Large uniform arrays**: Arrays over ~256 floats can exceed GPU constant register limits. Use textures instead (see `waveform.py` which uses a 2D texture of shape `(N, 1)` for waveform data).
 
-**Signal blocking in Qt**: When rebuilding the settings panel programmatically, block signals on combo boxes (`blockSignals(True)`) before populating/setting values to prevent cascading `params_changed` emissions that wipe preset params.
+**Signal blocking in Qt**: When rebuilding panel widgets programmatically, block signals on combo boxes (`blockSignals(True)`) before populating/setting values to prevent cascading `params_changed` emissions that wipe preset params. The `_rebuilding` flag on each panel guards against signal loops when syncing across dual sidebars.
 
 **Renderer type change detection**: `renderer.update_params()` auto-detects when `visualization_type` changed and calls `set_preset()` internally. Callers don't need to distinguish param updates from type switches.
 

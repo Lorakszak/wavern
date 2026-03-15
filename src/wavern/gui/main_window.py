@@ -4,16 +4,16 @@ import copy
 import logging
 import re
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 from PySide6.QtCore import QEvent, Qt, QTimer
-from PySide6.QtGui import QAction, QIcon, QKeySequence, QPixmap
-from PySide6.QtWidgets import QAbstractSpinBox, QApplication, QComboBox, QLineEdit
+from PySide6.QtGui import QAction, QActionGroup, QIcon, QKeySequence, QPixmap
+from PySide6.QtWidgets import QAbstractSpinBox, QApplication, QLineEdit
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QMainWindow,
     QMessageBox,
-    QScrollArea,
     QSplitter,
     QPushButton,
     QVBoxLayout,
@@ -23,25 +23,20 @@ from PySide6.QtWidgets import (
 from wavern.core.audio_analyzer import AudioAnalyzer
 from wavern.core.audio_loader import AudioLoadError, AudioLoader
 from wavern.core.audio_player import AudioPlayer
-from wavern.gui.collapsible_section import CollapsibleSection
 from wavern.gui.export_dialog import ExportDialog
 from wavern.gui.file_import_dialog import open_audio_file
 from wavern.gui.gl_widget import GLPreviewWidget
+from wavern.gui.panels import AnalysisPanel, TextPanel, VisualPanel
 from wavern.gui.preset_panel import PresetPanel
 from wavern.gui.project_settings_panel import ProjectSettingsPanel
-from wavern.gui.settings_panel import SettingsPanel
+from wavern.gui.sidebar import SidebarWidget
+from wavern.gui.theme_manager import ThemeManager
 from wavern.gui.transport_bar import TransportBar
 from wavern.presets.manager import PresetManager
 from wavern.presets.schema import Preset, VisualizationParams
 from wavern.visualizations.registry import VisualizationRegistry
 
 logger = logging.getLogger(__name__)
-
-_DIGIT_SEEK_KEYS = {
-    Qt.Key.Key_0: 0, Qt.Key.Key_1: 1, Qt.Key.Key_2: 2, Qt.Key.Key_3: 3,
-    Qt.Key.Key_4: 4, Qt.Key.Key_5: 5, Qt.Key.Key_6: 6, Qt.Key.Key_7: 7,
-    Qt.Key.Key_8: 8, Qt.Key.Key_9: 9,
-}
 
 # Default preset to load on startup
 DEFAULT_PRESET = Preset(
@@ -78,9 +73,13 @@ class MainWindow(QMainWindow):
         self._player = AudioPlayer()
         self._analyzer = AudioAnalyzer()
         self._preset_manager = PresetManager()
+        self._theme_manager = ThemeManager()
         self._prev_format: str = "mp4"  # restored when bg changes away from "none"
         self._bg_type: str = ""  # last known background type
         self._was_maximized: bool = False  # state before entering fullscreen
+
+        # Shared viz memory between both sidebars' VisualPanels
+        self._viz_memory: dict[str, dict[str, Any]] = {}
 
         self._setup_menu()
         self._setup_ui()
@@ -107,6 +106,7 @@ class MainWindow(QMainWindow):
             self._load_audio(audio_path)
 
     def _setup_menu(self) -> None:
+        self.menuBar().setNativeMenuBar(False)
         menubar = self.menuBar()
 
         # File menu
@@ -144,15 +144,51 @@ class MainWindow(QMainWindow):
         # View menu
         view_menu = menubar.addMenu("View")
 
-        self._toggle_sidebar_action = QAction("Toggle Sidebar", self)
-        self._toggle_sidebar_action.setShortcut("Ctrl+B")
-        self._toggle_sidebar_action.triggered.connect(self._toggle_sidebar)
-        view_menu.addAction(self._toggle_sidebar_action)
+        self._toggle_left_action = QAction("Toggle Left Sidebar", self)
+        self._toggle_left_action.setShortcut("Ctrl+B")
+        self._toggle_left_action.triggered.connect(self._toggle_left_sidebar)
+        view_menu.addAction(self._toggle_left_action)
+
+        self._toggle_right_action = QAction("Toggle Right Sidebar", self)
+        self._toggle_right_action.setShortcut(QKeySequence("Ctrl+Shift+B"))
+        self._toggle_right_action.triggered.connect(self._toggle_right_sidebar)
+        view_menu.addAction(self._toggle_right_action)
+
+        view_menu.addSeparator()
+
+        self._split_left_action = QAction("Split Left Sidebar", self)
+        self._split_left_action.setCheckable(True)
+        self._split_left_action.triggered.connect(self._toggle_split_left)
+        view_menu.addAction(self._split_left_action)
+
+        self._split_right_action = QAction("Split Right Sidebar", self)
+        self._split_right_action.setCheckable(True)
+        self._split_right_action.triggered.connect(self._toggle_split_right)
+        view_menu.addAction(self._split_right_action)
+
+        view_menu.addSeparator()
 
         fullscreen_action = QAction("Fullscreen Preview", self)
         fullscreen_action.setShortcut("F11")
         fullscreen_action.triggered.connect(self._on_toggle_fullscreen)
         view_menu.addAction(fullscreen_action)
+
+        view_menu.addSeparator()
+
+        # Theme submenu
+        theme_menu = view_menu.addMenu("Theme")
+        theme_group = QActionGroup(self)
+        theme_group.setExclusive(True)
+        current_theme = self._theme_manager.load_preference()
+        for theme_name in self._theme_manager.list_themes():
+            action = QAction(theme_name.capitalize(), self)
+            action.setCheckable(True)
+            action.setData(theme_name)
+            if theme_name == current_theme:
+                action.setChecked(True)
+            action.triggered.connect(self._on_theme_selected)
+            theme_group.addAction(action)
+            theme_menu.addAction(action)
 
         # Visualization shortcuts (Ctrl+1…N, one per registered visualization)
         viz_menu = menubar.addMenu("Visualization")
@@ -167,6 +203,113 @@ class MainWindow(QMainWindow):
             action.triggered.connect(self._on_viz_shortcut)
             viz_menu.addAction(action)
 
+    def _create_sidebar(self, side: str) -> SidebarWidget:
+        """Create a SidebarWidget with all 5 tabs populated.
+
+        Args:
+            side: "left" or "right" — used to store panel references.
+        """
+        sidebar = SidebarWidget()
+        sidebar.setMinimumWidth(340)
+
+        # Visual panel — shared viz memory dict
+        visual = VisualPanel(viz_memory=self._viz_memory)
+        sidebar.add_tab("Visual", visual)
+
+        # Text panel
+        text = TextPanel()
+        sidebar.add_tab("Text", text)
+
+        # Export panel (ProjectSettingsPanel)
+        export = ProjectSettingsPanel()
+        sidebar.add_tab("Export", export)
+
+        # Presets panel
+        presets = PresetPanel(self._preset_manager)
+        sidebar.add_tab("Presets", presets)
+
+        # Analysis panel
+        analysis = AnalysisPanel()
+        sidebar.add_tab("Analysis", analysis)
+
+        # Lower-pane tabs (duplicates for split mode)
+        visual_lower = VisualPanel(viz_memory=self._viz_memory)
+        sidebar.add_lower_tab("Visual", visual_lower)
+
+        text_lower = TextPanel()
+        sidebar.add_lower_tab("Text", text_lower)
+
+        export_lower = ProjectSettingsPanel()
+        sidebar.add_lower_tab("Export", export_lower)
+
+        presets_lower = PresetPanel(self._preset_manager)
+        sidebar.add_lower_tab("Presets", presets_lower)
+
+        analysis_lower = AnalysisPanel()
+        sidebar.add_lower_tab("Analysis", analysis_lower)
+
+        # Store references keyed by side
+        panels = {
+            "visual": visual,
+            "text": text,
+            "export": export,
+            "presets": presets,
+            "analysis": analysis,
+            "visual_lower": visual_lower,
+            "text_lower": text_lower,
+            "export_lower": export_lower,
+            "presets_lower": presets_lower,
+            "analysis_lower": analysis_lower,
+        }
+        setattr(self, f"_{side}_panels", panels)
+        return sidebar
+
+    def _all_visual_panels(self) -> list[VisualPanel]:
+        """Return all VisualPanel instances across both sidebars."""
+        panels: list[VisualPanel] = []
+        for side in ("left", "right"):
+            p = getattr(self, f"_{side}_panels", {})
+            for key in ("visual", "visual_lower"):
+                if key in p:
+                    panels.append(p[key])
+        return panels
+
+    def _all_text_panels(self) -> list[TextPanel]:
+        panels: list[TextPanel] = []
+        for side in ("left", "right"):
+            p = getattr(self, f"_{side}_panels", {})
+            for key in ("text", "text_lower"):
+                if key in p:
+                    panels.append(p[key])
+        return panels
+
+    def _all_analysis_panels(self) -> list[AnalysisPanel]:
+        panels: list[AnalysisPanel] = []
+        for side in ("left", "right"):
+            p = getattr(self, f"_{side}_panels", {})
+            for key in ("analysis", "analysis_lower"):
+                if key in p:
+                    panels.append(p[key])
+        return panels
+
+    def _all_preset_panels(self) -> list[PresetPanel]:
+        panels: list[PresetPanel] = []
+        for side in ("left", "right"):
+            p = getattr(self, f"_{side}_panels", {})
+            for key in ("presets", "presets_lower"):
+                if key in p:
+                    panels.append(p[key])
+        return panels
+
+    def _all_export_panels(self) -> list[ProjectSettingsPanel]:
+        panels: list[ProjectSettingsPanel] = []
+        for side in ("left", "right"):
+            p = getattr(self, f"_{side}_panels", {})
+            for key in ("export", "export_lower"):
+                if key in p:
+                    panels.append(p[key])
+        return panels
+
     def _setup_ui(self) -> None:
         central = QWidget()
         self.setCentralWidget(central)
@@ -174,51 +317,57 @@ class MainWindow(QMainWindow):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        # Sidebar container (scroll area with all panels)
-        self._sidebar = QWidget()
-        sidebar_layout = QVBoxLayout(self._sidebar)
-        sidebar_layout.setContentsMargins(0, 0, 0, 0)
-        sidebar_layout.setSpacing(0)
+        # Left sidebar
+        self._left_sidebar = self._create_sidebar("left")
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        # Right sidebar (hidden by default)
+        self._right_sidebar = self._create_sidebar("right")
+        self._right_sidebar.setVisible(False)
 
-        scroll_content = QWidget()
-        scroll_layout = QVBoxLayout(scroll_content)
-        scroll_layout.setContentsMargins(4, 4, 4, 4)
-        scroll_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        # Left toggle button (vertically centered via stretch)
+        self._left_toggle_btn = QPushButton("\u25C0")
+        self._left_toggle_btn.setObjectName("SidebarToggle")
+        self._left_toggle_btn.setFixedWidth(20)
+        self._left_toggle_btn.setMinimumHeight(80)
+        self._left_toggle_btn.clicked.connect(self._toggle_left_sidebar)
+        self._left_toggle_btn.setToolTip("Toggle Left Sidebar (Ctrl+B)")
 
-        # Presets section
-        self._preset_panel = PresetPanel(self._preset_manager)
-        self._preset_section = CollapsibleSection("Presets")
-        self._preset_section.set_content(self._preset_panel)
-        scroll_layout.addWidget(self._preset_section)
+        left_strip = QWidget()
+        left_strip.setFixedWidth(20)
+        left_strip_layout = QVBoxLayout(left_strip)
+        left_strip_layout.setContentsMargins(0, 0, 0, 0)
+        left_strip_layout.setSpacing(0)
+        left_strip_layout.addStretch()
+        left_strip_layout.addWidget(self._left_toggle_btn)
+        left_strip_layout.addStretch()
 
-        # Project settings — single collapsible section
-        self._project_settings_panel = ProjectSettingsPanel()
-        self._project_section = CollapsibleSection("Project Settings")
-        self._project_section.set_content(self._project_settings_panel)
-        scroll_layout.addWidget(self._project_section)
+        # Right toggle button (vertically centered via stretch)
+        self._right_toggle_btn = QPushButton("\u25B6")
+        self._right_toggle_btn.setObjectName("SidebarToggle")
+        self._right_toggle_btn.setFixedWidth(20)
+        self._right_toggle_btn.setMinimumHeight(80)
+        self._right_toggle_btn.clicked.connect(self._toggle_right_sidebar)
+        self._right_toggle_btn.setToolTip("Toggle Right Sidebar (Ctrl+Shift+B)")
 
-        # Visualization settings (sections are already collapsible internally)
-        self._settings_panel = SettingsPanel()
-        scroll_layout.addWidget(self._settings_panel)
+        right_strip = QWidget()
+        right_strip.setFixedWidth(20)
+        right_strip_layout = QVBoxLayout(right_strip)
+        right_strip_layout.setContentsMargins(0, 0, 0, 0)
+        right_strip_layout.setSpacing(0)
+        right_strip_layout.addStretch()
+        right_strip_layout.addWidget(self._right_toggle_btn)
+        right_strip_layout.addStretch()
 
-        scroll.setWidget(scroll_content)
-        sidebar_layout.addWidget(scroll)
+        # Split sidebar buttons (placed at bottom of each sidebar)
+        self._left_split_btn = QPushButton("Split Sidebar")
+        self._left_split_btn.setObjectName("SidebarSplitToggle")
+        self._left_split_btn.clicked.connect(self._toggle_split_left)
+        self._left_sidebar.layout().addWidget(self._left_split_btn)
 
-        self._sidebar.setMinimumWidth(250)
-
-        # Sidebar toggle button
-        self._toggle_btn = QPushButton("\u25C0")
-        self._toggle_btn.setFixedWidth(20)
-        self._toggle_btn.setStyleSheet(
-            "QPushButton { border: none; background: #2a2a2a; color: #aaa; font-size: 10px; }"
-            "QPushButton:hover { background: #444; color: #fff; }"
-        )
-        self._toggle_btn.clicked.connect(self._toggle_sidebar)
-        self._toggle_btn.setToolTip("Toggle Sidebar (Ctrl+B)")
+        self._right_split_btn = QPushButton("Split Sidebar")
+        self._right_split_btn.setObjectName("SidebarSplitToggle")
+        self._right_split_btn.clicked.connect(self._toggle_split_right)
+        self._right_sidebar.layout().addWidget(self._right_split_btn)
 
         # Center area (GL preview + transport)
         center = QWidget()
@@ -231,32 +380,71 @@ class MainWindow(QMainWindow):
         self._transport = TransportBar()
         center_layout.addWidget(self._transport)
 
-        # Draggable splitter between sidebar and center
+        # Main splitter: left_sidebar | center | right_sidebar
         self._splitter = QSplitter(Qt.Orientation.Horizontal)
-        self._splitter.addWidget(self._sidebar)
+        self._splitter.addWidget(self._left_sidebar)
         self._splitter.addWidget(center)
-        self._splitter.setStretchFactor(0, 0)  # sidebar: don't stretch on resize
+        self._splitter.addWidget(self._right_sidebar)
+        self._splitter.setStretchFactor(0, 0)  # left sidebar: don't stretch
         self._splitter.setStretchFactor(1, 1)  # center: take remaining space
-        self._splitter.setSizes([350, 750])
+        self._splitter.setStretchFactor(2, 0)  # right sidebar: don't stretch
+        self._splitter.setSizes([340, 750, 340])
 
-        # Assemble: toggle button | splitter(sidebar | center)
-        main_layout.addWidget(self._toggle_btn)
+        # Assemble: left_strip | splitter | right_strip
+        main_layout.addWidget(left_strip)
         main_layout.addWidget(self._splitter, stretch=1)
+        main_layout.addWidget(right_strip)
+
+        # Convenience aliases for backward-compatible access
+        self._visual_panel = self._left_panels["visual"]
+        self._text_panel = self._left_panels["text"]
+        self._analysis_panel = self._left_panels["analysis"]
+        self._preset_panel = self._left_panels["presets"]
+        self._project_settings_panel = self._left_panels["export"]
 
         # Position update timer
         self._position_timer = QTimer(self)
         self._position_timer.setInterval(50)  # 20 Hz
         self._position_timer.timeout.connect(self._update_position)
 
-    def _toggle_sidebar(self) -> None:
-        """Toggle sidebar visibility."""
-        visible = self._sidebar.isVisible()
-        self._sidebar.setVisible(not visible)
-        self._toggle_btn.setText("\u25B6" if visible else "\u25C0")
+    def _toggle_left_sidebar(self) -> None:
+        """Toggle left sidebar visibility."""
+        visible = self._left_sidebar.isVisible()
+        self._left_sidebar.setVisible(not visible)
+        self._left_toggle_btn.setText("\u25B6" if visible else "\u25C0")
+
+    def _toggle_right_sidebar(self) -> None:
+        """Toggle right sidebar visibility."""
+        visible = self._right_sidebar.isVisible()
+        self._right_sidebar.setVisible(not visible)
+        self._right_toggle_btn.setText("\u25C0" if visible else "\u25B6")
+
+    def _toggle_split_left(self) -> None:
+        self._left_sidebar.toggle_split()
+        is_split = self._left_sidebar.is_split
+        self._split_left_action.setChecked(is_split)
+        self._left_split_btn.setText("Unsplit Sidebar" if is_split else "Split Sidebar")
+
+    def _toggle_split_right(self) -> None:
+        self._right_sidebar.toggle_split()
+        is_split = self._right_sidebar.is_split
+        self._split_right_action.setChecked(is_split)
+        self._right_split_btn.setText("Unsplit Sidebar" if is_split else "Split Sidebar")
 
     def _connect_signals(self) -> None:
-        self._preset_panel.preset_selected.connect(self._on_preset_selected)
-        self._settings_panel.params_changed.connect(self._on_params_changed)
+        # Connect all visual/text/analysis panels from both sidebars
+        for panel in self._all_visual_panels():
+            panel.params_changed.connect(self._on_params_changed)
+        for panel in self._all_text_panels():
+            panel.params_changed.connect(self._on_params_changed)
+        for panel in self._all_analysis_panels():
+            panel.params_changed.connect(self._on_params_changed)
+
+        # Connect all preset panels
+        for panel in self._all_preset_panels():
+            panel.preset_selected.connect(self._on_preset_selected)
+
+        # Transport
         self._transport.play_clicked.connect(self._on_play)
         self._transport.pause_clicked.connect(self._on_pause)
         self._transport.seek_requested.connect(self._on_seek)
@@ -283,10 +471,10 @@ class MainWindow(QMainWindow):
         self._gl_widget.set_audio_duration(metadata.duration)
 
         # Auto-set overlay title from filename if empty
-        preset = self._settings_panel._preset
+        preset = self._visual_panel._preset
         if preset is not None and not preset.overlay.title_text:
             preset.overlay.title_text = path.stem
-            self._settings_panel.set_preset(preset)
+            self._apply_preset(preset)
 
         self.setWindowTitle(f"Wavern — {path.name}")
         logger.info("Loaded audio: %s (%.1fs)", path.name, metadata.duration)
@@ -294,22 +482,38 @@ class MainWindow(QMainWindow):
         self._gl_widget.render_single_frame()
 
     def _apply_preset(self, preset: Preset) -> None:
-        """Apply a preset to all components."""
+        """Apply a preset to all components across both sidebars."""
         self._gl_widget.set_preset(preset)
-        self._settings_panel.set_preset(preset)
-        self._preset_panel.set_current_preset(preset)
+
+        for panel in self._all_visual_panels():
+            panel.set_preset(preset)
+        for panel in self._all_text_panels():
+            panel.set_preset(preset)
+        for panel in self._all_analysis_panels():
+            panel.set_preset(preset)
+        for panel in self._all_preset_panels():
+            panel.set_current_preset(preset)
+
         self._sync_format_to_background(preset.background.type)
         if not self._player.is_playing:
             self._gl_widget.render_single_frame()
 
     def _prompt_import_audio(self, context: str) -> bool:
         """Show 'no audio' dialog with an Import Audio button. Returns True if audio was loaded."""
+        if getattr(self, "_import_dialog_open", False):
+            return False
+        self._import_dialog_open = True
+
         msg = QMessageBox(self)
         msg.setWindowTitle(context)
         msg.setText("Import an audio file first.")
-        msg.addButton(QMessageBox.StandardButton.Ok)
+        ok_btn = msg.addButton(QMessageBox.StandardButton.Ok)
         import_btn = msg.addButton("Import Audio", QMessageBox.ButtonRole.ActionRole)
+        msg.setDefaultButton(import_btn)
+        msg.setEscapeButton(ok_btn)
         msg.exec()
+
+        self._import_dialog_open = False
         if msg.clickedButton() == import_btn:
             self._on_import_audio()
             return self._audio_data is not None
@@ -326,7 +530,7 @@ class MainWindow(QMainWindow):
                 return  # audio loaded, but user still needs to re-trigger export
             return
 
-        preset = self._settings_panel._preset
+        preset = self._visual_panel._preset
         if preset is None:
             preset = DEFAULT_PRESET
 
@@ -338,9 +542,28 @@ class MainWindow(QMainWindow):
         self._apply_preset(preset)
 
     def _on_params_changed(self, preset: Preset) -> None:
+        """Handle params_changed from any panel — sync to GL and all other panels."""
+        sender = self.sender()
+
         self._gl_widget.update_preset(preset)
-        self._preset_panel.set_current_preset(preset)
         self._sync_format_to_background(preset.background.type)
+
+        # Sync all panel instances except the emitting one (in-place updates)
+        for panel in self._all_visual_panels():
+            if panel is not sender:
+                panel.update_values(preset)
+
+        for panel in self._all_text_panels():
+            if panel is not sender:
+                panel.update_values(preset)
+
+        for panel in self._all_analysis_panels():
+            if panel is not sender:
+                panel.update_values(preset)
+
+        for panel in self._all_preset_panels():
+            panel.set_current_preset(preset)
+
         if not self._player.is_playing:
             self._gl_widget.render_single_frame()
 
@@ -352,9 +575,11 @@ class MainWindow(QMainWindow):
         self._bg_type = bg_type
         if bg_type == "none":
             self._prev_format = self._project_settings_panel.settings.container
-            self._project_settings_panel.set_format("webm")
+            for panel in self._all_export_panels():
+                panel.set_format("webm")
         elif prev_bg == "none":
-            self._project_settings_panel.set_format(self._prev_format)
+            for panel in self._all_export_panels():
+                panel.set_format(self._prev_format)
 
     def _on_play(self) -> None:
         if self._audio_data is None:
@@ -393,7 +618,7 @@ class MainWindow(QMainWindow):
         mods = event.modifiers()
 
         focused = QApplication.focusWidget()
-        input_focused = isinstance(focused, (QAbstractSpinBox, QLineEdit, QComboBox))
+        input_focused = isinstance(focused, (QAbstractSpinBox, QLineEdit))
 
         # Space → play/pause, but not when a text field has focus (user may be typing)
         if key == Qt.Key.Key_Space:
@@ -469,7 +694,7 @@ class MainWindow(QMainWindow):
 
     def _on_save_preset(self) -> None:
         """Save a copy of the current preset with the lowest available numbered name."""
-        preset = self._settings_panel._preset
+        preset = self._visual_panel._preset
         if preset is None:
             return
 
@@ -495,8 +720,9 @@ class MainWindow(QMainWindow):
         new_preset.name = f"{base}{n}"
         try:
             self._preset_manager.save(new_preset)
-            self._preset_panel.refresh_list()
-            self._preset_panel.set_current_preset(new_preset)
+            for pp in self._all_preset_panels():
+                pp.refresh_list()
+                pp.set_current_preset(new_preset)
         except Exception as e:
             QMessageBox.critical(self, "Save Preset", str(e))
 
@@ -505,12 +731,7 @@ class MainWindow(QMainWindow):
         self._preset_panel._on_save()
 
     def _on_toggle_fullscreen(self) -> None:
-        """Toggle between fullscreen and the previous window state (maximized or normal).
-
-        Uses setWindowState() directly to avoid the intermediate normal-size flash
-        that showFullScreen() / showMaximized() cause (they strip the current state
-        before applying the new one, briefly showing an unsized window).
-        """
+        """Toggle between fullscreen and the previous window state."""
         if self.isFullScreen():
             target = Qt.WindowState.WindowMaximized if self._was_maximized else Qt.WindowState.WindowNoState
             self.setWindowState(target)
@@ -518,13 +739,24 @@ class MainWindow(QMainWindow):
             self._was_maximized = self.isMaximized()
             self.setWindowState(Qt.WindowState.WindowFullScreen)
 
+    def _on_theme_selected(self) -> None:
+        """Apply the selected theme and save the preference."""
+        action = self.sender()
+        if action is None:
+            return
+        theme_name = action.data()
+        app = QApplication.instance()
+        if app is not None:
+            self._theme_manager.apply(app, theme_name)
+            self._theme_manager.save_preference(theme_name)
+
     def _on_viz_shortcut(self) -> None:
         """Switch visualization type via Ctrl+1…N (one per registered visualization)."""
         action = self.sender()
         if action is None:
             return
         index = action.data()
-        self._settings_panel.set_viz_by_index(index)
+        self._visual_panel.set_viz_by_index(index)
 
     def closeEvent(self, event) -> None:
         """Cleanup on window close."""

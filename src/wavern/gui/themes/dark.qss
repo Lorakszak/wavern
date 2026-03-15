@@ -1,0 +1,250 @@
+/* Wavern Dark Theme */
+
+/* ── Global ── */
+QWidget {
+    background-color: #1e1e1e;
+    color: #ddd;
+    font-size: 13px;
+}
+
+QMainWindow {
+    background-color: #1e1e1e;
+}
+
+/* ── Menu bar ── */
+QMenuBar {
+    background-color: #2a2a2a;
+    color: #ddd;
+    border-bottom: 1px solid #444;
+}
+
+QMenuBar::item:selected {
+    background-color: #444;
+}
+
+QMenu {
+    background-color: #2a2a2a;
+    color: #ddd;
+    border: 1px solid #444;
+}
+
+QMenu::item:selected {
+    background-color: #0078d4;
+}
+
+/* ── Scroll area ── */
+QScrollArea {
+    border: none;
+    background-color: #1e1e1e;
+}
+
+QScrollBar:vertical {
+    background: #2a2a2a;
+    width: 10px;
+    border: none;
+}
+
+QScrollBar::handle:vertical {
+    background: #555;
+    min-height: 20px;
+    border-radius: 4px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #777;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0;
+}
+
+/* ── Buttons ── */
+QPushButton {
+    background-color: #333;
+    color: #ddd;
+    border: 1px solid #555;
+    padding: 4px 12px;
+    border-radius: 3px;
+}
+
+QPushButton:hover {
+    background-color: #444;
+    color: #fff;
+}
+
+QPushButton:pressed {
+    background-color: #0078d4;
+}
+
+/* ── Inputs ── */
+QLineEdit {
+    background-color: #2a2a2a;
+    color: #ddd;
+    border: 1px solid #444;
+    padding: 3px 6px;
+    border-radius: 3px;
+}
+
+QLineEdit:focus {
+    border-color: #0078d4;
+}
+
+QComboBox {
+    background-color: #2a2a2a;
+    color: #ddd;
+    border: 1px solid #444;
+    padding: 3px 6px;
+    border-radius: 3px;
+}
+
+QComboBox:hover {
+    border-color: #666;
+}
+
+QComboBox::drop-down {
+    border: none;
+    width: 20px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #2a2a2a;
+    color: #ddd;
+    selection-background-color: #0078d4;
+    border: 1px solid #444;
+}
+
+QCheckBox {
+    color: #ddd;
+    spacing: 6px;
+}
+
+QCheckBox::indicator {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #555;
+    border-radius: 3px;
+    background-color: #2a2a2a;
+}
+
+QCheckBox::indicator:checked {
+    background-color: #0078d4;
+    border-color: #0078d4;
+}
+
+/* ── Labels ── */
+QLabel {
+    background-color: transparent;
+    color: #ddd;
+}
+
+/* ── Splitter ── */
+QSplitter::handle {
+    background-color: #444;
+    width: 2px;
+}
+
+QSplitter::handle:hover {
+    background-color: #0078d4;
+}
+
+/* ── Collapsible section header ── */
+QPushButton#CollapsibleHeader {
+    text-align: left;
+    padding: 6px 8px;
+    font-weight: bold;
+    border: none;
+    border-bottom: 1px solid #444;
+    background-color: transparent;
+    color: #ddd;
+}
+
+QPushButton#CollapsibleHeader:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* ── Help button ── */
+QPushButton#HelpButton {
+    border-radius: 10px;
+    border: 1px solid #555;
+    background: #333;
+    color: #aaa;
+    font-weight: bold;
+    font-size: 11px;
+    padding: 0;
+}
+
+QPushButton#HelpButton:hover {
+    background: #555;
+    color: #fff;
+}
+
+/* ── Sidebar toggle ── */
+QPushButton#SidebarToggle {
+    border: none;
+    background: #2a2a2a;
+    color: #aaa;
+    font-size: 14px;
+}
+
+QPushButton#SidebarToggle:hover {
+    background: #444;
+    color: #fff;
+}
+
+QPushButton#SidebarSplitToggle {
+    border: none;
+    border-top: 1px solid #444;
+    background: #2a2a2a;
+    color: #aaa;
+    font-size: 11px;
+    padding: 4px 0;
+}
+
+QPushButton#SidebarSplitToggle:hover {
+    background: #444;
+    color: #fff;
+}
+
+/* ── Color control buttons ── */
+QPushButton#ColorControlBtn {
+    padding: 0;
+    font-size: 14px;
+}
+
+/* ── Reset button ── */
+QPushButton#ResetButton {
+    border-radius: 10px;
+    border: 1px solid #555;
+    background: #333;
+    color: #aaa;
+    font-size: 13px;
+    padding: 0;
+}
+
+QPushButton#ResetButton:hover {
+    background: #555;
+    color: #fff;
+}
+
+/* ── Section separator labels ── */
+QLabel#SectionSeparator {
+    font-weight: bold;
+    color: #888;
+    padding-top: 4px;
+    background-color: transparent;
+}
+
+/* ── Alpha hint ── */
+QLabel#AlphaHint {
+    color: #4FC3F7;
+    font-style: italic;
+    background-color: transparent;
+}
+
+/* ── Tooltips ── */
+QToolTip {
+    background-color: #333;
+    color: #ddd;
+    border: 1px solid #555;
+    padding: 4px;
+}

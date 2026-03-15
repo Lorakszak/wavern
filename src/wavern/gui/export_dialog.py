@@ -135,7 +135,7 @@ class ExportDialog(QDialog):
         # Alpha hint
         if self._preset.background.type == "none":
             alpha_hint = QLabel("Background: none → will render with transparency (WebM)")
-            alpha_hint.setStyleSheet("color: #4FC3F7; font-style: italic;")
+            alpha_hint.setObjectName("AlphaHint")
             form.addRow(alpha_hint)
 
         # CRF — pre-fill from project settings
