@@ -444,6 +444,10 @@ class MainWindow(QMainWindow):
         for panel in self._all_preset_panels():
             panel.preset_selected.connect(self._on_preset_selected)
 
+        # Connect export button in all export panels
+        for panel in self._all_export_panels():
+            panel.export_requested.connect(self._on_export_video)
+
         # Transport
         self._transport.play_clicked.connect(self._on_play)
         self._transport.pause_clicked.connect(self._on_pause)

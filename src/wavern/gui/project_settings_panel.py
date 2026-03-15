@@ -46,6 +46,7 @@ class ProjectSettingsPanel(QWidget):
     """Panel for project-wide output settings (resolution, FPS, format, quality, output dir)."""
 
     settings_changed = Signal(object)  # emits ProjectSettings
+    export_requested = Signal()  # user clicked the Export button in the panel
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -178,6 +179,21 @@ class ProjectSettingsPanel(QWidget):
         ))
         form.addRow("Directory:", out_row)
 
+        filename_row = QHBoxLayout()
+        self._filename_edit = QLineEdit()
+        self._filename_edit.setPlaceholderText("Default: derived from audio file")
+        filename_row.addWidget(self._filename_edit, stretch=1)
+        filename_row.addWidget(make_help_button(
+            "Output filename (without extension).\n"
+            "Leave empty to use the audio file name."
+        ))
+        form.addRow("Filename:", filename_row)
+
+        export_btn = QPushButton("Export")
+        export_btn.setObjectName("ExportButton")
+        export_btn.clicked.connect(self.export_requested)
+        form.addRow(export_btn)
+
         self._connect_signals()
 
     def _connect_signals(self) -> None:
@@ -190,6 +206,7 @@ class ProjectSettingsPanel(QWidget):
         self._format_combo.currentTextChanged.connect(self._on_format_changed)
         self._crf_spin.valueChanged.connect(self._on_crf_changed)
         self._output_edit.textChanged.connect(self._on_output_dir_changed)
+        self._filename_edit.textChanged.connect(self._on_output_dir_changed)
 
     def _populate_resolution_combo(self, aspect: str) -> None:
         """Populate resolution combo for the given aspect ratio."""
@@ -305,5 +322,6 @@ class ProjectSettingsPanel(QWidget):
             container=self._format_combo.currentText(),
             crf=int(self._crf_spin.value()),
             output_dir=self._output_edit.text().strip(),
+            output_filename=self._filename_edit.text().strip(),
         )
         self.settings_changed.emit(self._settings)

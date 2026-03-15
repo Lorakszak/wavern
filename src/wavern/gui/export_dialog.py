@@ -93,7 +93,7 @@ class ExportDialog(QDialog):
         else:
             default_dir = Path(__file__).resolve().parents[3] / "video"
         default_dir.mkdir(exist_ok=True)
-        stem = self._audio_path.stem if self._audio_path else "output"
+        stem = ps.output_filename or (self._audio_path.stem if self._audio_path else "output")
         ext = "webm" if self._preset.background.type == "none" else ps.container
         self._output_edit.setText(str(default_dir / f"{stem}.{ext}"))
         output_layout.addWidget(self._output_edit)

@@ -80,6 +80,7 @@ class ProjectSettings(BaseModel):
     container: str = "mp4"  # "mp4" | "webm"
     crf: int = 18
     output_dir: str = ""  # default: ./video/
+    output_filename: str = ""  # default: derived from audio stem
 
 
 class VisualizationParams(BaseModel):
