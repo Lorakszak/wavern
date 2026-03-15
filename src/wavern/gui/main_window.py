@@ -210,7 +210,7 @@ class MainWindow(QMainWindow):
             side: "left" or "right" — used to store panel references.
         """
         sidebar = SidebarWidget()
-        sidebar.setMinimumWidth(340)
+        sidebar.setMinimumWidth(430)
 
         # Visual panel — shared viz memory dict
         visual = VisualPanel(viz_memory=self._viz_memory)
@@ -388,7 +388,7 @@ class MainWindow(QMainWindow):
         self._splitter.setStretchFactor(0, 0)  # left sidebar: don't stretch
         self._splitter.setStretchFactor(1, 1)  # center: take remaining space
         self._splitter.setStretchFactor(2, 0)  # right sidebar: don't stretch
-        self._splitter.setSizes([340, 750, 340])
+        self._splitter.setSizes([430, 750, 430])
 
         # Assemble: left_strip | splitter | right_strip
         main_layout.addWidget(left_strip)
