@@ -2,7 +2,7 @@
 
 uniform float u_magnitudes[256];
 uniform int u_bar_count;
-uniform float u_bar_width_ratio;
+uniform float u_bar_spacing;
 uniform float u_min_height;
 uniform float u_max_height;
 uniform int u_mirror;
@@ -47,7 +47,7 @@ vec4 compute_bar(vec2 uv, float size_scale) {
     }
 
     float bar_width = 1.0 / float(u_bar_count);
-    float gap = bar_width * (1.0 - u_bar_width_ratio);
+    float gap = u_bar_spacing;
 
     int bar_index = int(floor(uv.x / bar_width));
     bar_index = clamp(bar_index, 0, u_bar_count - 1);
@@ -74,7 +74,7 @@ vec4 compute_bar(vec2 uv, float size_scale) {
     float bar_height = mix(u_min_height, u_max_height, magnitude) * size_scale;
 
     // Rounding parameters
-    float half_w = bar_width * u_bar_width_ratio * 0.5;
+    float half_w = bar_width * (1.0 - u_bar_spacing) * 0.5;
     float r = u_bar_roundness * half_w;
     float cx = (bar_local_x - 0.5) * bar_width;  // x offset from bar center
 

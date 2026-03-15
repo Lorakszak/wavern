@@ -7,7 +7,7 @@
     "visualization_type": "spectrum_bars",
     "params": {
       "bar_count": 64,
-      "bar_width_ratio": 0.75,
+      "bar_spacing": 0.25,
       "mirror": true,
       "min_bar_height": 0.01,
       "max_bar_height": 0.95,

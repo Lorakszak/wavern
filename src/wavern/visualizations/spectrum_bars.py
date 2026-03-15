@@ -59,10 +59,11 @@ class SpectrumBarsVisualization(AbstractVisualization):
             "label": "Bar Count",
             "description": "Number of frequency bars. More bars = finer frequency resolution.",
         },
-        "bar_width_ratio": {
-            "type": "float", "default": 0.75, "min": 0.1, "max": 1.0,
-            "label": "Bar Width",
-            "description": "Width of each bar relative to its slot. 1.0 = no gap between bars.",
+        "bar_spacing": {
+            "type": "float", "default": 0.25, "min": 0.0, "max": 0.9,
+            "step": 0.01,
+            "label": "Bar Spacing",
+            "description": "Gap between bars as a fraction of slot width (0.0 = no gap, 0.9 = very wide gap).",
         },
         "mirror": {
             "type": "bool", "default": False,
@@ -245,7 +246,7 @@ class SpectrumBarsVisualization(AbstractVisualization):
         self._write_uniform(prog, "u_magnitudes", padded.tobytes())
 
         self._set_uniform(prog, "u_bar_count", bar_count)
-        self._set_uniform(prog, "u_bar_width_ratio", self.get_param("bar_width_ratio", 0.75))
+        self._set_uniform(prog, "u_bar_spacing", self.get_param("bar_spacing", 0.25))
         self._set_uniform(prog, "u_min_height", self.get_param("min_bar_height", 0.01))
         self._set_uniform(prog, "u_max_height", self.get_param("max_bar_height", 0.95))
         self._set_uniform(prog, "u_mirror", 1 if self.get_param("mirror", False) else 0)
