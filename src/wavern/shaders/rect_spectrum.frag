@@ -92,7 +92,7 @@ vec4 render_side(float side_pos, float side_dist, int bars_per_side, bool revers
     }
 
     float t = side_dist / max(max_extent, 0.001);
-    float bar_pos = float(bar_idx) / float(u_bar_count);
+    float bar_pos = float(local_idx) / float(bars_per_side);
     vec3 color = get_color(bar_pos);
 
     float edge_fade = 1.0 - smoothstep(bar_width * 0.3, bar_width * 0.5, pos_diff);
