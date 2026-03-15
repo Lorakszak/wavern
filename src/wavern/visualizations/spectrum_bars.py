@@ -96,6 +96,12 @@ class SpectrumBarsVisualization(AbstractVisualization):
             "label": "Color Mode",
             "description": "Color by bar position (left-to-right gradient) or by bar height.",
         },
+        "height_reference": {
+            "type": "choice", "default": "per_bar",
+            "choices": ["per_bar", "universal"],
+            "label": "Height Reference",
+            "description": "Per-bar: gradient fills each bar independently. Universal: fixed color at each height.",
+        },
         "intensity": {
             "type": "float", "default": 1.0, "min": 0.5, "max": 2.0,
             "label": "Intensity",
@@ -244,6 +250,8 @@ class SpectrumBarsVisualization(AbstractVisualization):
         self._set_uniform(prog, "u_max_height", self.get_param("max_bar_height", 0.95))
         self._set_uniform(prog, "u_mirror", 1 if self.get_param("mirror", False) else 0)
         self._set_uniform(prog, "u_color_mode", 0 if self.get_param("color_mode", "position") == "position" else 1)
+        self._set_uniform(prog, "u_height_reference",
+                          0 if self.get_param("height_reference", "per_bar") == "per_bar" else 1)
         self._set_uniform(prog, "u_intensity", self.get_param("intensity", 1.0))
         self._set_uniform(prog, "u_mirror_spectrum",
                           1 if self.get_param("mirror_spectrum", False) else 0)

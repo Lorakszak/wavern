@@ -18,7 +18,6 @@ uniform float u_viz_scale;
 uniform float u_bar_roundness;
 uniform int u_mirror_spectrum;
 uniform int u_mirror_half;
-
 uniform int u_shadow_enabled;
 uniform vec3 u_shadow_color;
 uniform float u_shadow_opacity;

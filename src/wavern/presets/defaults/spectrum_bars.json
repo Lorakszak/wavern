@@ -22,7 +22,8 @@
       "shadow_offset_x": 0.005,
       "shadow_offset_y": -0.005,
       "shadow_size": 1.0,
-      "shadow_blur": 0.005
+      "shadow_blur": 0.005,
+      "height_reference": "per_bar"
     }
   },
   "color_palette": ["#00FFAA", "#FF00AA", "#FFAA00", "#00AAFF"],

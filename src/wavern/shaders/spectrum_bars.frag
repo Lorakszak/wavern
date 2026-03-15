@@ -9,6 +9,7 @@ uniform int u_mirror;
 uniform vec3 u_colors[8];
 uniform int u_color_count;
 uniform int u_color_mode;
+uniform int u_height_reference;    // 0=per_bar, 1=universal
 uniform float u_intensity;
 uniform vec2 u_offset;
 uniform float u_scale;
@@ -88,7 +89,11 @@ vec4 compute_bar(vec2 uv, float size_scale) {
             }
             float color_t;
             if (u_color_mode == 1) {
-                color_t = y / bar_height;
+                if (u_height_reference == 1) {
+                    color_t = y / u_max_height;
+                } else {
+                    color_t = y / bar_height;
+                }
             } else {
                 color_t = float(bar_index) / float(u_bar_count);
             }
@@ -106,7 +111,11 @@ vec4 compute_bar(vec2 uv, float size_scale) {
             }
             float color_t;
             if (u_color_mode == 1) {
-                color_t = y / bar_height;
+                if (u_height_reference == 1) {
+                    color_t = y / u_max_height;
+                } else {
+                    color_t = y / bar_height;
+                }
             } else {
                 color_t = float(bar_index) / float(u_bar_count);
             }
