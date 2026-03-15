@@ -26,10 +26,25 @@ class CircularSpectrumVisualization(ImageTextureMixin, AbstractVisualization):
     CATEGORY: ClassVar[str] = "spectrum"
 
     PARAM_SCHEMA: ClassVar[dict[str, dict[str, Any]]] = {
+        "frequency_limit": {
+            "type": "bool", "default": False,
+            "label": "Frequency Limit",
+            "description": "Cap the displayed frequency range. When off, bars cover the full spectrum up to 22 kHz — where the upper bars are often silent because most music has little energy above ~4 kHz. Enable this and set Max Frequency to focus bars on the active range.",
+        },
+        "max_frequency": {
+            "type": "int", "default": 16000, "min": 2000, "max": 22050,
+            "label": "Max Frequency (Hz)",
+            "description": "Upper frequency limit in Hz. Bars will be distributed from ~20 Hz up to this value. Lower values concentrate bars on bass/mids; raise toward 22050 to show the full spectrum.",
+        },
         "bar_count": {
             "type": "int", "default": 64, "min": 8, "max": 256,
             "label": "Bar Count",
             "description": "Number of radial bars around the circle.",
+        },
+        "min_bar_height": {
+            "type": "float", "default": 0.01, "min": 0.0, "max": 0.1,
+            "label": "Min Bar Height",
+            "description": "Minimum bar height when silent. Keeps bars visible at low volume so the circle shape doesn't disappear.",
         },
         "inner_radius": {
             "type": "float", "default": 0.2, "min": 0.01, "max": 0.8,
@@ -232,16 +247,25 @@ class CircularSpectrumVisualization(ImageTextureMixin, AbstractVisualization):
         bar_count = self.get_param("bar_count", 64)
         gravity = self.get_param("gravity", 0.85)
 
+        # Compute frequency limit bin
+        max_bin = 0
+        if self.get_param("frequency_limit", False):
+            max_freq = self.get_param("max_frequency", 16000)
+            n_bins = len(frame.fft_magnitudes_db)
+            nyquist = frame.fft_frequencies[-1] if len(frame.fft_frequencies) > 0 else 22050.0
+            max_bin = max(1, int(max_freq / nyquist * n_bins))
+
         # Resample dB-scaled magnitudes to bar_count using log scale
         n = len(frame.fft_magnitudes_db)
-        magnitudes = _log_resample(frame.fft_magnitudes_db, n, bar_count)
+        magnitudes = _log_resample(frame.fft_magnitudes_db, n, bar_count, max_bin=max_bin)
 
         # Apply gravity
         if self._prev_magnitudes is not None and len(self._prev_magnitudes) == bar_count:
             magnitudes = np.maximum(magnitudes, self._prev_magnitudes * gravity)
         self._prev_magnitudes = magnitudes.copy()
 
-        magnitudes = np.clip(magnitudes, 0.0, 1.0)
+        min_height = self.get_param("min_bar_height", 0.01)
+        magnitudes = np.clip(magnitudes, min_height, 1.0)
 
         fbo.use()
         prog = self._program

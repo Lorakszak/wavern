@@ -14,26 +14,35 @@ from wavern.visualizations.base import AbstractVisualization
 from wavern.visualizations.registry import register
 
 
-def _log_resample(magnitudes: np.ndarray, n: int, bar_count: int) -> np.ndarray:
+def _log_resample(
+    magnitudes: np.ndarray, n: int, bar_count: int, max_bin: int = 0,
+) -> np.ndarray:
     """Resample FFT magnitudes into bar_count bins using logarithmic spacing.
 
     Ensures each bar maps to at least one unique FFT bin so low-frequency
     bars don't merge together.
+
+    Args:
+        magnitudes: FFT magnitude array.
+        n: Total number of FFT bins available.
+        bar_count: Number of output bars.
+        max_bin: If >0, only map bins up to this index (frequency limit).
     """
+    effective_n = min(n, max_bin) if max_bin > 0 else n
     # Compute log-spaced bin edges (skip DC at bin 0)
-    edges = np.logspace(0, np.log10(n), bar_count + 1)
+    edges = np.logspace(0, np.log10(effective_n), bar_count + 1)
     edges = np.round(edges).astype(int)
     edges[0] = max(edges[0], 1)
-    edges[-1] = n
+    edges[-1] = effective_n
 
     # Ensure strictly increasing: each edge must be > previous
     for i in range(1, len(edges)):
         if edges[i] <= edges[i - 1]:
             edges[i] = edges[i - 1] + 1
 
-    # If we overshot n, trim the bar count to what actually fits
-    if edges[-1] > n:
-        cutoff = int(np.searchsorted(edges, n, side="right"))
+    # If we overshot effective_n, trim the bar count to what actually fits
+    if edges[-1] > effective_n:
+        cutoff = int(np.searchsorted(edges, effective_n, side="right"))
         edges = edges[:cutoff]
         edges[-1] = n
 
@@ -54,6 +63,16 @@ class SpectrumBarsVisualization(AbstractVisualization):
     CATEGORY: ClassVar[str] = "spectrum"
 
     PARAM_SCHEMA: ClassVar[dict[str, dict[str, Any]]] = {
+        "frequency_limit": {
+            "type": "bool", "default": False,
+            "label": "Frequency Limit",
+            "description": "Cap the displayed frequency range. When off, bars cover the full spectrum up to 22 kHz — where the upper bars are often silent because most music has little energy above ~4 kHz. Enable this and set Max Frequency to focus bars on the active range.",
+        },
+        "max_frequency": {
+            "type": "int", "default": 16000, "min": 2000, "max": 22050,
+            "label": "Max Frequency (Hz)",
+            "description": "Upper frequency limit in Hz. Bars will be distributed from ~20 Hz up to this value. Lower values concentrate bars on bass/mids; raise toward 22050 to show the full spectrum.",
+        },
         "bar_count": {
             "type": "int", "default": 64, "min": 4, "max": 256,
             "label": "Bar Count",
@@ -225,8 +244,16 @@ class SpectrumBarsVisualization(AbstractVisualization):
         bar_count = self.get_param("bar_count", 64)
         gravity = self.get_param("gravity", 0.85)
 
+        # Compute frequency limit bin
+        max_bin = 0
+        if self.get_param("frequency_limit", False):
+            max_freq = self.get_param("max_frequency", 16000)
+            n_bins = len(frame.fft_magnitudes_db)
+            nyquist = frame.fft_frequencies[-1] if len(frame.fft_frequencies) > 0 else 22050.0
+            max_bin = max(1, int(max_freq / nyquist * n_bins))
+
         # Resample dB-scaled FFT magnitudes to bar_count bins
-        magnitudes = self._resample_magnitudes(frame.fft_magnitudes_db, bar_count)
+        magnitudes = self._resample_magnitudes(frame.fft_magnitudes_db, bar_count, max_bin=max_bin)
 
         # Apply gravity (smooth decay)
         if self._prev_magnitudes is not None and len(self._prev_magnitudes) == bar_count:
@@ -309,15 +336,16 @@ class SpectrumBarsVisualization(AbstractVisualization):
             self._program.release()
 
     def _resample_magnitudes(
-        self, magnitudes: np.ndarray, bar_count: int
+        self, magnitudes: np.ndarray, bar_count: int, max_bin: int = 0,
     ) -> np.ndarray:
         """Resample FFT magnitudes to the desired number of bars."""
         scale = self.get_param("frequency_scale", "logarithmic")
         n = len(magnitudes)
 
         if scale == "logarithmic":
-            return _log_resample(magnitudes, n, bar_count)
+            return _log_resample(magnitudes, n, bar_count, max_bin=max_bin)
         else:
             # Linear binning
-            indices = np.linspace(0, n - 1, bar_count, dtype=int)
+            effective_n = min(n, max_bin) if max_bin > 0 else n
+            indices = np.linspace(0, effective_n - 1, bar_count, dtype=int)
             return magnitudes[indices].astype("f4")
