@@ -229,15 +229,6 @@ class SpectrumBarsVisualization(AbstractVisualization):
         max_val = max(np.max(magnitudes), 1e-10)
         magnitudes = np.clip(magnitudes / max_val, 0.0, 1.0)
 
-        # Half-spectrum mirroring
-        if self.get_param("mirror_spectrum", False):
-            half = bar_count // 2
-            if self.get_param("mirror_half", "left") == "left":
-                source = magnitudes[:half]
-            else:
-                source = magnitudes[half:half + half]
-            magnitudes = np.concatenate([source, source[::-1]])[:bar_count]
-
         # Set uniforms
         fbo.use()
         prog = self._program
@@ -254,6 +245,10 @@ class SpectrumBarsVisualization(AbstractVisualization):
         self._set_uniform(prog, "u_mirror", 1 if self.get_param("mirror", False) else 0)
         self._set_uniform(prog, "u_color_mode", 0 if self.get_param("color_mode", "position") == "position" else 1)
         self._set_uniform(prog, "u_intensity", self.get_param("intensity", 1.0))
+        self._set_uniform(prog, "u_mirror_spectrum",
+                          1 if self.get_param("mirror_spectrum", False) else 0)
+        self._set_uniform(prog, "u_mirror_half",
+                          0 if self.get_param("mirror_half", "left") == "left" else 1)
 
         self._set_uniform(prog, "u_offset", (self.get_param("offset_x", 0.0), self.get_param("offset_y", 0.0)))
         self._set_uniform(prog, "u_scale", self.get_param("scale", 1.0))

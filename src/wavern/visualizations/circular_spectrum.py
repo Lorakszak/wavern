@@ -226,15 +226,6 @@ class CircularSpectrumVisualization(ImageTextureMixin, AbstractVisualization):
         max_val = max(np.max(magnitudes), 1e-10)
         magnitudes = np.clip(magnitudes / max_val, 0.0, 1.0)
 
-        # Half-spectrum mirroring
-        if self.get_param("mirror_spectrum", False):
-            half = bar_count // 2
-            if self.get_param("mirror_half", "left") == "left":
-                source = magnitudes[:half]
-            else:
-                source = magnitudes[half:half + half]
-            magnitudes = np.concatenate([source, source[::-1]])[:bar_count]
-
         fbo.use()
         prog = self._program
 
@@ -254,6 +245,10 @@ class CircularSpectrumVisualization(ImageTextureMixin, AbstractVisualization):
         self._set_uniform(prog, "u_rotation_offset", math.radians(self.get_param("rotation_offset", 0.0)))
         self._set_uniform(prog, "u_center_offset", (self.get_param("center_x", 0.0), self.get_param("center_y", 0.0)))
         self._set_uniform(prog, "u_viz_scale", self.get_param("scale", 1.0))
+        self._set_uniform(prog, "u_mirror_spectrum",
+                          1 if self.get_param("mirror_spectrum", False) else 0)
+        self._set_uniform(prog, "u_mirror_half",
+                          0 if self.get_param("mirror_half", "left") == "left" else 1)
 
         # Bar roundness
         self._set_uniform(prog, "u_bar_roundness", self.get_param("bar_roundness", 0.0))

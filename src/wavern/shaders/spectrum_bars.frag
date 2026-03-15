@@ -14,6 +14,8 @@ uniform vec2 u_offset;
 uniform float u_scale;
 uniform float u_rotation;
 uniform float u_bar_roundness;
+uniform int u_mirror_spectrum;
+uniform int u_mirror_half;
 
 uniform int u_shadow_enabled;
 uniform vec3 u_shadow_color;
@@ -56,7 +58,18 @@ vec4 compute_bar(vec2 uv, float size_scale) {
         return vec4(0.0);
     }
 
-    float magnitude = u_magnitudes[bar_index];
+    int mag_idx = bar_index;
+    if (u_mirror_spectrum == 1) {
+        int half = u_bar_count / 2;
+        int dist_from_center = abs(bar_index - half);
+        if (u_mirror_half == 0) {
+            mag_idx = dist_from_center;
+        } else {
+            mag_idx = half - 1 - dist_from_center;
+        }
+        mag_idx = clamp(mag_idx, 0, u_bar_count - 1);
+    }
+    float magnitude = u_magnitudes[mag_idx];
     float bar_height = mix(u_min_height, u_max_height, magnitude) * size_scale;
 
     // Rounding parameters
