@@ -94,7 +94,7 @@ void main() {
         w += wave(uv.x * aspect, freq * 2.3, phase * 1.7, base_amp * u_turbulence * 0.3);
         w += wave(uv.x * aspect, freq * 4.1, phase * 0.8, base_amp * u_turbulence * 0.15);
 
-        float center_y = 0.5 + fi * u_wave_spacing - float(waves) * u_wave_spacing * 0.5;
+        float center_y = 0.5 + (float(i) - float(waves - 1) * 0.5) * u_wave_spacing;
         float dist = abs(uv.y - center_y - w);
 
         float line_thickness = u_thickness * 0.02 * (1.0 + audio_amp * 0.5);
