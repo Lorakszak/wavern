@@ -150,7 +150,7 @@ class WaveformVisualization(AbstractVisualization):
         self._set_uniform(prog, "u_line_thickness", self.get_param("line_thickness", 2.0))
         self._set_uniform(prog, "u_filled", 1 if self.get_param("filled", False) else 0)
         self._set_uniform(prog, "u_resolution", resolution)
-        self._set_uniform(prog, "u_amplitude", frame.amplitude)
+        self._set_uniform(prog, "u_amplitude", frame.amplitude_envelope)
         self._set_uniform(prog, "u_time", frame.timestamp)
         self._set_uniform(prog, "u_glow_intensity", self.get_param("glow_intensity", 0.5))
         self._set_uniform(prog, "u_wave_range", self.get_param("wave_range", 0.4))

@@ -209,7 +209,7 @@ class ParticlesVisualization(AbstractVisualization):
         # Spawn count based on amplitude and beat — ensure a minimum trickle
         base_spawn = max(1, int(frame.amplitude * 50 * spawn_rate))
         if frame.beat:
-            base_spawn *= 3
+            base_spawn = int(base_spawn * (1.0 + 2.0 * frame.beat_intensity))
 
         spawn_count = min(base_spawn, max_p - self._active_count)
         if spawn_count <= 0:

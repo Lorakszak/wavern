@@ -31,6 +31,7 @@ uniform float u_image_padding;
 uniform float u_image_bounce;
 uniform int u_image_bounce_zoom;
 uniform float u_shape_bounce;
+uniform float u_image_rotation;
 
 in vec2 v_texcoord;
 out vec4 fragColor;
@@ -173,6 +174,14 @@ void main() {
 
                 if (dist < display_r && display_r > 0.0) {
                     vec2 img_uv = uv / uv_r * 0.5 + 0.5;
+
+                    // Rotate image UVs
+                    float img_c = cos(u_image_rotation);
+                    float img_s = sin(u_image_rotation);
+                    img_uv -= 0.5;
+                    img_uv = vec2(img_uv.x * img_c - img_uv.y * img_s,
+                                  img_uv.x * img_s + img_uv.y * img_c);
+                    img_uv += 0.5;
 
                     // Cover mode: scale shorter axis to fill circle
                     vec2 tex_size = vec2(textureSize(u_image_tex, 0));

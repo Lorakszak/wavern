@@ -437,6 +437,8 @@ class VisualPanel(QWidget):
                 continue
 
             self._widgets[param_name] = widget
+            if schema.get("disabled", False):
+                widget.setEnabled(False)
             widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
             widget.customContextMenuRequested.connect(
                 lambda pos, n=param_name, w=widget: self._show_param_context_menu(n, w, pos)

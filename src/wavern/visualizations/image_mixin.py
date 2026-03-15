@@ -1,6 +1,7 @@
 """Shared image texture mixin for visualizations with inner image support."""
 
 import logging
+import math
 
 import moderngl
 from PIL import Image
@@ -14,12 +15,14 @@ class ImageTextureMixin:
     _image_texture: moderngl.Texture | None
     _image_path_loaded: str
     _bounce_value: float
+    _bounce_prev_time: float
     _fallback_texture: moderngl.Texture | None
 
     def _init_image_state(self) -> None:
         self._image_texture = None
         self._image_path_loaded = ""
         self._bounce_value = 0.0
+        self._bounce_prev_time = 0.0
         self._fallback_texture = None
 
     def _ensure_fallback_texture(self, ctx: moderngl.Context) -> None:
@@ -54,11 +57,16 @@ class ImageTextureMixin:
             self._fallback_texture.release()
             self._fallback_texture = None
 
-    def _compute_bounce(self, beat: bool) -> float:
-        """Smooth exponential decay bounce value."""
-        self._bounce_value *= 0.85
+    def _compute_bounce(self, beat: bool, beat_intensity: float, timestamp: float) -> float:
+        """Framerate-aware exponential decay bounce with graduated intensity."""
+        dt = timestamp - self._bounce_prev_time
+        if dt <= 0 or dt > 0.5:
+            dt = 1.0 / 60.0
+        self._bounce_prev_time = timestamp
+
+        self._bounce_value *= math.exp(-dt / 0.15)
         if beat:
-            self._bounce_value = 1.0
+            self._bounce_value = max(self._bounce_value, beat_intensity)
         return self._bounce_value
 
     def _bind_image_uniforms(
@@ -88,7 +96,7 @@ class ImageTextureMixin:
 
         bounce = 0.0
         if img_bounce_on or shape_bounce_on:
-            bounce = self._compute_bounce(frame.beat)
+            bounce = self._compute_bounce(frame.beat, frame.beat_intensity, frame.timestamp)
 
         img_bounce = (
             bounce * get_param("inner_image_bounce_strength", 0.15)

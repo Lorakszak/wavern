@@ -223,10 +223,10 @@ class SmokyWavesVisualization(AbstractVisualization):
         prog = self._program
 
         self._set_uniform(prog, "u_time", frame.timestamp)
-        self._set_uniform(prog, "u_amplitude", frame.amplitude)
-        self._set_uniform(prog, "u_bass", frame.frequency_bands.get("bass", 0.0))
-        self._set_uniform(prog, "u_mid", frame.frequency_bands.get("mid", 0.0))
-        self._set_uniform(prog, "u_treble", frame.frequency_bands.get("brilliance", 0.0))
+        self._set_uniform(prog, "u_amplitude", frame.amplitude_envelope)
+        self._set_uniform(prog, "u_bass", frame.frequency_bands_norm.get("bass", 0.0))
+        self._set_uniform(prog, "u_mid", frame.frequency_bands_norm.get("mid", 0.0))
+        self._set_uniform(prog, "u_treble", frame.frequency_bands_norm.get("brilliance", 0.0))
         self._set_uniform(prog, "u_resolution", resolution)
         self._set_uniform(prog, "u_wave_count", float(self.get_param("wave_count", 5)))
         self._set_uniform(prog, "u_speed", self.get_param("speed", 1.0))

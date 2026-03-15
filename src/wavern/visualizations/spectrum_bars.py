@@ -143,6 +143,7 @@ class SpectrumBarsVisualization(AbstractVisualization):
             "type": "float", "default": 0.0, "min": 0.0, "max": 1.0,
             "label": "Bar Roundness",
             "description": "Bar tip rounding. 0=sharp, 1=fully rounded.",
+            "disabled": True,
         },
         "shadow_enabled": {
             "type": "bool", "default": False,
@@ -224,17 +225,15 @@ class SpectrumBarsVisualization(AbstractVisualization):
         bar_count = self.get_param("bar_count", 64)
         gravity = self.get_param("gravity", 0.85)
 
-        # Resample FFT magnitudes to bar_count bins
-        magnitudes = self._resample_magnitudes(frame.fft_magnitudes, bar_count)
+        # Resample dB-scaled FFT magnitudes to bar_count bins
+        magnitudes = self._resample_magnitudes(frame.fft_magnitudes_db, bar_count)
 
         # Apply gravity (smooth decay)
         if self._prev_magnitudes is not None and len(self._prev_magnitudes) == bar_count:
             magnitudes = np.maximum(magnitudes, self._prev_magnitudes * gravity)
         self._prev_magnitudes = magnitudes.copy()
 
-        # Normalize to [0, 1]
-        max_val = max(np.max(magnitudes), 1e-10)
-        magnitudes = np.clip(magnitudes / max_val, 0.0, 1.0)
+        magnitudes = np.clip(magnitudes, 0.0, 1.0)
 
         # Set uniforms
         fbo.use()

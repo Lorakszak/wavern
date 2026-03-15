@@ -1,5 +1,6 @@
 """Tests for AudioAnalyzer."""
 
+import numpy as np
 import pytest
 
 from wavern.core.audio_analyzer import AudioAnalyzer, FrameAnalysis
@@ -66,3 +67,105 @@ class TestAudioAnalyzer:
 
         # Smoothing should make consecutive frames similar
         assert frame1.fft_magnitudes is not frame2.fft_magnitudes
+
+    def test_spectral_flux_nonzero(self, chirp_audio):
+        """Spectral flux should be > 0 between frames of a chirp signal."""
+        audio, sr = chirp_audio
+        analyzer = AudioAnalyzer()
+        analyzer.configure(audio, sr)
+
+        # First frame establishes baseline
+        analyzer.analyze_frame(0.1)
+        # Second frame at a different time should show spectral change
+        frame2 = analyzer.analyze_frame(0.5)
+
+        assert frame2.spectral_flux > 0.0, (
+            "Spectral flux should be nonzero for a chirp signal between different timestamps"
+        )
+
+    def test_beat_intensity_graduated(self, beat_audio):
+        """Beat intensities should not all be identical (graduated, not binary)."""
+        audio, sr = beat_audio
+        analyzer = AudioAnalyzer()
+        analyzer.configure(audio, sr)
+
+        intensities = [strength for _, strength in analyzer._beat_timestamps]
+
+        if len(intensities) >= 2:
+            # Not all intensities should be identical
+            assert len(set(intensities)) > 1, (
+                "Beat intensities should be graduated, not all identical"
+            )
+
+    def test_new_frame_analysis_fields(self, sample_audio):
+        """All new FrameAnalysis fields should exist with correct types."""
+        audio, sr = sample_audio
+        analyzer = AudioAnalyzer()
+        analyzer.configure(audio, sr)
+
+        frame = analyzer.analyze_frame(0.5)
+
+        assert isinstance(frame.fft_magnitudes_db, np.ndarray)
+        assert frame.fft_magnitudes_db.dtype == np.float32
+        assert isinstance(frame.fft_magnitudes_norm, np.ndarray)
+        assert frame.fft_magnitudes_norm.dtype == np.float32
+        assert isinstance(frame.frequency_bands_norm, dict)
+        assert isinstance(frame.amplitude_envelope, float)
+        assert isinstance(frame.band_envelopes, dict)
+
+    def test_db_magnitudes_in_range(self, sample_audio):
+        """fft_magnitudes_db values should be in [0, 1]."""
+        audio, sr = sample_audio
+        analyzer = AudioAnalyzer()
+        analyzer.configure(audio, sr)
+
+        frame = analyzer.analyze_frame(0.5)
+
+        assert np.all(frame.fft_magnitudes_db >= 0.0)
+        assert np.all(frame.fft_magnitudes_db <= 1.0)
+
+    def test_running_peak_preserves_dynamics(self, sample_audio):
+        """fft_magnitudes_norm max should be <= 1.0."""
+        audio, sr = sample_audio
+        analyzer = AudioAnalyzer()
+        analyzer.configure(audio, sr)
+
+        for t in [0.2, 0.5, 0.8, 1.0, 1.5]:
+            frame = analyzer.analyze_frame(t)
+            assert np.max(frame.fft_magnitudes_norm) <= 1.0 + 1e-6
+
+    def test_asymmetric_envelope(self, beat_audio):
+        """Envelope should rise quickly on burst and decay slowly after."""
+        audio, sr = beat_audio
+        analyzer = AudioAnalyzer()
+        analyzer.configure(audio, sr)
+
+        # Analyze frame during a burst (t=0.5)
+        frame_burst = analyzer.analyze_frame(0.5)
+        env_at_burst = frame_burst.amplitude_envelope
+
+        # Analyze frame shortly after burst (t=0.6) — should still have some envelope
+        frame_after = analyzer.analyze_frame(0.6)
+        env_after = frame_after.amplitude_envelope
+
+        # Analyze frame well after burst (t=0.9) — envelope should have decayed further
+        frame_later = analyzer.analyze_frame(0.9)
+        env_later = frame_later.amplitude_envelope
+
+        # Envelope at burst should be meaningful
+        assert env_at_burst > 0.0
+        # Envelope should decay over time (but not instantly)
+        assert env_later < env_at_burst or env_at_burst < 1e-6
+
+    def test_bands_norm_in_range(self, sample_audio):
+        """All frequency_bands_norm values should be in [0, 1]."""
+        audio, sr = sample_audio
+        analyzer = AudioAnalyzer()
+        analyzer.configure(audio, sr)
+
+        # Run a few frames to let auto-gain stabilize
+        for t in [0.1, 0.2, 0.3, 0.5]:
+            frame = analyzer.analyze_frame(t)
+
+        for name, value in frame.frequency_bands_norm.items():
+            assert 0.0 <= value <= 1.0, f"Band '{name}' norm value {value} out of [0, 1]"

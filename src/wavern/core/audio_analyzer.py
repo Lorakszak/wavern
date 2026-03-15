@@ -1,10 +1,12 @@
 """Audio analysis — FFT, frequency bands, beat detection, spectral features."""
 
 import logging
-from dataclasses import dataclass
+import math
+from dataclasses import dataclass, field
 
 import numpy as np
 from numpy.typing import NDArray
+from scipy.ndimage import uniform_filter1d
 from scipy.signal import find_peaks
 
 logger = logging.getLogger(__name__)
@@ -29,6 +31,11 @@ class FrameAnalysis:
     beat_intensity: float
     spectral_centroid: float
     spectral_flux: float
+    fft_magnitudes_db: NDArray[np.float32] = field(default_factory=lambda: np.array([], dtype=np.float32))
+    fft_magnitudes_norm: NDArray[np.float32] = field(default_factory=lambda: np.array([], dtype=np.float32))
+    frequency_bands_norm: dict[str, float] = field(default_factory=dict)
+    amplitude_envelope: float = 0.0
+    band_envelopes: dict[str, float] = field(default_factory=dict)
 
 
 FREQUENCY_BANDS: dict[str, tuple[float, float]] = {
@@ -63,14 +70,32 @@ class AudioAnalyzer:
         self._sample_rate: int = 44100
         self._window: NDArray[np.float64] = np.hanning(fft_size)
         self._prev_magnitudes: NDArray[np.float32] | None = None
-        self._beat_timestamps: list[float] = []
+        self._prev_raw_magnitudes: NDArray[np.float32] | None = None
+        self._beat_timestamps: list[tuple[float, float]] = []
         self._beat_threshold_window: list[float] = []
+
+        # Running-peak normalization state
+        self._running_peak: float = 1e-10
+
+        # Per-band auto-gain state
+        self._band_running_rms: dict[str, float] = {name: 1e-10 for name in FREQUENCY_BANDS}
+
+        # Envelope follower state
+        self._amplitude_envelope: float = 0.0
+        self._band_envelopes: dict[str, float] = {name: 0.0 for name in FREQUENCY_BANDS}
+        self._prev_timestamp: float = 0.0
 
     def configure(self, audio_data: NDArray[np.float32], sample_rate: int) -> None:
         """Prepare analyzer for a specific audio track."""
         self._audio_data = audio_data
         self._sample_rate = sample_rate
         self._prev_magnitudes = None
+        self._prev_raw_magnitudes = None
+        self._running_peak = 1e-10
+        self._band_running_rms = {name: 1e-10 for name in FREQUENCY_BANDS}
+        self._amplitude_envelope = 0.0
+        self._band_envelopes = {name: 0.0 for name in FREQUENCY_BANDS}
+        self._prev_timestamp = 0.0
         self._beat_timestamps = self.precompute_beats()
         logger.info(
             "Analyzer configured: %d samples, %dHz, %d beats detected",
@@ -108,6 +133,13 @@ class AudioAnalyzer:
         # FFT
         magnitudes, frequencies = self._compute_fft(samples)
 
+        # Spectral flux (computed from raw magnitudes BEFORE smoothing)
+        if self._prev_raw_magnitudes is not None and len(self._prev_raw_magnitudes) == len(magnitudes):
+            flux = float(np.sum(np.maximum(magnitudes - self._prev_raw_magnitudes, 0)))
+        else:
+            flux = 0.0
+        self._prev_raw_magnitudes = magnitudes.copy()
+
         # Smoothing
         if self._prev_magnitudes is not None and len(self._prev_magnitudes) == len(magnitudes):
             magnitudes = (
@@ -116,12 +148,53 @@ class AudioAnalyzer:
             ).astype(np.float32)
         self._prev_magnitudes = magnitudes.copy()
 
+        # dB-scaled magnitudes (from smoothed)
+        magnitudes_db = np.clip(20.0 * np.log10(np.maximum(magnitudes, 1e-10)) + 60.0, 0.0, 60.0) / 60.0
+        magnitudes_db = magnitudes_db.astype(np.float32)
+
+        # Running-peak normalization
+        dt = timestamp - self._prev_timestamp
+        if dt <= 0 or dt > 0.5:
+            dt = 1.0 / 60.0
+        self._prev_timestamp = timestamp
+
+        current_peak = float(np.max(magnitudes))
+        decay = math.exp(-dt / 3.0)
+        self._running_peak = max(self._running_peak * decay, current_peak, 1e-10)
+        magnitudes_norm = np.clip(magnitudes / self._running_peak, 0.0, 1.0).astype(np.float32)
+
         # Frequency bands
         bands = self._compute_frequency_bands(magnitudes, frequencies)
+
+        # Per-band auto-gain
+        alpha = 0.005
+        bands_norm: dict[str, float] = {}
+        for name, energy in bands.items():
+            self._band_running_rms[name] = (
+                self._band_running_rms[name] * (1.0 - alpha) + energy * alpha
+            )
+            running = max(self._band_running_rms[name], 1e-10)
+            bands_norm[name] = min(energy / running, 3.0) / 3.0
 
         # Amplitude
         amplitude = float(np.sqrt(np.mean(samples**2)))
         peak = float(np.max(np.abs(samples)))
+
+        # Asymmetric envelope followers
+        attack_coeff = 1.0 - math.exp(-dt / 0.010)
+        release_coeff = 1.0 - math.exp(-dt / 0.200)
+
+        if amplitude > self._amplitude_envelope:
+            self._amplitude_envelope += (amplitude - self._amplitude_envelope) * attack_coeff
+        else:
+            self._amplitude_envelope += (amplitude - self._amplitude_envelope) * release_coeff
+
+        band_envelopes: dict[str, float] = {}
+        for name, energy in bands.items():
+            prev = self._band_envelopes[name]
+            coeff = attack_coeff if energy > prev else release_coeff
+            self._band_envelopes[name] += (energy - prev) * coeff
+            band_envelopes[name] = self._band_envelopes[name]
 
         # Beat detection
         beat, beat_intensity = self._check_beat(timestamp)
@@ -132,12 +205,6 @@ class AudioAnalyzer:
             spectral_centroid = float(np.sum(frequencies * magnitudes) / mag_sum)
         else:
             spectral_centroid = 0.0
-
-        # Spectral flux
-        if self._prev_magnitudes is not None:
-            flux = float(np.sum(np.maximum(magnitudes - self._prev_magnitudes, 0)))
-        else:
-            flux = 0.0
 
         return FrameAnalysis(
             timestamp=timestamp,
@@ -151,10 +218,15 @@ class AudioAnalyzer:
             beat_intensity=beat_intensity,
             spectral_centroid=spectral_centroid,
             spectral_flux=flux,
+            fft_magnitudes_db=magnitudes_db,
+            fft_magnitudes_norm=magnitudes_norm,
+            frequency_bands_norm=bands_norm,
+            amplitude_envelope=self._amplitude_envelope,
+            band_envelopes=band_envelopes,
         )
 
-    def precompute_beats(self) -> list[float]:
-        """Detect all beat timestamps using onset strength + peak detection."""
+    def precompute_beats(self) -> list[tuple[float, float]]:
+        """Detect all beat timestamps using bass-weighted onset strength + adaptive threshold."""
         if self._audio_data is None:
             return []
 
@@ -164,7 +236,11 @@ class AudioAnalyzer:
         if num_frames < 2:
             return []
 
-        # Compute onset strength (spectral flux)
+        # Precompute bass mask (<250 Hz) for bass-weighted beat detection
+        freqs = np.fft.rfftfreq(self.fft_size, 1.0 / self._sample_rate)
+        bass_mask = freqs < 250.0
+
+        # Compute onset strength (bass-weighted spectral flux)
         onset_strength = []
         prev_mag = None
         for i in range(num_frames):
@@ -177,7 +253,10 @@ class AudioAnalyzer:
             spectrum = np.abs(np.fft.rfft(windowed))
 
             if prev_mag is not None:
-                flux = np.sum(np.maximum(spectrum - prev_mag, 0))
+                # Bass-weighted flux: only consider sub_bass + bass range
+                bass_current = spectrum[bass_mask]
+                bass_prev = prev_mag[bass_mask]
+                flux = float(np.sum(np.maximum(bass_current - bass_prev, 0)))
                 onset_strength.append(flux)
             else:
                 onset_strength.append(0.0)
@@ -189,18 +268,41 @@ class AudioAnalyzer:
         if len(onset_arr) < 3:
             return []
 
-        # Find peaks in onset strength
-        mean_strength = np.mean(onset_arr)
-        std_strength = np.std(onset_arr)
-        threshold = mean_strength + 0.5 * std_strength
+        # Adaptive windowed threshold (3-second window)
+        window_size = max(3, int(3.0 * self._sample_rate / hop))
+        # Ensure window_size is odd for uniform_filter1d
+        if window_size % 2 == 0:
+            window_size += 1
 
-        peaks, properties = find_peaks(
-            onset_arr,
-            height=threshold,
-            distance=int(self._sample_rate / hop * 0.15),  # min 150ms between beats
+        local_mean = uniform_filter1d(onset_arr.astype(np.float64), size=window_size).astype(
+            np.float32
         )
+        local_sq_mean = uniform_filter1d(
+            (onset_arr.astype(np.float64) ** 2), size=window_size
+        ).astype(np.float32)
+        local_std = np.sqrt(np.maximum(local_sq_mean - local_mean**2, 0.0))
+        threshold = local_mean + 0.5 * local_std
 
-        timestamps = [float(p * hop / self._sample_rate) for p in peaks]
+        # Mask below threshold
+        onset_masked = np.where(onset_arr > threshold, onset_arr, 0.0).astype(np.float32)
+
+        # Find peaks with minimum distance enforcement
+        min_distance = max(1, int(self._sample_rate / hop * 0.15))  # min 150ms between beats
+        peaks, _ = find_peaks(onset_masked, height=0.0, distance=min_distance)
+
+        if len(peaks) == 0:
+            return []
+
+        # Graduated beat intensity: normalize strengths to [0, 1]
+        peak_strengths = onset_arr[peaks]
+        max_onset = float(np.max(peak_strengths))
+        if max_onset < 1e-10:
+            return []
+
+        timestamps = [
+            (float(p * hop / self._sample_rate), float(onset_arr[p] / max_onset))
+            for p in peaks
+        ]
         return timestamps
 
     def _check_beat(self, timestamp: float) -> tuple[bool, float]:
@@ -210,9 +312,9 @@ class AudioAnalyzer:
 
         tolerance = 1.0 / 30.0  # ~1 frame at 30fps
 
-        for bt in self._beat_timestamps:
+        for bt, strength in self._beat_timestamps:
             if abs(bt - timestamp) < tolerance:
-                return True, 1.0
+                return True, strength
 
         return False, 0.0
 

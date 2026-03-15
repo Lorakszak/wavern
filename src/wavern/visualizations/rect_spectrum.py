@@ -61,6 +61,12 @@ class RectSpectrumVisualization(ImageTextureMixin, AbstractVisualization):
             "label": "Rotation Speed",
             "description": "Speed of continuous rotation.",
         },
+        "rotation_direction": {
+            "type": "choice", "default": "clockwise",
+            "choices": ["clockwise", "counterclockwise"],
+            "label": "Rotation Direction",
+            "description": "Direction of continuous rotation.",
+        },
         "gravity": {
             "type": "float", "default": 0.85, "min": 0.0, "max": 0.99,
             "label": "Gravity (smoothing)",
@@ -107,6 +113,7 @@ class RectSpectrumVisualization(ImageTextureMixin, AbstractVisualization):
             "type": "float", "default": 0.0, "min": 0.0, "max": 1.0,
             "label": "Bar Roundness",
             "description": "Bar tip rounding. 0=sharp, 1=fully rounded.",
+            "disabled": True,
         },
         "shadow_enabled": {
             "type": "bool", "default": False,
@@ -175,7 +182,7 @@ class RectSpectrumVisualization(ImageTextureMixin, AbstractVisualization):
             "description": "Inner square pulses on detected beats.",
         },
         "shape_bounce_strength": {
-            "type": "float", "default": 0.15, "min": 0.0, "max": 0.5,
+            "type": "float", "default": 0.15, "min": 0.0, "max": 1.0,
             "label": "Shape Bounce Strength",
             "description": "How much the inner square grows on beat.",
         },
@@ -224,18 +231,16 @@ class RectSpectrumVisualization(ImageTextureMixin, AbstractVisualization):
         bar_count = self.get_param("bar_count", 64)
         gravity = self.get_param("gravity", 0.85)
 
-        # Resample to bar_count using log scale
-        n = len(frame.fft_magnitudes)
-        magnitudes = _log_resample(frame.fft_magnitudes, n, bar_count)
+        # Resample dB-scaled magnitudes to bar_count using log scale
+        n = len(frame.fft_magnitudes_db)
+        magnitudes = _log_resample(frame.fft_magnitudes_db, n, bar_count)
 
         # Apply gravity
         if self._prev_magnitudes is not None and len(self._prev_magnitudes) == bar_count:
             magnitudes = np.maximum(magnitudes, self._prev_magnitudes * gravity)
         self._prev_magnitudes = magnitudes.copy()
 
-        # Normalize
-        max_val = max(np.max(magnitudes), 1e-10)
-        magnitudes = np.clip(magnitudes / max_val, 0.0, 1.0)
+        magnitudes = np.clip(magnitudes, 0.0, 1.0)
 
         fbo.use()
         prog = self._program
@@ -249,10 +254,13 @@ class RectSpectrumVisualization(ImageTextureMixin, AbstractVisualization):
         self._set_uniform(prog, "u_bar_length", self.get_param("bar_length", 0.3))
         rotates = self.get_param("rotates", True)
         speed = self.get_param("rotation_speed", 0.2) if rotates else 0.0
+        rot_dir = self.get_param("rotation_direction", "clockwise")
+        if rot_dir == "counterclockwise":
+            speed = -speed
         self._set_uniform(prog, "u_rotation_speed", speed)
         self._set_uniform(prog, "u_resolution", resolution)
         self._set_uniform(prog, "u_time", frame.timestamp)
-        self._set_uniform(prog, "u_amplitude", frame.amplitude)
+        self._set_uniform(prog, "u_amplitude", frame.amplitude_envelope)
         self._set_uniform(prog, "u_bar_spacing", self.get_param("bar_spacing", 0.25))
         self._set_uniform(prog, "u_glow_intensity", self.get_param("glow_intensity", 0.5))
         self._set_uniform(prog, "u_rotation_offset",
