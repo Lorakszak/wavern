@@ -1,0 +1,56 @@
+{
+  "name": "Lissajous",
+  "description": "Phase-portrait orbital figures driven by the audio waveform",
+  "author": "wavern",
+  "version": 1,
+  "visualization": {
+    "visualization_type": "lissajous",
+    "params": {
+      "waveform_smoothing": 8,
+      "sample_count": 256,
+      "delay_samples": 32,
+      "amplitude_scale": 1.0,
+      "symmetry": 2,
+      "mirror_x": false,
+      "spin_speed": 0.0,
+      "line_thickness": 2.5,
+      "glow_intensity": 0.6,
+      "tail_fade": 0.4,
+      "beat_reactive": true
+    }
+  },
+  "color_palette": ["#00E5FF", "#FF00CC"],
+  "blend_mode": "additive",
+  "background": {
+    "type": "solid",
+    "color": "#03000F"
+  },
+  "overlay": {
+    "title_enabled": false,
+    "title_text": "",
+    "countdown_enabled": false,
+    "countdown_format": "elapsed_total",
+    "link_positions": true,
+    "title_x": 0.5,
+    "title_y": 0.05,
+    "countdown_x": 0.5,
+    "countdown_y": 0.05,
+    "font_family": "montserrat",
+    "font_bold": false,
+    "font_size": 28,
+    "font_color": "#FFFFFF",
+    "font_opacity": 1.0,
+    "outline_enabled": false,
+    "outline_color": "#000000",
+    "outline_width": 2,
+    "shadow_enabled": false,
+    "shadow_color": "#000000",
+    "shadow_opacity": 0.7,
+    "shadow_offset_x": 3,
+    "shadow_offset_y": 3
+  },
+  "fft_size": 2048,
+  "smoothing": 0.1,
+  "beat_sensitivity": 1.0,
+  "fps": 60
+}
