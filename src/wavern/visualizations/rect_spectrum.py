@@ -61,10 +61,11 @@ class RectSpectrumVisualization(ImageTextureMixin, AbstractVisualization):
             "label": "Gravity (smoothing)",
             "description": "How slowly bars fall after a peak. Higher = slower decay.",
         },
-        "bar_width_ratio": {
-            "type": "float", "default": 0.7, "min": 0.1, "max": 1.0,
-            "label": "Bar Width",
-            "description": "Width of each bar relative to its slot.",
+        "bar_spacing": {
+            "type": "float", "default": 0.25, "min": 0.0, "max": 0.9,
+            "step": 0.01,
+            "label": "Bar Spacing",
+            "description": "Gap between bars as a fraction of slot width (0.0 = no gap, 0.9 = very wide gap).",
         },
         "glow_intensity": {
             "type": "float", "default": 0.5, "min": 0.0, "max": 2.0,
@@ -247,7 +248,7 @@ class RectSpectrumVisualization(ImageTextureMixin, AbstractVisualization):
         self._set_uniform(prog, "u_resolution", resolution)
         self._set_uniform(prog, "u_time", frame.timestamp)
         self._set_uniform(prog, "u_amplitude", frame.amplitude)
-        self._set_uniform(prog, "u_bar_width_ratio", self.get_param("bar_width_ratio", 0.7))
+        self._set_uniform(prog, "u_bar_spacing", self.get_param("bar_spacing", 0.25))
         self._set_uniform(prog, "u_glow_intensity", self.get_param("glow_intensity", 0.5))
         self._set_uniform(prog, "u_rotation_offset",
                           math.radians(self.get_param("rotation_offset", 0.0)))

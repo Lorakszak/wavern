@@ -7,6 +7,7 @@
     "visualization_type": "rect_spectrum",
     "params": {
       "bar_count": 64,
+      "bar_spacing": 0.25,
       "inner_size": 0.25,
       "bar_length": 0.3,
       "rotates": true,

@@ -10,7 +10,7 @@ uniform vec2 u_resolution;
 uniform float u_time;
 uniform float u_rotation_speed;
 uniform float u_amplitude;
-uniform float u_bar_width_ratio;
+uniform float u_bar_spacing;
 uniform float u_glow_intensity;
 uniform float u_rotation_offset;
 uniform vec2 u_center_offset;
@@ -70,7 +70,7 @@ vec4 compute_bar(vec2 uv, float size_scale) {
     float angle_diff = abs(angle - bar_center_angle);
 
     // Bar width (angular)
-    float bar_angular_width = bar_angle * u_bar_width_ratio;
+    float bar_angular_width = bar_angle * (1.0 - u_bar_spacing);
 
     if (angle_diff > bar_angular_width * 0.5) {
         return vec4(0.0);

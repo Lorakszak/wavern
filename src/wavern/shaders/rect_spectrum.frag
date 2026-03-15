@@ -10,7 +10,7 @@ uniform vec2 u_resolution;
 uniform float u_time;
 uniform float u_rotation_speed;
 uniform float u_amplitude;
-uniform float u_bar_width_ratio;
+uniform float u_bar_spacing;
 uniform float u_glow_intensity;
 uniform float u_rotation_offset;
 uniform vec2 u_center_offset;
@@ -74,7 +74,7 @@ vec4 render_side(float side_pos, float side_dist, int bars_per_side, bool revers
 
     float bar_center = (float(local_idx) + 0.5) * bar_slot;
     float pos_diff = abs(side_pos - bar_center);
-    float bar_width = bar_slot * u_bar_width_ratio;
+    float bar_width = bar_slot * (1.0 - u_bar_spacing);
 
     if (pos_diff > bar_width * 0.5) return vec4(0.0);
 
