@@ -118,7 +118,7 @@ class SmokyWavesVisualization(AbstractVisualization):
     """Fluid-like wave patterns that react to audio frequency bands."""
 
     NAME: ClassVar[str] = "smoky_waves"
-    DISPLAY_NAME: ClassVar[str] = "Smoky Waves"
+    DISPLAY_NAME: ClassVar[str] = "Smoky Waves (Beta)"
     DESCRIPTION: ClassVar[str] = "Layered sinusoidal waves with audio-reactive turbulence"
     CATEGORY: ClassVar[str] = "abstract"
 

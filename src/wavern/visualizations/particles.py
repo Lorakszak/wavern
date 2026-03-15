@@ -17,7 +17,7 @@ class ParticlesVisualization(AbstractVisualization):
     """Audio-reactive particle system with burst effects."""
 
     NAME: ClassVar[str] = "particles"
-    DISPLAY_NAME: ClassVar[str] = "Particle Burst"
+    DISPLAY_NAME: ClassVar[str] = "Particle Burst (Beta)"
     DESCRIPTION: ClassVar[str] = "Particles that burst and flow with the music"
     CATEGORY: ClassVar[str] = "particle"
 

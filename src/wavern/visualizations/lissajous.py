@@ -165,7 +165,7 @@ class LissajousVisualization(AbstractVisualization):
     """Phase-portrait Lissajous: plots waveform[i] vs waveform[i+delay]."""
 
     NAME: ClassVar[str] = "lissajous"
-    DISPLAY_NAME: ClassVar[str] = "Lissajous"
+    DISPLAY_NAME: ClassVar[str] = "Lissajous (Beta)"
     DESCRIPTION: ClassVar[str] = (
         "Phase-portrait of the audio waveform — X vs delayed-X creates orbital figures"
     )

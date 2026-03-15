@@ -191,13 +191,14 @@ class MainWindow(QMainWindow):
             theme_menu.addAction(action)
 
         # Visualization shortcuts (Ctrl+1…N, one per registered visualization)
+        # Order matches the sidebar combo (list_all insertion order) so indices align.
         viz_menu = menubar.addMenu("Visualization")
         import wavern.visualizations  # noqa: F401 — triggers @register decorators
-        viz_names = VisualizationRegistry().list_names()
-        for i, name in enumerate(viz_names, start=1):
+        viz_infos = VisualizationRegistry().list_all()
+        for i, info in enumerate(viz_infos, start=1):
             if i > 9:
                 break  # Ctrl+0–9 is the practical limit
-            action = QAction(f"Switch to {name} (Ctrl+{i})", self)
+            action = QAction(f"Switch to {info['display_name']} (Ctrl+{i})", self)
             action.setShortcut(f"Ctrl+{i}")
             action.setData(i - 1)
             action.triggered.connect(self._on_viz_shortcut)

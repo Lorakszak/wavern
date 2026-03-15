@@ -19,7 +19,7 @@ class WaveformVisualization(AbstractVisualization):
     """Classic waveform line visualization."""
 
     NAME: ClassVar[str] = "waveform"
-    DISPLAY_NAME: ClassVar[str] = "Classic Waveform"
+    DISPLAY_NAME: ClassVar[str] = "Classic Waveform (Beta)"
     DESCRIPTION: ClassVar[str] = "Audio waveform displayed as a line or filled shape"
     CATEGORY: ClassVar[str] = "waveform"
 
