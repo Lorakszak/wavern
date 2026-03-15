@@ -118,6 +118,10 @@ class GLPreviewWidget(QOpenGLWidget):
         if self._ctx is not None:
             self._ctx.viewport = (0, 0, w, h)
 
+    def render_single_frame(self) -> None:
+        """Request a single frame render (e.g. while paused)."""
+        self.update()
+
     def start_preview(self) -> None:
         """Start the render timer."""
         if self._timer is not None:

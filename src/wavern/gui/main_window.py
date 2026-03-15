@@ -291,12 +291,16 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"Wavern — {path.name}")
         logger.info("Loaded audio: %s (%.1fs)", path.name, metadata.duration)
 
+        self._gl_widget.render_single_frame()
+
     def _apply_preset(self, preset: Preset) -> None:
         """Apply a preset to all components."""
         self._gl_widget.set_preset(preset)
         self._settings_panel.set_preset(preset)
         self._preset_panel.set_current_preset(preset)
         self._sync_format_to_background(preset.background.type)
+        if not self._player.is_playing:
+            self._gl_widget.render_single_frame()
 
     def _prompt_import_audio(self, context: str) -> bool:
         """Show 'no audio' dialog with an Import Audio button. Returns True if audio was loaded."""
@@ -337,6 +341,8 @@ class MainWindow(QMainWindow):
         self._gl_widget.update_preset(preset)
         self._preset_panel.set_current_preset(preset)
         self._sync_format_to_background(preset.background.type)
+        if not self._player.is_playing:
+            self._gl_widget.render_single_frame()
 
     def _sync_format_to_background(self, bg_type: str) -> None:
         """Force webm when background is transparent; restore previous format otherwise."""
@@ -367,6 +373,8 @@ class MainWindow(QMainWindow):
 
     def _on_seek(self, timestamp: float) -> None:
         self._player.seek(timestamp)
+        if not self._player.is_playing:
+            self._gl_widget.render_single_frame()
 
     def _update_position(self) -> None:
         """Sync transport bar with player position."""

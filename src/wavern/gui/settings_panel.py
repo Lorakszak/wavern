@@ -24,7 +24,7 @@ from wavern.gui.background_picker import open_background_image
 from wavern.gui.collapsible_section import CollapsibleSection
 from wavern.gui.help_button import make_help_button
 from wavern.core.text_overlay import AVAILABLE_FONTS, COUNTDOWN_FORMATS
-from wavern.presets.schema import BackgroundConfig, ColorStop, OverlayConfig, Preset, VisualizationParams
+from wavern.presets.schema import BackgroundConfig, ColorStop, Preset, VisualizationParams
 from wavern.visualizations.registry import VisualizationRegistry
 
 logger = logging.getLogger(__name__)
