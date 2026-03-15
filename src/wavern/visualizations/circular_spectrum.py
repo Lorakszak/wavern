@@ -229,7 +229,7 @@ class CircularSpectrumVisualization(ImageTextureMixin, AbstractVisualization):
         fbo.use()
         prog = self._program
 
-        padded = np.zeros(128, dtype="f4")
+        padded = np.zeros(256, dtype="f4")
         padded[:bar_count] = magnitudes[:bar_count]
         self._write_uniform(prog, "u_magnitudes", padded.tobytes())
 

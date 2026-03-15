@@ -1,6 +1,6 @@
 #version 330 core
 
-uniform float u_magnitudes[128];
+uniform float u_magnitudes[256];
 uniform int u_bar_count;
 uniform float u_inner_radius;
 uniform float u_bar_length;

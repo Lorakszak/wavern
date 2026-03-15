@@ -233,8 +233,8 @@ class SpectrumBarsVisualization(AbstractVisualization):
         fbo.use()
         prog = self._program
 
-        # Upload magnitudes (pad to 128)
-        padded = np.zeros(128, dtype="f4")
+        # Upload magnitudes (pad to 256)
+        padded = np.zeros(256, dtype="f4")
         padded[:bar_count] = magnitudes[:bar_count]
         self._write_uniform(prog, "u_magnitudes", padded.tobytes())
 
