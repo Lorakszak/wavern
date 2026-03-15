@@ -33,13 +33,7 @@ class _TabPane(QWidget):
         layout.addWidget(self._tab_bar)
 
         self._stack = QStackedWidget()
-
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll.setWidget(self._stack)
-
-        layout.addWidget(scroll, stretch=1)
+        layout.addWidget(self._stack, stretch=1)
 
         self._tabs: list[dict[str, Any]] = []
 
@@ -48,9 +42,19 @@ class _TabPane(QWidget):
         return self._tab_bar
 
     def add_tab(self, name: str, widget: QWidget) -> int:
-        """Add a tab and return its index."""
+        """Add a tab and return its index.
+
+        Each widget is wrapped in its own QScrollArea so tabs scroll
+        independently based on their own content height.
+        """
         idx = self._tab_bar.addTab(name)
-        self._stack.addWidget(widget)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setWidget(widget)
+
+        self._stack.addWidget(scroll)
         self._tabs.append({"name": name, "widget": widget})
         return idx
 

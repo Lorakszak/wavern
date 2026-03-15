@@ -1,8 +1,6 @@
 """Main application window — orchestrates all GUI components."""
 
-import copy
 import logging
-import re
 from pathlib import Path
 from typing import Any
 
@@ -131,15 +129,10 @@ class MainWindow(QMainWindow):
 
         file_menu.addSeparator()
 
-        save_preset_action = QAction("Save Preset", self)
+        save_preset_action = QAction("Save Preset As…", self)
         save_preset_action.setShortcut("Ctrl+S")
-        save_preset_action.triggered.connect(self._on_save_preset)
+        save_preset_action.triggered.connect(self._on_save_preset_as)
         file_menu.addAction(save_preset_action)
-
-        save_preset_as_action = QAction("Save Preset As…", self)
-        save_preset_as_action.setShortcut(QKeySequence("Ctrl+Shift+S"))
-        save_preset_as_action.triggered.connect(self._on_save_preset_as)
-        file_menu.addAction(save_preset_as_action)
 
         # View menu
         view_menu = menubar.addMenu("View")
@@ -703,40 +696,6 @@ class MainWindow(QMainWindow):
             return True
 
         return super().eventFilter(obj, event)
-
-    def _on_save_preset(self) -> None:
-        """Save a copy of the current preset with the lowest available numbered name."""
-        preset = self._visual_panel._preset
-        if preset is None:
-            return
-
-        # Strip trailing digits to get the root base name (e.g. "Default3" → "Default")
-        base = re.sub(r'\d+$', '', preset.name) or preset.name
-
-        existing = {info["name"] for info in self._preset_manager.list_presets()}
-
-        # Collect all suffix numbers already used for this base
-        used: set[int] = set()
-        for name in existing:
-            if name.startswith(base):
-                suffix = name[len(base):]
-                if suffix.isdigit() and suffix:
-                    used.add(int(suffix))
-
-        # Find lowest N >= 1 not already taken
-        n = 1
-        while n in used:
-            n += 1
-
-        new_preset = copy.deepcopy(preset)
-        new_preset.name = f"{base}{n}"
-        try:
-            self._preset_manager.save(new_preset)
-            for pp in self._all_preset_panels():
-                pp.refresh_list()
-                pp.set_current_preset(new_preset)
-        except Exception as e:
-            QMessageBox.critical(self, "Save Preset", str(e))
 
     def _on_save_preset_as(self) -> None:
         """Delegate to the preset panel's save flow."""
