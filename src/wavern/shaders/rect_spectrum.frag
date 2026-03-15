@@ -18,6 +18,7 @@ uniform float u_viz_scale;
 uniform int u_mirror_sides;
 uniform int u_mirror_half;
 uniform float u_bar_roundness;
+uniform int u_continuous_colors;
 
 uniform int u_shadow_enabled;
 uniform vec3 u_shadow_color;
@@ -51,7 +52,8 @@ vec3 get_color(float t) {
 
 // Check one side of the rectangle and return (hit, color, alpha).
 // size_scale stretches bar extent for shadow sizing.
-vec4 render_side(float side_pos, float side_dist, int bars_per_side, bool reverse, float size_scale) {
+// side_index: 0=top, 1=right, 2=bottom, 3=left (clockwise from top-left)
+vec4 render_side(float side_pos, float side_dist, int bars_per_side, bool reverse, float size_scale, int side_index) {
     if (side_dist < 0.0) return vec4(0.0);
 
     float bar_slot = 1.0 / float(bars_per_side);
@@ -92,7 +94,14 @@ vec4 render_side(float side_pos, float side_dist, int bars_per_side, bool revers
     }
 
     float t = side_dist / max(max_extent, 0.001);
-    float bar_pos = float(local_idx) / float(bars_per_side);
+    float bar_pos;
+    if (u_continuous_colors == 1 && (side_index == 1 || side_index == 3)) {
+        // Reverse color order on left (3) and right (1) sides so the gradient
+        // direction on vertical sides mirrors the horizontal ones.
+        bar_pos = 1.0 - float(local_idx) / float(bars_per_side);
+    } else {
+        bar_pos = float(local_idx) / float(bars_per_side);
+    }
     vec3 color = get_color(bar_pos);
 
     float edge_fade = 1.0 - smoothstep(bar_width * 0.3, bar_width * 0.5, pos_diff);
@@ -111,35 +120,35 @@ vec4 compute_all_sides(vec2 uv, float size_scale) {
     if (bars_per_side < 1) bars_per_side = 1;
     float max_bar_ext = u_bar_length * u_viz_scale * size_scale;
 
-    // Right side
+    // Right side (index 1)
     if (uv.x >= sz && uv.x <= sz + max_bar_ext && uv.y >= -sz && uv.y <= sz) {
         float side_pos = (uv.y + sz) / (2.0 * sz);
         float side_dist = uv.x - sz;
-        vec4 result = render_side(side_pos, side_dist, bars_per_side, true, size_scale);
+        vec4 result = render_side(side_pos, side_dist, bars_per_side, true, size_scale, 1);
         if (result.a > 0.0) return result;
     }
 
-    // Top side
+    // Top side (index 0)
     if (uv.y >= sz && uv.y <= sz + max_bar_ext && uv.x >= -sz && uv.x <= sz) {
         float side_pos = (uv.x + sz) / (2.0 * sz);
         float side_dist = uv.y - sz;
-        vec4 result = render_side(side_pos, side_dist, bars_per_side, false, size_scale);
+        vec4 result = render_side(side_pos, side_dist, bars_per_side, false, size_scale, 0);
         if (result.a > 0.0) return result;
     }
 
-    // Left side
+    // Left side (index 3)
     if (uv.x <= -sz && uv.x >= -sz - max_bar_ext && uv.y >= -sz && uv.y <= sz) {
         float side_pos = (-uv.y + sz) / (2.0 * sz);
         float side_dist = -uv.x - sz;
-        vec4 result = render_side(side_pos, side_dist, bars_per_side, true, size_scale);
+        vec4 result = render_side(side_pos, side_dist, bars_per_side, true, size_scale, 3);
         if (result.a > 0.0) return result;
     }
 
-    // Bottom side
+    // Bottom side (index 2)
     if (uv.y <= -sz && uv.y >= -sz - max_bar_ext && uv.x >= -sz && uv.x <= sz) {
         float side_pos = (-uv.x + sz) / (2.0 * sz);
         float side_dist = -uv.y - sz;
-        vec4 result = render_side(side_pos, side_dist, bars_per_side, false, size_scale);
+        vec4 result = render_side(side_pos, side_dist, bars_per_side, false, size_scale, 2);
         if (result.a > 0.0) return result;
     }
 

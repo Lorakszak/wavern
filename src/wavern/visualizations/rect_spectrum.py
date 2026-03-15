@@ -31,6 +31,11 @@ class RectSpectrumVisualization(ImageTextureMixin, AbstractVisualization):
             "label": "Mirror Sides",
             "description": "All four sides show the same spectrum.",
         },
+        "continuous_colors": {
+            "type": "bool", "default": False,
+            "label": "Continuous Colors",
+            "description": "Colors flow as one gradient around all four sides instead of repeating per side.",
+        },
         "bar_count": {
             "type": "int", "default": 64, "min": 8, "max": 256,
             "label": "Bar Count",
@@ -259,6 +264,8 @@ class RectSpectrumVisualization(ImageTextureMixin, AbstractVisualization):
                           1 if self.get_param("mirror_sides", True) else 0)
         self._set_uniform(prog, "u_mirror_half",
                           0 if self.get_param("mirror_half", "left") == "left" else 1)
+        self._set_uniform(prog, "u_continuous_colors",
+                          1 if self.get_param("continuous_colors", False) else 0)
 
         # Bar roundness
         self._set_uniform(prog, "u_bar_roundness", self.get_param("bar_roundness", 0.0))
