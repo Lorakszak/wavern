@@ -63,6 +63,12 @@ class ProjectSettingsPanel(QWidget):
         form = QFormLayout(self)
         form.setContentsMargins(4, 0, 4, 0)
 
+        # --- Reset All ---
+        reset_btn = QPushButton("Reset All")
+        reset_btn.setFixedWidth(90)
+        reset_btn.clicked.connect(self._on_reset_all)
+        form.addRow("", reset_btn)
+
         # --- Resolution ---
         separator_res = QLabel("Resolution")
         separator_res.setObjectName("SectionSeparator")
@@ -312,6 +318,52 @@ class ProjectSettingsPanel(QWidget):
         if idx >= 0:
             self._format_combo.setCurrentIndex(idx)
         self._format_combo.blockSignals(False)
+        self._update_settings()
+
+    def _on_reset_all(self) -> None:
+        """Reset all export settings to defaults."""
+        defaults = ProjectSettings()
+        self._rebuilding = True
+        self._aspect_combo.blockSignals(True)
+        self._res_combo.blockSignals(True)
+        self._width_spin.blockSignals(True)
+        self._height_spin.blockSignals(True)
+        self._fps_combo.blockSignals(True)
+        self._fps_spin.blockSignals(True)
+        self._format_combo.blockSignals(True)
+        self._crf_spin.blockSignals(True)
+
+        self._aspect_combo.setCurrentText("16:9")
+        self._populate_resolution_combo("16:9")
+        self._res_combo.setEnabled(True)
+        for i in range(self._res_combo.count()):
+            if self._res_combo.itemData(i) == defaults.resolution:
+                self._res_combo.setCurrentIndex(i)
+                break
+        self._width_spin.setValue(defaults.resolution[0])
+        self._height_spin.setValue(defaults.resolution[1])
+        self._fps_spin.setValue(defaults.fps)
+        for i in range(self._fps_combo.count()):
+            if self._fps_combo.itemData(i) == defaults.fps:
+                self._fps_combo.setCurrentIndex(i)
+                break
+        idx = self._format_combo.findText(defaults.container)
+        if idx >= 0:
+            self._format_combo.setCurrentIndex(idx)
+        self._crf_spin.setValue(defaults.crf)
+
+        self._aspect_combo.blockSignals(False)
+        self._res_combo.blockSignals(False)
+        self._width_spin.blockSignals(False)
+        self._height_spin.blockSignals(False)
+        self._fps_combo.blockSignals(False)
+        self._fps_spin.blockSignals(False)
+        self._format_combo.blockSignals(False)
+        self._crf_spin.blockSignals(False)
+        self._rebuilding = False
+
+        self._output_edit.setText(defaults.output_dir)
+        self._filename_edit.setText(defaults.output_filename)
         self._update_settings()
 
     def _update_settings(self) -> None:
