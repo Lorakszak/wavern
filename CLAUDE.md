@@ -27,11 +27,11 @@ uv sync --extra dev
 
 ```
 src/wavern/
-  core/           — audio_loader, audio_analyzer, audio_player, renderer, export, timeline
-  visualizations/ — base ABC + 5 built-in types + registry
+  core/           — audio_loader, audio_analyzer, audio_player, renderer, export, timeline, video_source, font_manager, text_overlay
+  visualizations/ — base ABC + image_mixin + 9 built-in types + registry
   presets/        — pydantic schema + manager + defaults/*.json
   shaders/        — GLSL 3.3 core (.vert/.frag)
-  gui/            — PySide6 widgets (main_window, gl_widget, sidebar, drag_spinbox, theme_manager, etc.)
+  gui/            — PySide6 widgets (main_window, gl_widget, sidebar, drag_spinbox, no_scroll_combo, theme_manager, favorites_store, preset_panel, etc.)
   gui/panels/     — decomposed settings panels (visual, text, analysis, export)
   gui/themes/     — QSS theme files (dark, light, nord, dracula, gruvbox)
   utils/          — color, math_utils

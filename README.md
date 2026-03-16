@@ -59,13 +59,17 @@ Wavern is a local music visualizer for Linux. It renders GPU-accelerated audio v
 ## Features
 
 - **Real-time preview** - OpenGL 3.3+ GPU-accelerated visualization synced to audio playback
-- **6 built-in visualizations** - Spectrum Bars, Classic Waveform, Circular Spectrum, Rectangle Spectrum, Particle Burst, Smoky Waves
+- **9 built-in visualizations** - Spectrum Bars, Classic Waveform (Beta), Circular Spectrum, Rectangle Spectrum, Particle Burst (Beta), Smoky Waves (Beta), Lissajous (Alpha), Radial Waveform (Alpha), Spectrogram (Alpha)
 - **Full parameter control** - every visualization exposes tunable parameters (bar count, speed, thickness, etc.) with live preview via drag-to-change spinboxes
 - **Visualization memory** - switching visualization types preserves your parameter tweaks; switch back and your settings are restored
 - **Dual tabbed sidebars** - two independent sidebars with tabs (Visual, Text, Export, Presets, Analysis), each with optional vertical split mode
 - **5 built-in themes** - Dark, Light, Nord, Dracula, Gruvbox — persists across sessions
 - **Color palettes** - multi-color gradients applied across visualizations
-- **Preset system** - save/load/share visualization configurations as JSON files
+- **28 built-in presets** - ranging from showcase demos to utility starting points; favorites, source filter, and item size toggle in the preset panel
+- **Video & image backgrounds** - with movement effects (drift, shake, wave, zoom_pulse, breathe), rotation, and mirror transforms
+- **Video overlay compositing** - layer a video above the visualization with alpha, additive, or screen blend modes
+- **Advanced audio analysis** - bass-weighted beat detection with adaptive threshold, dB magnitude normalization, amplitude envelope, and spectral flux
+- **Preset system** - save/load/share visualization configurations as JSON files; user presets at `~/.config/wavern/presets/`
 - **Transparent export** - render with no background for compositing (WebM/VP9 with alpha)
 - **Headless CLI rendering** - batch export videos from presets without opening the GUI
 
@@ -182,8 +186,7 @@ uv run wavern list-visualizations   # show registered visualization types
 |----------|--------|
 | `Ctrl+O` | Import Audio |
 | `Ctrl+E` | Render Video |
-| `Ctrl+S` | Save Preset |
-| `Ctrl+Shift+S` | Save Preset As |
+| `Ctrl+S` | Save Preset As |
 | `Ctrl+Q` | Quit |
 
 ### View
@@ -198,28 +201,41 @@ uv run wavern list-visualizations   # show registered visualization types
 
 | Shortcut | Action |
 |----------|--------|
-| `Ctrl+1` | Switch to Classic Waveform |
+| `Ctrl+1` | Switch to Classic Waveform (Beta) |
 | `Ctrl+2` | Switch to Spectrum Bars |
 | `Ctrl+3` | Switch to Circular Spectrum |
-| `Ctrl+4` | Switch to Rectangle(Square) Spectrum | 
-| `Ctrl+5` | Switch to Particle Burst |
-| `Ctrl+6` | Switch to Smoky Waves |
+| `Ctrl+4` | Switch to Rectangle Spectrum |
+| `Ctrl+5` | Switch to Particle Burst (Beta) |
+| `Ctrl+6` | Switch to Smoky Waves (Beta) |
+| `Ctrl+7` | Switch to Lissajous (Alpha) |
+| `Ctrl+8` | Switch to Radial Waveform (Alpha) |
+| `Ctrl+9` | Switch to Spectrogram (Alpha) |
 
 
 ## Built-in Visualizations
 
-| Name | Preview | Description |
-|------|---------|-------------|
-| Classic Waveform | <!-- TODO: assets/viz_waveform.gif --> *coming soon* | Audio waveform as a line or filled shape |
-| Spectrum Bars | <!-- TODO: assets/viz_spectrum_bars.gif --> *coming soon* | Classic vertical bar spectrum analyzer with logarithmic frequency binning |
-| Circular Spectrum | <!-- TODO: assets/viz_circular_spectrum.gif --> *coming soon* | Radial bars arranged around a rotating circle |
-| Rectangle Spectrum | <!-- TODO: assets/viz_rect_spectrum.gif --> *coming soon* | Spectrum bars arranged around a rectangle |
-| Particle Burst | <!-- TODO: assets/viz_particles.gif --> *coming soon* | Audio-reactive particle system with burst effects on beats |
-| Smoky Waves | <!-- TODO: assets/viz_smoky_waves.gif --> *coming soon* | Layered sinusoidal waves with audio-reactive turbulence |
+| Name | Status | Preview | Description |
+|------|--------|---------|-------------|
+| Classic Waveform | Beta | <!-- TODO: assets/viz_waveform.gif --> *coming soon* | Audio waveform as a line or filled shape |
+| Spectrum Bars | Stable | <!-- TODO: assets/viz_spectrum_bars.gif --> *coming soon* | Vertical bar spectrum analyzer with logarithmic frequency binning |
+| Circular Spectrum | Stable | <!-- TODO: assets/viz_circular_spectrum.gif --> *coming soon* | Radial bars arranged around a rotating circle |
+| Rectangle Spectrum | Stable | <!-- TODO: assets/viz_rect_spectrum.gif --> *coming soon* | Spectrum bars arranged around a rectangle |
+| Particle Burst | Beta | <!-- TODO: assets/viz_particles.gif --> *coming soon* | Audio-reactive particle system with burst effects on beats |
+| Smoky Waves | Beta | <!-- TODO: assets/viz_smoky_waves.gif --> *coming soon* | Layered sinusoidal waves with audio-reactive turbulence |
+| Lissajous | Alpha | *coming soon* | Phase-portrait plot (X=waveform[i], Y=waveform[i+delay]) with rotational symmetry and beat-reactive glow |
+| Radial Waveform | Alpha | *coming soon* | Time-domain waveform wrapped around a circle; pulses and breathes with transients |
+| Spectrogram | Alpha | *coming soon* | Scrolling frequency heatmap with 6 colormaps, log/mel/linear scale, and Gaussian blur |
 
 ## Presets
 
-Built-in presets ship with the package. Custom presets are saved to `~/.config/wavern/presets/` as JSON files. Use the **Save** button in the GUI or copy preset JSON files directly.
+28 built-in presets ship with the package, covering all visualization types from utility starting points to showcase demos (aurora_borealis, cyberpunk_skyline, ghost_signal, etc.). The preset panel includes:
+
+- **Search** — filter by name
+- **Source filter** — show All, Built-in only, or User only
+- **Favorites** — star presets and toggle favorites-only view; persisted to `~/.config/wavern/favorites.json`
+- **Item size toggle** — S/M/L list item sizes, persisted across sessions
+
+Custom presets are saved to `~/.config/wavern/presets/` as JSON files. Use the **Save** button in the GUI or copy preset JSON files directly.
 
 
 
@@ -237,9 +253,9 @@ Planned for future releases (not in priority order):
 - [ ] Video Demo
 - [ ] Per-visualization preview GIFs in documentation
 - [ ] GitHub Actions CI (lint + test on push)
-- [ ] More built-in visualizations
-  - [ ] Mandala
-  - [ ] Wormhole spectrogram
+- [ ] Background image cover/contain/letterbox scale modes
+- [ ] Plugin auto-loading from `~/.config/wavern/plugins/` (infrastructure exists, not yet wired)
+- [ ] More built-in visualizations (Mandala, Audio Ribbons, Voronoi Pulse, ...)
 - [ ] macOS / Windows investigation (audio backend portability)
 
 Community contributions toward any of these are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
@@ -297,6 +313,7 @@ Wavern is built on top of these goated projects:
 - [numpy](https://numpy.org/) + [scipy](https://scipy.org/) - audio analysis and DSP
 - [sounddevice](https://python-sounddevice.readthedocs.io/) - audio playback via PortAudio
 - [ffmpeg](https://ffmpeg.org/) - video encoding and audio decoding
+- [PyAV](https://pyav.org/) - video decoding for background and overlay video
 - [pydantic](https://docs.pydantic.dev/) - preset schema validation
 - [uv](https://docs.astral.sh/uv/) - fast Python package management
 - [ruff](https://github.com/astral-sh/ruff) - linting and formatting

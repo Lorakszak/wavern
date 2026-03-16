@@ -75,7 +75,7 @@ Line length is **100 characters** (configured in `pyproject.toml`). All function
 5. Add the import to `src/wavern/visualizations/__init__.py`
 6. Create a matching preset JSON in `src/wavern/presets/defaults/`
 
-See `src/wavern/visualizations/spectrum_bars.py` as a reference implementation.
+See `src/wavern/visualizations/spectrum_bars.py` as a reference implementation (stable, no image mixin). For visualizations with an image texture, see `radial_waveform.py` which uses `ImageMixin`.
 
 ## Submitting a Pull Request
 
