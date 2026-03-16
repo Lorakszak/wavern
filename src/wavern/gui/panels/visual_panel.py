@@ -520,6 +520,21 @@ class VisualPanel(QWidget):
         self._bg_section.set_content(bg_content)
 
     def _rebuild_bg_type_widgets(self, bg: BackgroundConfig) -> None:
+        # Clear stale widget references before rebuilding. Bg types like "solid"
+        # don't create transform/movement controls, so without this the old Python
+        # attributes survive pointing at C++ objects destroyed by deleteLater(),
+        # causing RuntimeError in update_values() when hasattr() passes.
+        for _attr in (
+            "_bg_color_btn", "_bg_image_label", "_bg_video_label",
+            "_gradient_stop_widgets", "_bg_disable_preview",
+            "_bg_rotation", "_bg_mirror_x", "_bg_mirror_y",
+            "_mv_type_combo", "_mv_speed", "_mv_intensity",
+            "_mv_angle", "_mv_angle_label",
+            "_mv_clamp", "_mv_clamp_wrapper", "_mv_clamp_label",
+        ):
+            if hasattr(self, _attr):
+                delattr(self, _attr)
+
         layout = self._bg_type_container_layout
         while layout.count():
             item = layout.takeAt(0)
