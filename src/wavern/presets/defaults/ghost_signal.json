@@ -1,0 +1,35 @@
+{
+  "name": "Ghost Signal (Beta)",
+  "description": "[Beta] Raw unsmoothed Lissajous with long delay, counter-spin, and monochrome green \u2014 eerie signal trace",
+  "author": "wavern",
+  "version": 1,
+  "visualization": {
+    "visualization_type": "lissajous",
+    "params": {
+      "waveform_smoothing": 1,
+      "sample_count": 512,
+      "delay_samples": 200,
+      "amplitude_scale": 1.5,
+      "symmetry": 1,
+      "mirror_x": false,
+      "spin_speed": -1.2,
+      "line_thickness": 1.5,
+      "glow_intensity": 1.0,
+      "tail_fade": 0.8,
+      "beat_reactive": true
+    }
+  },
+  "color_palette": [
+    "#00ff00",
+    "#00cc00"
+  ],
+  "blend_mode": "additive",
+  "background": {
+    "type": "solid",
+    "color": "#000800"
+  },
+  "fft_size": 2048,
+  "smoothing": 0.3,
+  "beat_sensitivity": 0.8,
+  "fps": 60
+}

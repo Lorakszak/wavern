@@ -1,0 +1,58 @@
+{
+  "name": "Mirror Cathedral",
+  "description": "Sparse mirrored bars with heavy gravity and a breathing gradient background",
+  "author": "wavern",
+  "version": 1,
+  "visualization": {
+    "visualization_type": "spectrum_bars",
+    "params": {
+      "bar_count": 16,
+      "bar_spacing": 0.4,
+      "mirror": true,
+      "min_bar_height": 0.01,
+      "max_bar_height": 0.9,
+      "frequency_scale": "linear",
+      "gravity": 0.97,
+      "color_mode": "position",
+      "height_reference": "per_bar",
+      "intensity": 1.0,
+      "mirror_spectrum": true,
+      "mirror_half": "left"
+    }
+  },
+  "color_palette": [
+    "#e0d0ff",
+    "#a080ff",
+    "#6040cc",
+    "#3020aa",
+    "#ffffff"
+  ],
+  "blend_mode": "normal",
+  "background": {
+    "type": "gradient",
+    "gradient_stops": [
+      {
+        "position": 0.0,
+        "color": "#0d0d1a"
+      },
+      {
+        "position": 0.5,
+        "color": "#1a1a33"
+      },
+      {
+        "position": 1.0,
+        "color": "#0d0d1a"
+      }
+    ],
+    "movement": {
+      "type": "breathe",
+      "speed": 0.5,
+      "intensity": 0.4,
+      "angle": 0.0
+    }
+  },
+  "fft_size": 4096,
+  "smoothing": 0.9,
+  "beat_sensitivity": 1.2,
+  "fps": 60
+}

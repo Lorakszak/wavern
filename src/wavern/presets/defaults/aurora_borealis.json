@@ -1,0 +1,40 @@
+{
+  "name": "Aurora Borealis (Beta)",
+  "description": "[Beta] Dense slow-moving waves with glow and tight spacing \u2014 shimmering northern lights",
+  "author": "wavern",
+  "version": 1,
+  "visualization": {
+    "visualization_type": "smoky_waves",
+    "params": {
+      "wave_count": 24,
+      "speed": 0.4,
+      "turbulence": 0.8,
+      "thickness": 2.5,
+      "wave_spacing": 0.03,
+      "base_amplitude": 0.2,
+      "glow_intensity": 2.0
+    }
+  },
+  "color_palette": [
+    "#00ff88",
+    "#00ddaa",
+    "#00bbcc",
+    "#2288ff",
+    "#6644ff"
+  ],
+  "blend_mode": "additive",
+  "background": {
+    "type": "solid",
+    "color": "#000508",
+    "movement": {
+      "type": "drift",
+      "speed": 0.3,
+      "intensity": 0.2,
+      "angle": 90.0
+    }
+  },
+  "fft_size": 8192,
+  "smoothing": 0.92,
+  "beat_sensitivity": 1.0,
+  "fps": 60
+}

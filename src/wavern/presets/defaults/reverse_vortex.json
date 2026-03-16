@@ -1,0 +1,44 @@
+{
+  "name": "Reverse Vortex",
+  "description": "Fast counterclockwise spin with 256 dense bars on a tiny ring, shake background, and high beat sensitivity",
+  "author": "wavern",
+  "version": 1,
+  "visualization": {
+    "visualization_type": "circular_spectrum",
+    "params": {
+      "bar_count": 256,
+      "bar_spacing": 0.04,
+      "inner_radius": 0.04,
+      "bar_length": 0.7,
+      "rotation_speed": 6.0,
+      "rotation_direction": "counterclockwise",
+      "gravity": 0.82,
+      "glow_intensity": 1.0,
+      "mirror_spectrum": false,
+      "frequency_limit": true,
+      "max_frequency": 8000
+    }
+  },
+  "color_palette": [
+    "#ff0044",
+    "#ff00aa",
+    "#aa00ff",
+    "#4400ff",
+    "#0044ff"
+  ],
+  "blend_mode": "additive",
+  "background": {
+    "type": "solid",
+    "color": "#050005",
+    "movement": {
+      "type": "shake",
+      "speed": 2.5,
+      "intensity": 0.4,
+      "angle": 0.0
+    }
+  },
+  "fft_size": 4096,
+  "smoothing": 0.7,
+  "beat_sensitivity": 2.5,
+  "fps": 60
+}

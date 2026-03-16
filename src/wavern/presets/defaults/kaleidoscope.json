@@ -1,0 +1,39 @@
+{
+  "name": "Kaleidoscope (Beta)",
+  "description": "[Beta] 8-fold symmetric Lissajous with mirror, thick glowing lines, and slow spin",
+  "author": "wavern",
+  "version": 1,
+  "visualization": {
+    "visualization_type": "lissajous",
+    "params": {
+      "waveform_smoothing": 16,
+      "sample_count": 512,
+      "delay_samples": 64,
+      "amplitude_scale": 1.2,
+      "symmetry": 8,
+      "mirror_x": true,
+      "spin_speed": 0.8,
+      "line_thickness": 8.0,
+      "glow_intensity": 2.5,
+      "tail_fade": 0.6,
+      "beat_reactive": true
+    }
+  },
+  "color_palette": [
+    "#ff0000",
+    "#ff8800",
+    "#ffff00",
+    "#00ff00",
+    "#0088ff",
+    "#8800ff"
+  ],
+  "blend_mode": "additive",
+  "background": {
+    "type": "solid",
+    "color": "#050005"
+  },
+  "fft_size": 4096,
+  "smoothing": 0.8,
+  "beat_sensitivity": 1.5,
+  "fps": 60
+}
