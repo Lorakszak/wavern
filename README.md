@@ -44,6 +44,12 @@ Wavern is a local music visualizer for Linux. It renders GPU-accelerated audio v
     - [Visualization](#visualization)
   - [Built-in Visualizations](#built-in-visualizations)
   - [Presets](#presets)
+    - [Exploring Some of Built-in Presets and Themes](#exploring-some-of-built-in-presets-and-themes)
+      - [Cyberpunk Skyline (builtin) for Spectrum Bars at Dark Theme](#cyberpunk-skyline-builtin-for-spectrum-bars-at-dark-theme)
+      - [Deep Ocean Pulse (builtin) for Circular Spectrum at Dracula Theme](#deep-ocean-pulse-builtin-for-circular-spectrum-at-dracula-theme)
+      - [Lissajous (builtin) for Lissajous at Gruvbox Theme](#lissajous-builtin-for-lissajous-at-gruvbox-theme)
+      - [Neon Fortress (builtin) for Rectangle Spectrum at Light Theme](#neon-fortress-builtin-for-rectangle-spectrum-at-light-theme)
+      - [Shadow Cascade (builtin) for Spectrum Bars at Nord Theme](#shadow-cascade-builtin-for-spectrum-bars-at-nord-theme)
   - [Known Issues](#known-issues)
   - [Roadmap](#roadmap)
   - [FAQ](#faq)
@@ -241,6 +247,23 @@ uv run wavern list-visualizations   # show registered visualization types
 - **Item size toggle** — S/M/L list item sizes, persisted across sessions
 
 Custom presets are saved to `~/.config/wavern/presets/` as JSON files. Use the **Save** button in the GUI or copy preset JSON files directly.
+
+### Exploring Some of Built-in Presets and Themes
+
+#### Cyberpunk Skyline (builtin) for Spectrum Bars at Dark Theme
+![Cyberpunk Skyline preset for Spectrum Bars at Dark Theme](assets/themes/menu_dark.png)
+
+#### Deep Ocean Pulse (builtin) for Circular Spectrum at Dracula Theme
+![Deep Ocean Pulse for Circular Spectrum at Dracula Theme](assets/themes/menu_dracula.png)
+
+#### Lissajous (builtin) for Lissajous at Gruvbox Theme
+![Lissajous (builtin) for Lissajous at Gruvbox Theme](assets/themes/menu_gruvbox.png)
+
+#### Neon Fortress (builtin) for Rectangle Spectrum at Light Theme
+![Neon Fortress (builtin) for Rectangle Spectrum at Light Theme](assets/themes/menu_light.png)
+
+#### Shadow Cascade (builtin) for Spectrum Bars at Nord Theme
+![Shadow Cascade (builtin) for Spectrum Bars at Nord Theme](assets/themes/menu_nord.png)
 
 
 
