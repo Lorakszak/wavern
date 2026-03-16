@@ -1,4 +1,12 @@
-"""Tests for DragSpinBox widget."""
+"""Tests for wavern.gui.drag_spinbox.
+
+WHAT THIS TESTS:
+- DragSpinBox value setting, clamping to min/max, and integer rounding
+- valueChanged signal emission and suppression when value is unchanged
+- setRange() clamps existing value to the new bounds
+- wheelEvent is ignored (no value change on scroll)
+Does NOT test: mouse drag interaction or keyboard input handling
+"""
 
 import pytest
 from PySide6.QtWidgets import QApplication

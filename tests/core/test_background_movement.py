@@ -1,4 +1,12 @@
-"""Tests for BackgroundMovement schema validation and serialization."""
+"""Tests for wavern.presets.schema.BackgroundMovement and BackgroundConfig.
+
+WHAT THIS TESTS:
+- BackgroundMovement field defaults and valid type values
+- Pydantic ValidationError raised for out-of-bounds speed, intensity, angle, and invalid type
+- BackgroundConfig rotation and mirror_x/mirror_y transform fields
+- Serialization round-trip preserves all BackgroundMovement and BackgroundConfig values
+Does NOT test: actual background rendering or pixel output (those are renderer-level concerns)
+"""
 
 import pytest
 from pydantic import ValidationError

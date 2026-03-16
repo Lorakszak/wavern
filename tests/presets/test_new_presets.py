@@ -1,4 +1,12 @@
-"""Tests for showcase presets (12 original + 7 new replacements)."""
+"""Tests for wavern preset defaults (showcase presets).
+
+WHAT THIS TESTS:
+- All 19 showcase preset JSON files exist in the defaults directory
+- Each preset loads against the Preset pydantic schema with the correct visualization_type
+- All numeric params in each preset are within the bounds declared in the visualization's PARAM_SCHEMA
+- Every preset has at least one color_palette entry
+Does NOT test: PresetManager file I/O or the schema model itself (see test_preset_manager, test_preset_schema)
+"""
 
 from __future__ import annotations
 
@@ -9,7 +17,7 @@ import pytest
 
 from wavern.presets.schema import Preset
 
-DEFAULTS_DIR = Path(__file__).resolve().parents[1] / "src/wavern/presets/defaults"
+DEFAULTS_DIR = Path(__file__).resolve().parents[2] / "src/wavern/presets/defaults"
 
 # (filename, visualization_type, visualization_import_path, class_name)
 NEW_PRESETS = [

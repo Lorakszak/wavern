@@ -2,10 +2,11 @@
 
 import json
 import logging
-import os
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Signal
+
+from wavern.config import get_favorites_path
 
 logger = logging.getLogger(__name__)
 
@@ -21,11 +22,9 @@ class FavoritesStore(QObject):
 
     def __init__(self, config_dir: Path | None = None, parent: QObject | None = None) -> None:
         super().__init__(parent)
-        if config_dir is None:
-            config_home = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
-            config_dir = Path(config_home) / "wavern"
-        self._config_dir = config_dir
-        self._path = self._config_dir / "favorites.json"
+        favorites_path = get_favorites_path() if config_dir is None else config_dir / "favorites.json"
+        self._config_dir = favorites_path.parent
+        self._path = favorites_path
         self._favorites: set[str] = self._load()
 
     def is_favorite(self, name: str) -> bool:

@@ -1,4 +1,12 @@
-"""Tests for visualization settings memory (store/restore/reset on type switch)."""
+"""Tests for wavern.gui.panels.visual_panel visualization parameter memory.
+
+WHAT THIS TESTS:
+- Switching visualization type saves the current params to the per-type memory dict
+- Switching back to a previously used type restores its saved params
+- Reset All clears memory for the current type and sets params to empty (schema defaults)
+- Two VisualPanel instances sharing the same memory dict see each other's saved params
+Does NOT test: OpenGL rendering, preset file I/O, or sidebar layout
+"""
 
 import pytest
 from PySide6.QtWidgets import QApplication
@@ -105,7 +113,6 @@ class TestVizMemory:
             pytest.skip("type_a has no params")
 
         param_name = next(iter(schema_a))
-        default_val = schema_a[param_name]["default"]
 
         # Set a non-default value
         panel._preset.visualization.params[param_name] = "SENTINEL"

@@ -1,4 +1,12 @@
-"""Tests for preset schema validation."""
+"""Tests for wavern.presets.schema.
+
+WHAT THIS TESTS:
+- Preset constructs with minimal and full field sets; JSON round-trip preserves all values
+- ValidationError raised for empty name and out-of-range fft_size
+- BackgroundConfig, ColorStop, VideoOverlayConfig field defaults and validation
+- Preset round-trip including BackgroundMovement, transform fields, and VideoOverlayConfig
+Does NOT test: preset file I/O or the PresetManager (see test_preset_manager)
+"""
 
 
 import pytest

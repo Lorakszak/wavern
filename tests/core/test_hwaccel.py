@@ -1,4 +1,13 @@
-"""Tests for hardware-accelerated encoder detection and mapping."""
+"""Tests for wavern.core.hwaccel.
+
+WHAT THIS TESTS:
+- HW_ENCODER_MAP covers software codecs with correct HWAccelBackend entries
+- detect_hw_encoders() correctly parses ffmpeg -encoders output for NVENC, VAAPI, and QSV
+- Caching behaviour: second call avoids subprocess; clear_hw_cache() forces re-detection
+- get_hw_encoder() respects hw_accel="off", needs_alpha, and codec type restrictions
+- map_quality_to_hw() and build_hw_input_flags() produce correct CLI flags per backend
+Does NOT test: actual GPU hardware availability or real ffmpeg execution
+"""
 
 import subprocess
 
@@ -7,7 +16,6 @@ import pytest
 from wavern.core.hwaccel import (
     HW_ENCODER_MAP,
     HWAccelBackend,
-    HWEncoder,
     build_hw_input_flags,
     clear_hw_cache,
     detect_hw_encoders,

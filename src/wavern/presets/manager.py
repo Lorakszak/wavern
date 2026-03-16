@@ -2,11 +2,11 @@
 
 import json
 import logging
-import os
 import re
 from importlib import resources
 from pathlib import Path
 
+from wavern.config import get_preset_directory
 from wavern.presets.schema import Preset
 
 logger = logging.getLogger(__name__)
@@ -35,8 +35,7 @@ class PresetManager:
     """
 
     def __init__(self, user_preset_dir: Path | None = None) -> None:
-        config_home = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
-        self._user_dir = user_preset_dir or Path(config_home) / "wavern" / "presets"
+        self._user_dir = user_preset_dir or get_preset_directory()
         self._user_dir.mkdir(parents=True, exist_ok=True)
 
     @property

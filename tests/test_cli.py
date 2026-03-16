@@ -1,4 +1,11 @@
-"""Tests for CLI commands."""
+"""Tests for wavern.cli.
+
+WHAT THIS TESTS:
+- CLI --version flag exits cleanly and includes the expected version string
+- list-presets subcommand exits with code 0
+- list-visualizations subcommand exits with code 0 and includes core visualization names
+Does NOT test: GUI launch (requires display) or headless render pipeline
+"""
 
 from click.testing import CliRunner
 

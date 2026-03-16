@@ -1,4 +1,12 @@
-"""Tests for VisualizationRegistry."""
+"""Tests for wavern.visualizations.registry.
+
+WHAT THIS TESTS:
+- All built-in visualizations are registered after importing wavern.visualizations
+- get() returns the correct class with NAME and DISPLAY_NAME attributes
+- get() raises KeyError for unknown visualization names
+- list_all() returns dicts with the required keys (name, display_name, category, description)
+Does NOT test: visualization rendering, GPU initialization, or preset JSON validity
+"""
 
 import pytest
 

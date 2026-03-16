@@ -1,4 +1,12 @@
-"""Tests for the codec/container registry."""
+"""Tests for wavern.core.codecs.
+
+WHAT THIS TESTS:
+- CONTAINER_CODECS registry covers all four containers (mp4, webm, mov, gif) with correct codecs
+- get_default_codec(), supports_alpha(), supports_audio(), get_codec_family() return correct values
+- QUALITY_PRESETS have required keys and CRF values ordered from highest to lowest quality
+- get_quality_settings() returns correct encoder-specific flags for x264, x265, VP9, AV1, and ProRes
+Does NOT test: actual ffmpeg execution or hardware encoder detection (see test_hwaccel)
+"""
 
 import pytest
 

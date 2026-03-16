@@ -1,4 +1,11 @@
-"""Tests for height_reference param on spectrum_bars visualization."""
+"""Tests for wavern.visualizations.spectrum_bars height_reference parameter.
+
+WHAT THIS TESTS:
+- height_reference param exists in spectrum_bars PARAM_SCHEMA with correct type, default, and choices
+- height_reference is absent from circular_spectrum and rect_spectrum schemas
+- spectrum_bars default preset JSON contains height_reference set to "per_bar"
+Does NOT test: rendering behaviour or visual output of the height_reference modes
+"""
 
 import json
 from pathlib import Path
@@ -7,7 +14,7 @@ from wavern.visualizations.registry import VisualizationRegistry
 import wavern.visualizations  # noqa: F401
 
 
-PRESETS_DIR = Path(__file__).resolve().parent.parent / "src" / "wavern" / "presets" / "defaults"
+PRESETS_DIR = Path(__file__).resolve().parent.parent.parent / "src" / "wavern" / "presets" / "defaults"
 
 
 class TestHeightReferenceParam:

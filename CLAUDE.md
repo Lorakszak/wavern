@@ -27,12 +27,35 @@ uv sync --extra dev
 
 ```
 src/wavern/
-  core/           — audio_loader, audio_analyzer, audio_player, renderer, export, timeline, video_source, font_manager, text_overlay
+  config.py       — centralised XDG config paths (get_config_directory, get_preset_directory, get_favorites_path)
+  core/           — display-agnostic processing (no Qt imports)
+    audio_loader.py, audio_analyzer.py, audio_player.py
+    renderer.py, timeline.py, video_source.py
+    text_overlay.py, font_manager.py
+    export_config.py   — ExportConfig dataclass (shared between export and ffmpeg_cmd)
+    export.py          — ExportPipeline (headless render loop + ffmpeg mux)
+    ffmpeg_cmd.py      — build_ffmpeg_cmd() pure function
+    gif_export.py      — two-pass GIF pipeline
+    codecs.py, hwaccel.py
   visualizations/ — base ABC + image_mixin + 9 built-in types + registry
   presets/        — pydantic schema + manager + defaults/*.json
   shaders/        — GLSL 3.3 core (.vert/.frag)
-  gui/            — PySide6 widgets (main_window, gl_widget, sidebar, drag_spinbox, no_scroll_combo, theme_manager, favorites_store, preset_panel, etc.)
-  gui/panels/     — decomposed settings panels (visual, text, analysis, export)
+  gui/            — PySide6 widgets
+    main_window.py     — top-level orchestrator
+    gl_widget.py, sidebar.py, transport_bar.py, preset_panel.py
+    menu_builder.py    — build_menu_bar() free function → dict[str, QAction]
+    keyboard_handler.py — KeyboardHandler(QObject) app-level event filter
+    export_dialog.py, export_worker.py
+    favorites_store.py, theme_manager.py
+    constants.py       — shared UI constants (quality presets, codec lists, resolutions)
+    project_settings_panel.py — coordinator for ResolutionSection + QualitySection
+    background_picker.py, collapsible_section.py, drag_spinbox.py
+    no_scroll_combo.py, help_button.py, file_import_dialog.py
+  gui/panels/     — decomposed settings panels
+    visual_panel.py    — coordinator: viz type + colors + background + overlay
+    param_section.py, color_section.py, background_section.py, overlay_section.py
+    resolution_section.py, quality_section.py
+    text_panel.py, analysis_panel.py, export_panel.py
   gui/themes/     — QSS theme files (dark, light, nord, dracula, gruvbox)
   utils/          — color, math_utils
   cli.py          — click CLI entry point
@@ -45,6 +68,7 @@ src/wavern/
 - **Visualization lifecycle**: `__init__(ctx, params)` → `initialize()` → `render()` per frame → `cleanup()`. GPU resources are created in `initialize()`, not `__init__`.
 - **FrameAnalysis dataclass** is the universal audio contract. All visualizations receive it — never pass raw audio to render methods.
 - **Preset** is a pydantic model. Built-in presets ship as JSON in `presets/defaults/`, user presets live at `~/.config/wavern/presets/`.
+- **Config paths** are centralised in `config.py` — use `get_preset_directory()` and `get_favorites_path()` rather than inlining XDG logic.
 
 ### Critical Patterns
 
@@ -55,6 +79,8 @@ src/wavern/
 **Large uniform arrays**: Arrays over ~256 floats can exceed GPU constant register limits. Use textures instead (see `waveform.py` which uses a 2D texture of shape `(N, 1)` for waveform data).
 
 **Signal blocking in Qt**: When rebuilding panel widgets programmatically, block signals on combo boxes (`blockSignals(True)`) before populating/setting values to prevent cascading `params_changed` emissions that wipe preset params. The `_rebuilding` flag on each panel guards against signal loops when syncing across dual sidebars.
+
+**Section widget pattern**: Complex panels are decomposed into `QWidget` section subclasses. Each section owns its UI, emits focused signals, and exposes `collect() -> dict` for the coordinator to read. See `gui/panels/CLAUDE.md`.
 
 **Renderer type change detection**: `renderer.update_params()` auto-detects when `visualization_type` changed and calls `set_preset()` internally. Callers don't need to distinguish param updates from type switches.
 
@@ -80,6 +106,20 @@ Every PR must include tests for any new functionality introduced:
 - **Refactors**: all existing tests must continue to pass; add tests for any newly exposed interfaces.
 
 Run tests with: `uv run pytest tests/ -v`
+
+### Test Directory Structure
+
+Tests mirror the source layout:
+```
+tests/
+  conftest.py, test_cli.py          — cross-cutting
+  core/                             — tests for src/wavern/core/
+  gui/                              — tests for src/wavern/gui/
+  visualizations/                   — tests for src/wavern/visualizations/
+  presets/                          — tests for src/wavern/presets/
+```
+
+Each test file begins with a `WHAT THIS TESTS` / `Does NOT test` docstring header.
 
 ## Conventions
 

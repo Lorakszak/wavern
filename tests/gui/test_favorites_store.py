@@ -1,4 +1,13 @@
-"""Tests for the FavoritesStore — toggle, persistence, corrupt file handling."""
+"""Tests for wavern.gui.favorites_store.
+
+WHAT THIS TESTS:
+- toggle() adds and removes preset names from the favorites set
+- Favorites persist across FavoritesStore instances using the same config directory
+- Corrupt or missing favorites.json files are handled gracefully
+- changed signal is emitted on every toggle call
+- Favorites JSON is written as a sorted list under the "favorites" key
+Does NOT test: preset panel UI integration or preset loading
+"""
 
 import json
 from pathlib import Path

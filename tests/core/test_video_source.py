@@ -1,6 +1,13 @@
-"""Tests for VideoSource decoder."""
+"""Tests for wavern.core.video_source.
 
-import tempfile
+WHAT THIS TESTS:
+- VideoSource opens a video file and exposes correct size, duration, and fps metadata
+- get_frame() returns RGBA uint8 arrays; sequential access and looping work correctly
+- Frame caching returns identical array objects on repeated requests for the same timestamp
+- close()/reopen() cycle and reset() operate without errors
+Does NOT test: background rendering or overlay compositing (those are renderer-level concerns)
+"""
+
 from pathlib import Path
 
 import av

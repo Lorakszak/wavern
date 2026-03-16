@@ -3,7 +3,7 @@
 import logging
 from pathlib import Path
 
-from PySide6.QtCore import QThread, QUrl, Signal
+from PySide6.QtCore import QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -25,70 +25,18 @@ from PySide6.QtWidgets import (
 from wavern.core.codecs import (
     AUDIO_BITRATE_OPTIONS,
     ENCODER_SPEEDS,
-    QUALITY_PRESETS,
     get_codec_family,
     get_codecs_for_container,
     get_default_codec,
     get_quality_settings,
     supports_alpha,
 )
-from wavern.core.export import ExportConfig, ExportPipeline
+from wavern.core.export import ExportConfig
+from wavern.gui.export_worker import ExportWorker
+from wavern.gui.constants import ALL_EXTENSIONS, PRORES_PROFILES, QUALITY_PRESET_DISPLAY
 from wavern.presets.schema import Preset, ProjectSettings
 
 logger = logging.getLogger(__name__)
-
-_QUALITY_PRESET_DISPLAY = [
-    ("highest", "Highest"),
-    ("very_high", "Very High"),
-    ("high", "High"),
-    ("medium", "Medium"),
-    ("low", "Low"),
-    ("lowest", "Lowest"),
-    ("custom", "Custom"),
-]
-
-_PRORES_PROFILES = [
-    (0, "Proxy"),
-    (1, "LT"),
-    (2, "Normal"),
-    (3, "HQ"),
-    (4, "4444"),
-    (5, "4444XQ"),
-]
-
-_ALL_EXTENSIONS = (".mp4", ".webm", ".mov", ".gif")
-
-
-class ExportWorker(QThread):
-    """Background thread for video export."""
-
-    progress = Signal(float)
-    finished = Signal(str)  # output path
-    error = Signal(str)
-
-    def __init__(
-        self, audio_path: Path, preset: Preset, config: ExportConfig
-    ) -> None:
-        super().__init__()
-        self._pipeline = ExportPipeline(
-            audio_path=audio_path,
-            preset=preset,
-            export_config=config,
-            progress_callback=self._on_progress,
-        )
-
-    def run(self) -> None:
-        try:
-            output = self._pipeline.run()
-            self.finished.emit(str(output))
-        except Exception as e:
-            self.error.emit(str(e))
-
-    def cancel(self) -> None:
-        self._pipeline.cancel()
-
-    def _on_progress(self, value: float) -> None:
-        self.progress.emit(value)
 
 
 class ExportDialog(QDialog):
@@ -187,7 +135,7 @@ class ExportDialog(QDialog):
 
         # Quality preset (quick-select, always visible)
         self._quality_combo = QComboBox()
-        for value, display in _QUALITY_PRESET_DISPLAY:
+        for value, display in QUALITY_PRESET_DISPLAY:
             self._quality_combo.addItem(display, value)
         # Set from project settings
         for i in range(self._quality_combo.count()):
@@ -214,7 +162,7 @@ class ExportDialog(QDialog):
 
         # ProRes profile (always visible for ProRes)
         self._prores_combo = QComboBox()
-        for profile_id, name in _PRORES_PROFILES:
+        for profile_id, name in PRORES_PROFILES:
             self._prores_combo.addItem(name, profile_id)
         idx = self._prores_combo.findData(ps.prores_profile)
         if idx >= 0:
@@ -329,7 +277,6 @@ class ExportDialog(QDialog):
             return
 
         codec_id = self._codec_combo.currentData() or ""
-        family = get_codec_family(codec_id)
 
         try:
             settings = get_quality_settings(preset_key, codec_id)
@@ -423,7 +370,7 @@ class ExportDialog(QDialog):
         if current_path:
             path = Path(current_path)
             new_ext = f".{new_format}"
-            if path.suffix.lower() in _ALL_EXTENSIONS and path.suffix.lower() != new_ext:
+            if path.suffix.lower() in ALL_EXTENSIONS and path.suffix.lower() != new_ext:
                 self._output_edit.setText(str(path.with_suffix(new_ext)))
 
         self._update_visibility()

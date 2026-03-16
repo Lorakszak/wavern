@@ -1,4 +1,12 @@
-"""Tests for Spectrogram visualization registration, schema, and preset."""
+"""Tests for wavern.visualizations.spectrogram.
+
+WHAT THIS TESTS:
+- SpectrogramVisualization is registered with correct NAME, DISPLAY_NAME, and CATEGORY
+- PARAM_SCHEMA contains all required parameters with correct choice sets and numeric ranges
+- _resample_spectrum() produces float32 output of the requested length for linear, log, and mel scales
+- The spectrogram.json preset loads against the Preset schema and numeric params are in bounds
+Does NOT test: OpenGL rendering, GPU texture upload, or scrolling animation
+"""
 
 import json
 from pathlib import Path
@@ -127,7 +135,7 @@ class TestSpectrogramResample:
 
 class TestSpectrogramPreset:
     _PRESET_PATH = (
-        Path(__file__).resolve().parents[1]
+        Path(__file__).resolve().parents[2]
         / "src/wavern/presets/defaults/spectrogram.json"
     )
 

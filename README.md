@@ -168,7 +168,9 @@ uv run wavern list-visualizations   # show registered visualization types
 |----------|--------|
 | `Space` | Play / Pause |
 | `Left` / `Right` | Seek +/-5 seconds |
+| `h` / `l` | Seek +/-5 seconds |
 | `Shift+Left` / `Shift+Right` | Seek +/-1 second |
+| `Shift+h` / `Shift+l` | Seek +/-1 second |
 | `Home` | Go to start |
 | `0` - `9` | Jump to 0% - 90% of track |
 
@@ -178,6 +180,8 @@ uv run wavern list-visualizations   # show registered visualization types
 |----------|--------|
 | `Up` | Volume +5% |
 | `Down` | Volume -5% |
+| `Ctrl+Up` | TODO: not implemented Volume +25% |
+| `Ctrl+Down` | TODO: not implemented Volume -25% |
 | `M` | Mute / Unmute |
 
 ### File
@@ -201,6 +205,7 @@ uv run wavern list-visualizations   # show registered visualization types
 
 | Shortcut | Action |
 |----------|--------|
+| `Ctrl+Tab` | TODO: (not implemented) Circle between visualization types |
 | `Ctrl+1` | Switch to Classic Waveform (Beta) |
 | `Ctrl+2` | Switch to Spectrum Bars |
 | `Ctrl+3` | Switch to Circular Spectrum |
@@ -241,9 +246,9 @@ Custom presets are saved to `~/.config/wavern/presets/` as JSON files. Use the *
 
 ## Known Issues
 
-- **Linux only** - audio playback relies on PortAudio/PulseAudio/PipeWire. Windows and macOS were **NOT** tested
+- **Tested on Linux (Fedora Wayland + KDE) ONLY** - audio playback relies on PortAudio/PulseAudio/PipeWire. Windows and macOS were **NOT** tested
 - **Display server required for GUI** - the GUI requires a running X11 or Wayland session. Headless CLI export (`wavern render`) works without a display.
-- **Background image stretching** - background images are naively stretched to fill the canvas; cover/contain/letterbox modes are not yet implemented.
+- **Background image/video stretching** - background images are naively stretched to fill the canvas; cover/contain/letterbox modes are not yet implemented.
 - **Large audio files** - very long tracks (60+ min) may cause elevated memory usage during initial load as the full waveform is pre-analyzed.
 
 ## Roadmap

@@ -1,4 +1,12 @@
-"""Tests for SidebarWidget — tabs, switching, and split mode."""
+"""Tests for wavern.gui.sidebar.
+
+WHAT THIS TESTS:
+- add_tab() returns correct sequential indices and tab_count() tracks additions
+- set_current_index() changes the active tab and emits the tab_changed signal
+- split mode toggle (toggle_split / set_split) shows/hides the lower pane
+- Upper and lower tab widgets maintain independent tab counts
+Does NOT test: preset panel content or visual rendering of the sidebar
+"""
 
 from PySide6.QtWidgets import QApplication, QLabel
 

@@ -1,4 +1,12 @@
-"""Tests for AudioAnalyzer."""
+"""Tests for wavern.core.audio_analyzer.
+
+WHAT THIS TESTS:
+- AudioAnalyzer.configure() binds audio data and sample rate
+- analyze_frame() returns a FrameAnalysis with correct field types and value ranges
+- All expected frequency bands (sub_bass through brilliance) are populated
+- Smoothing, spectral flux, beat intensity graduation, and envelope decay behaviour
+Does NOT test: audio file loading (see test_audio_loader) or playback (test_audio_player)
+"""
 
 import numpy as np
 import pytest
@@ -146,7 +154,7 @@ class TestAudioAnalyzer:
 
         # Analyze frame shortly after burst (t=0.6) — should still have some envelope
         frame_after = analyzer.analyze_frame(0.6)
-        env_after = frame_after.amplitude_envelope
+        _ = frame_after.amplitude_envelope
 
         # Analyze frame well after burst (t=0.9) — envelope should have decayed further
         frame_later = analyzer.analyze_frame(0.9)

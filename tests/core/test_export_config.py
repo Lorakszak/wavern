@@ -1,4 +1,11 @@
-"""Tests for ExportConfig backward compatibility and ProjectSettings new fields."""
+"""Tests for wavern.core.export_config and wavern.presets.schema.ProjectSettings.
+
+WHAT THIS TESTS:
+- ExportConfig constructs with original fields only and with all new fields
+- New ExportConfig fields have correct defaults (encoder_speed, audio_bitrate, hw_accel, etc.)
+- ProjectSettings new fields default correctly and survive a JSON round-trip
+Does NOT test: actual ffmpeg command construction (see test_ffmpeg_cmd) or codec registry (see test_codecs)
+"""
 
 from pathlib import Path
 

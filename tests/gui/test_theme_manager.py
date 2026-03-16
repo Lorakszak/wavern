@@ -1,4 +1,11 @@
-"""Tests for ThemeManager — list themes, apply, preference persistence."""
+"""Tests for wavern.gui.theme_manager.
+
+WHAT THIS TESTS:
+- list_themes() returns all five expected themes in sorted order
+- apply() does not raise for any valid theme name, or for an unknown theme name
+- save_preference() and load_preference() round-trip the selected theme name
+Does NOT test: visual appearance of applied QSS styles
+"""
 
 from PySide6.QtWidgets import QApplication
 

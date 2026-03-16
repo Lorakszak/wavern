@@ -1,4 +1,13 @@
-"""Tests for PresetManager."""
+"""Tests for wavern.presets.manager.
+
+WHAT THIS TESTS:
+- PresetManager.save() writes a JSON file that can be loaded back by name
+- list_presets() includes saved user presets with correct source label
+- delete() removes a preset and makes subsequent load() raise PresetError
+- load_from_path() loads a preset directly from an arbitrary file path
+- export_preset() / import_preset() round-trip a preset between two managers
+Does NOT test: built-in preset files or the Preset pydantic schema (see test_preset_schema)
+"""
 
 
 import pytest

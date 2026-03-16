@@ -1,4 +1,12 @@
-"""Tests for Radial Waveform visualization registration, schema, and preset."""
+"""Tests for wavern.visualizations.radial_waveform.
+
+WHAT THIS TESTS:
+- RadialWaveformVisualization is registered with correct NAME, DISPLAY_NAME, and CATEGORY
+- PARAM_SCHEMA contains all required parameters including transform and inner-image params
+- mirror_mode has the expected choice set; filled and shape_beat_bounce are bool params
+- The radial_waveform.json preset loads against the Preset schema and numeric params are in bounds
+Does NOT test: OpenGL rendering or GPU initialization
+"""
 
 import json
 from pathlib import Path
@@ -93,7 +101,7 @@ class TestRadialWaveformParamSchema:
 
 class TestRadialWaveformPreset:
     _PRESET_PATH = (
-        Path(__file__).resolve().parents[1]
+        Path(__file__).resolve().parents[2]
         / "src/wavern/presets/defaults/radial_waveform.json"
     )
 

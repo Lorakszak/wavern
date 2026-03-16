@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from PySide6.QtCore import QEvent, Qt, QTimer
-from PySide6.QtGui import QAction, QActionGroup, QIcon, QKeySequence, QPixmap
-from PySide6.QtWidgets import QAbstractSpinBox, QApplication, QLineEdit
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtWidgets import QApplication
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QMainWindow,
@@ -25,6 +25,8 @@ from wavern.gui.export_dialog import ExportDialog
 from wavern.gui.favorites_store import FavoritesStore
 from wavern.gui.file_import_dialog import open_audio_file
 from wavern.gui.gl_widget import GLPreviewWidget
+from wavern.gui.keyboard_handler import KeyboardHandler
+from wavern.gui.menu_builder import build_menu_bar
 from wavern.gui.panels import AnalysisPanel, TextPanel, VisualPanel
 from wavern.gui.preset_panel import PresetPanel
 from wavern.gui.project_settings_panel import ProjectSettingsPanel
@@ -33,7 +35,6 @@ from wavern.gui.theme_manager import ThemeManager
 from wavern.gui.transport_bar import TransportBar
 from wavern.presets.manager import PresetManager
 from wavern.presets.schema import Preset, VisualizationParams
-from wavern.visualizations.registry import VisualizationRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +82,20 @@ class MainWindow(QMainWindow):
         # Shared viz memory between both sidebars' VisualPanels
         self._viz_memory: dict[str, dict[str, Any]] = {}
 
-        self._setup_menu()
+        self._menu_actions = build_menu_bar(
+            self,
+            self._theme_manager,
+            on_import=self._on_import_audio,
+            on_export=self._on_export_video,
+            on_save_preset=self._on_save_preset_as,
+            on_toggle_left=self._toggle_left_sidebar,
+            on_toggle_right=self._toggle_right_sidebar,
+            on_split_left=self._toggle_split_left,
+            on_split_right=self._toggle_split_right,
+            on_fullscreen=self._on_toggle_fullscreen,
+            on_theme_selected=self._on_theme_selected,
+            on_viz_shortcut=self._on_viz_shortcut,
+        )
         self._setup_ui()
         self._connect_signals()
 
@@ -98,106 +112,18 @@ class MainWindow(QMainWindow):
         # Start maximized
         self.showMaximized()
 
-        # Application-level event filter so transport keys work regardless of focus
-        QApplication.instance().installEventFilter(self)
+        # Application-level event filter for transport keys
+        self._keyboard_handler = KeyboardHandler(
+            self._player,
+            self._transport,
+            on_seek=self._on_seek,
+            on_toggle_fullscreen=self._on_toggle_fullscreen,
+        )
+        QApplication.instance().installEventFilter(self._keyboard_handler)
 
         # Load audio if provided
         if audio_path:
             self._load_audio(audio_path)
-
-    def _setup_menu(self) -> None:
-        self.menuBar().setNativeMenuBar(False)
-        menubar = self.menuBar()
-
-        # File menu
-        file_menu = menubar.addMenu("File")
-
-        import_action = QAction("Import Audio...", self)
-        import_action.setShortcut("Ctrl+O")
-        import_action.triggered.connect(self._on_import_audio)
-        file_menu.addAction(import_action)
-
-        export_action = QAction("Render Video...", self)
-        export_action.setShortcut("Ctrl+E")
-        export_action.triggered.connect(self._on_export_video)
-        file_menu.addAction(export_action)
-
-        file_menu.addSeparator()
-
-        quit_action = QAction("Quit", self)
-        quit_action.setShortcut("Ctrl+Q")
-        quit_action.triggered.connect(self.close)
-        file_menu.addAction(quit_action)
-
-        file_menu.addSeparator()
-
-        save_preset_action = QAction("Save Preset As…", self)
-        save_preset_action.setShortcut("Ctrl+S")
-        save_preset_action.triggered.connect(self._on_save_preset_as)
-        file_menu.addAction(save_preset_action)
-
-        # View menu
-        view_menu = menubar.addMenu("View")
-
-        self._toggle_left_action = QAction("Toggle Left Sidebar", self)
-        self._toggle_left_action.setShortcut("Ctrl+B")
-        self._toggle_left_action.triggered.connect(self._toggle_left_sidebar)
-        view_menu.addAction(self._toggle_left_action)
-
-        self._toggle_right_action = QAction("Toggle Right Sidebar", self)
-        self._toggle_right_action.setShortcut(QKeySequence("Ctrl+Shift+B"))
-        self._toggle_right_action.triggered.connect(self._toggle_right_sidebar)
-        view_menu.addAction(self._toggle_right_action)
-
-        view_menu.addSeparator()
-
-        self._split_left_action = QAction("Split Left Sidebar", self)
-        self._split_left_action.setCheckable(True)
-        self._split_left_action.triggered.connect(self._toggle_split_left)
-        view_menu.addAction(self._split_left_action)
-
-        self._split_right_action = QAction("Split Right Sidebar", self)
-        self._split_right_action.setCheckable(True)
-        self._split_right_action.triggered.connect(self._toggle_split_right)
-        view_menu.addAction(self._split_right_action)
-
-        view_menu.addSeparator()
-
-        fullscreen_action = QAction("Fullscreen Preview", self)
-        fullscreen_action.setShortcut("F11")
-        fullscreen_action.triggered.connect(self._on_toggle_fullscreen)
-        view_menu.addAction(fullscreen_action)
-
-        view_menu.addSeparator()
-
-        # Theme submenu
-        theme_menu = view_menu.addMenu("Theme")
-        theme_group = QActionGroup(self)
-        theme_group.setExclusive(True)
-        current_theme = self._theme_manager.load_preference()
-        for theme_name in self._theme_manager.list_themes():
-            action = QAction(theme_name.capitalize(), self)
-            action.setCheckable(True)
-            action.setData(theme_name)
-            if theme_name == current_theme:
-                action.setChecked(True)
-            action.triggered.connect(self._on_theme_selected)
-            theme_group.addAction(action)
-            theme_menu.addAction(action)
-
-        # Visualization shortcuts (Ctrl+1…N, one per registered visualization)
-        # Order matches the sidebar combo (list_all insertion order) so indices align.
-        viz_menu = menubar.addMenu("Visualization")
-        import wavern.visualizations  # noqa: F401 — triggers @register decorators
-        viz_infos = VisualizationRegistry().list_all()
-        for i, info in enumerate(viz_infos, start=1):
-            if i > 9:
-                break  # Ctrl+0–9 is the practical limit
-            action = QAction(f"Switch to {info['display_name']} (Ctrl+{i})", self)
-            action.setShortcut(f"Ctrl+{i}")
-            action.setData(i - 1)
-            action.triggered.connect(self._on_viz_shortcut)
-            viz_menu.addAction(action)
 
     def _create_sidebar(self, side: str) -> SidebarWidget:
         """Create a SidebarWidget with all 5 tabs populated.
@@ -403,6 +329,8 @@ class MainWindow(QMainWindow):
         self._position_timer.setInterval(50)  # 20 Hz
         self._position_timer.timeout.connect(self._update_position)
 
+    # -- Sidebar toggles --
+
     def _toggle_left_sidebar(self) -> None:
         """Toggle left sidebar visibility."""
         visible = self._left_sidebar.isVisible()
@@ -418,17 +346,18 @@ class MainWindow(QMainWindow):
     def _toggle_split_left(self) -> None:
         self._left_sidebar.toggle_split()
         is_split = self._left_sidebar.is_split
-        self._split_left_action.setChecked(is_split)
+        self._menu_actions["split_left"].setChecked(is_split)
         self._left_split_btn.setText("Unsplit Sidebar" if is_split else "Split Sidebar")
 
     def _toggle_split_right(self) -> None:
         self._right_sidebar.toggle_split()
         is_split = self._right_sidebar.is_split
-        self._split_right_action.setChecked(is_split)
+        self._menu_actions["split_right"].setChecked(is_split)
         self._right_split_btn.setText("Unsplit Sidebar" if is_split else "Split Sidebar")
 
+    # -- Signal wiring --
+
     def _connect_signals(self) -> None:
-        # Connect all visual/text/analysis panels from both sidebars
         for panel in self._all_visual_panels():
             panel.params_changed.connect(self._on_params_changed)
             panel.preview_flags_changed.connect(self._on_preview_flags_changed)
@@ -437,18 +366,17 @@ class MainWindow(QMainWindow):
         for panel in self._all_analysis_panels():
             panel.params_changed.connect(self._on_params_changed)
 
-        # Connect all preset panels
         for panel in self._all_preset_panels():
             panel.preset_selected.connect(self._on_preset_selected)
 
-        # Connect export button in all export panels
         for panel in self._all_export_panels():
             panel.export_requested.connect(self._on_export_video)
 
-        # Transport
         self._transport.play_clicked.connect(self._on_play)
         self._transport.pause_clicked.connect(self._on_pause)
         self._transport.seek_requested.connect(self._on_seek)
+
+    # -- Audio loading --
 
     def _load_audio(self, path: Path) -> None:
         """Load an audio file and configure the pipeline."""
@@ -477,7 +405,6 @@ class MainWindow(QMainWindow):
             preset.overlay.title_text = path.stem
             self._apply_preset(preset)
 
-        # Pass source audio bitrate to export panels
         for panel in self._all_export_panels():
             panel.set_audio_metadata(metadata.bitrate)
 
@@ -485,6 +412,8 @@ class MainWindow(QMainWindow):
         logger.info("Loaded audio: %s (%.1fs)", path.name, metadata.duration)
 
         self._gl_widget.render_single_frame()
+
+    # -- Preset application --
 
     def _apply_preset(self, preset: Preset) -> None:
         """Apply a preset to all components across both sidebars."""
@@ -524,6 +453,8 @@ class MainWindow(QMainWindow):
             return self._audio_data is not None
         return False
 
+    # -- Action callbacks --
+
     def _on_import_audio(self) -> None:
         path = open_audio_file(self)
         if path:
@@ -532,7 +463,7 @@ class MainWindow(QMainWindow):
     def _on_export_video(self) -> None:
         if self._audio_path is None:
             if self._prompt_import_audio("Export"):
-                return  # audio loaded, but user still needs to re-trigger export
+                return
             return
 
         preset = self._visual_panel._preset
@@ -553,7 +484,6 @@ class MainWindow(QMainWindow):
         self._gl_widget.update_preset(preset)
         self._sync_format_to_background(preset.background.type)
 
-        # Sync all panel instances except the emitting one (in-place updates)
         for panel in self._all_visual_panels():
             if panel is not sender:
                 panel.update_values(preset)
@@ -579,18 +509,15 @@ class MainWindow(QMainWindow):
             self._gl_widget.render_single_frame()
 
     def _sync_format_to_background(self, bg_type: str) -> None:
-        """Restrict format options when background is transparent.
-
-        When bg is "none", non-alpha formats (mp4, gif) are disabled in the
-        sidebar. If the current format is incompatible, it auto-switches to
-        webm. When bg changes back, all formats are re-enabled.
-        """
+        """Restrict format options when background is transparent."""
         if bg_type == self._bg_type:
             return
         self._bg_type = bg_type
         is_alpha = bg_type == "none"
         for panel in self._all_export_panels():
             panel.set_alpha_mode(is_alpha)
+
+    # -- Playback controls --
 
     def _on_play(self) -> None:
         if self._audio_data is None:
@@ -620,88 +547,7 @@ class MainWindow(QMainWindow):
         if not self._player.is_playing:
             self._on_pause()
 
-    def eventFilter(self, obj, event) -> bool:
-        """Application-level key filter for transport shortcuts."""
-        if event.type() != QEvent.Type.KeyPress:
-            return super().eventFilter(obj, event)
-
-        key = event.key()
-        mods = event.modifiers()
-
-        focused = QApplication.focusWidget()
-        input_focused = isinstance(focused, (QAbstractSpinBox, QLineEdit))
-
-        # Space → play/pause, but not when a text field has focus (user may be typing)
-        if key == Qt.Key.Key_Space:
-            if isinstance(focused, QLineEdit):
-                return super().eventFilter(obj, event)
-            self._transport._on_play_clicked()
-            return True
-
-        if input_focused:
-            return super().eventFilter(obj, event)
-
-        # Home → go to start
-        if key == Qt.Key.Key_Home:
-            self._on_seek(0.0)
-            self._transport.update_position(0.0)
-            return True
-
-        # Left / vim-h → seek backward
-        if key in (Qt.Key.Key_Left, Qt.Key.Key_H):
-            step = 1.0 if mods & Qt.KeyboardModifier.ShiftModifier else 5.0
-            pos = max(0.0, self._player.get_position() - step)
-            self._on_seek(pos)
-            self._transport.update_position(pos)
-            return True
-
-        # Right / vim-l → seek forward
-        if key in (Qt.Key.Key_Right, Qt.Key.Key_L):
-            step = 1.0 if mods & Qt.KeyboardModifier.ShiftModifier else 5.0
-            duration = self._player.duration
-            pos = self._player.get_position() + step
-            if duration > 0:
-                pos = min(duration, pos)
-            self._on_seek(pos)
-            self._transport.update_position(pos)
-            return True
-
-        # M → mute / unmute
-        if key == Qt.Key.Key_M:
-            self._player.muted = not self._player.muted
-            self._transport.set_volume(self._player.volume, self._player.muted)
-            return True
-
-        # Up → volume +5% (unmutes if muted)
-        if key == Qt.Key.Key_Up:
-            self._player.muted = False
-            self._player.volume = self._player.volume + 0.05
-            self._transport.set_volume(self._player.volume, self._player.muted)
-            return True
-
-        # Down → volume -5% (unmutes if muted)
-        if key == Qt.Key.Key_Down:
-            self._player.muted = False
-            self._player.volume = self._player.volume - 0.05
-            self._transport.set_volume(self._player.volume, self._player.muted)
-            return True
-
-        # F → toggle fullscreen (same as F11)
-        if key == Qt.Key.Key_F:
-            self._on_toggle_fullscreen()
-            return True
-
-        # 0–9 → seek to 0%, 10%, 20%, … 90% of duration
-        if Qt.Key.Key_0 <= key <= Qt.Key.Key_9 and not mods:
-            duration = self._player.duration
-            if duration > 0:
-                fraction = (key - Qt.Key.Key_0) / 10.0
-                pos = duration * fraction
-                self._on_seek(pos)
-                self._transport.update_position(pos)
-            return True
-
-        return super().eventFilter(obj, event)
+    # -- Menu action handlers --
 
     def _on_save_preset_as(self) -> None:
         """Delegate to the preset panel's save flow."""
@@ -710,7 +556,11 @@ class MainWindow(QMainWindow):
     def _on_toggle_fullscreen(self) -> None:
         """Toggle between fullscreen and the previous window state."""
         if self.isFullScreen():
-            target = Qt.WindowState.WindowMaximized if self._was_maximized else Qt.WindowState.WindowNoState
+            target = (
+                Qt.WindowState.WindowMaximized
+                if self._was_maximized
+                else Qt.WindowState.WindowNoState
+            )
             self.setWindowState(target)
         else:
             self._was_maximized = self.isMaximized()
@@ -728,7 +578,7 @@ class MainWindow(QMainWindow):
             self._theme_manager.save_preference(theme_name)
 
     def _on_viz_shortcut(self) -> None:
-        """Switch visualization type via Ctrl+1…N (one per registered visualization)."""
+        """Switch visualization type via Ctrl+1…N."""
         action = self.sender()
         if action is None:
             return
@@ -737,7 +587,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:
         """Cleanup on window close."""
-        QApplication.instance().removeEventFilter(self)
+        QApplication.instance().removeEventFilter(self._keyboard_handler)
         self._player.stop()
         self._gl_widget.stop_preview()
         self._gl_widget.cleanup()

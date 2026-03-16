@@ -1,11 +1,19 @@
-"""Tests for Lissajous visualization registration, schema, and preset."""
+"""Tests for wavern.visualizations.lissajous.
+
+WHAT THIS TESTS:
+- LissajousVisualization is registered with correct NAME, DISPLAY_NAME, and CATEGORY
+- PARAM_SCHEMA contains all required parameters with correct types and in-range defaults
+- spin_speed allows negative values; symmetry, tail_fade, and waveform_smoothing have valid ranges
+- The lissajous.json preset file loads against the Preset schema and all numeric params are in bounds
+Does NOT test: OpenGL rendering or GPU initialization
+"""
 
 import json
 from pathlib import Path
 
 import pytest
 
-from wavern.presets.schema import Preset, VisualizationParams
+from wavern.presets.schema import Preset
 from wavern.visualizations.registry import VisualizationRegistry
 
 
@@ -92,7 +100,7 @@ class TestLissajousParamSchema:
 
 class TestLissajousPreset:
     _PRESET_PATH = (
-        Path(__file__).resolve().parents[1]
+        Path(__file__).resolve().parents[2]
         / "src/wavern/presets/defaults/lissajous.json"
     )
 
