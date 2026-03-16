@@ -278,13 +278,15 @@ Custom presets are saved to `~/.config/wavern/presets/` as JSON files. Use the *
 
 Planned for future releases (not in priority order):
 
+- [ ] Test stability and functionality on different systems: Win, Mac, Linux: Ubuntu
+  - [ ] macOS / Windows investigation (audio backend portability)
+- [ ] Introduce installation instructions for different OS
 - [ ] Video Demo
-- [ ] Per-visualization preview GIFs in documentation
+- [x] Per-visualization preview GIFs in documentation
 - [ ] GitHub Actions CI (lint + test on push)
 - [ ] Background image cover/contain/letterbox scale modes
 - [ ] Plugin auto-loading from `~/.config/wavern/plugins/` (infrastructure exists, not yet wired)
 - [ ] More built-in visualizations (Mandala, Audio Ribbons, Voronoi Pulse, ...)
-- [ ] macOS / Windows investigation (audio backend portability)
 
 Community contributions toward any of these are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
