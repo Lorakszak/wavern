@@ -20,7 +20,7 @@ class RadialWaveformVisualization(ImageTextureMixin, AbstractVisualization):
     """Audio waveform wrapped around a circle with optional inner image."""
 
     NAME: ClassVar[str] = "radial_waveform"
-    DISPLAY_NAME: ClassVar[str] = "Radial Waveform"
+    DISPLAY_NAME: ClassVar[str] = "Radial Waveform (Alpha)"
     DESCRIPTION: ClassVar[str] = "Audio waveform wrapped around a circle"
     CATEGORY: ClassVar[str] = "waveform"
 

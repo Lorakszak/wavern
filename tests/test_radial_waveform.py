@@ -19,7 +19,7 @@ class TestRadialWaveformRegistration:
         registry = VisualizationRegistry()
         cls = registry.get("radial_waveform")
         assert cls.NAME == "radial_waveform"
-        assert cls.DISPLAY_NAME == "Radial Waveform"
+        assert cls.DISPLAY_NAME == "Radial Waveform (Alpha)"
         assert cls.CATEGORY == "waveform"
 
     def test_in_list(self) -> None:
