@@ -123,7 +123,7 @@ uv run mypy src/               # type-check
 
 ### GUI
 
-**TODO**: add a screenshot of the main GUI window here
+![GUI](assets/themes/menu.png)
 
 ```bash
 uv run wavern gui                          # launch empty
@@ -221,15 +221,15 @@ uv run wavern list-visualizations   # show registered visualization types
 
 | Name | Status | Preview | Description |
 |------|--------|---------|-------------|
-| Classic Waveform | Beta | <!-- TODO: assets/viz_waveform.gif --> *coming soon* | Audio waveform as a line or filled shape |
-| Spectrum Bars | Stable | <!-- TODO: assets/viz_spectrum_bars.gif --> *coming soon* | Vertical bar spectrum analyzer with logarithmic frequency binning |
-| Circular Spectrum | Stable | <!-- TODO: assets/viz_circular_spectrum.gif --> *coming soon* | Radial bars arranged around a rotating circle |
-| Rectangle Spectrum | Stable | <!-- TODO: assets/viz_rect_spectrum.gif --> *coming soon* | Spectrum bars arranged around a rectangle |
-| Particle Burst | Beta | <!-- TODO: assets/viz_particles.gif --> *coming soon* | Audio-reactive particle system with burst effects on beats |
-| Smoky Waves | Beta | <!-- TODO: assets/viz_smoky_waves.gif --> *coming soon* | Layered sinusoidal waves with audio-reactive turbulence |
-| Lissajous | Alpha | *coming soon* | Phase-portrait plot (X=waveform[i], Y=waveform[i+delay]) with rotational symmetry and beat-reactive glow |
-| Radial Waveform | Alpha | *coming soon* | Time-domain waveform wrapped around a circle; pulses and breathes with transients |
-| Spectrogram | Alpha | *coming soon* | Scrolling frequency heatmap with 6 colormaps, log/mel/linear scale, and Gaussian blur |
+| Classic Waveform | Beta | ![Classic Waveform](assets/previews/waveform.gif) | Audio waveform as a line or filled shape |
+| Spectrum Bars | Stable | ![Spectrum Bars](assets/previews/spectrum_bar.gif) | Vertical bar spectrum analyzer with logarithmic frequency binning |
+| Circular Spectrum | Stable | ![Circular Spectrum](assets/previews/circular_spectrum.gif) | Radial bars arranged around a rotating circle |
+| Rectangle Spectrum | Stable | ![Rectangle Spectrum](assets/previews/rectangle_spectrum.gif) | Spectrum bars arranged around a rectangle |
+| Particle Burst | Beta | ![Particle Burst](assets/previews/particle_burst.gif) | Audio-reactive particle system with burst effects on beats |
+| Smoky Waves | Beta | ![Smoky Waves](assets/previews/smoky_waves.gif) | Layered sinusoidal waves with audio-reactive turbulence |
+| Lissajous | Alpha | ![Lissajous](assets/previews/lissajous.gif) | Phase-portrait plot (X=waveform[i], Y=waveform[i+delay]) with rotational symmetry and beat-reactive glow |
+| Radial Waveform | Alpha | ![Radial Waveform](assets/previews/radial_waveform.gif) | Time-domain waveform wrapped around a circle; pulses and breathes with transients |
+| Spectrogram | Alpha | ![Spectrogram](assets/previews/spectrogram.gif) | Scrolling frequency heatmap with 6 colormaps, log/mel/linear scale, and Gaussian blur |
 
 ## Presets
 

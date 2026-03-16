@@ -27,7 +27,7 @@ class TestLissajousRegistration:
         registry = VisualizationRegistry()
         cls = registry.get("lissajous")
         assert cls.NAME == "lissajous"
-        assert cls.DISPLAY_NAME == "Lissajous (Beta)"
+        assert cls.DISPLAY_NAME == "Lissajous (Alpha)"
         assert cls.CATEGORY == "waveform"
 
     def test_in_list(self) -> None:
