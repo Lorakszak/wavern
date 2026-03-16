@@ -115,10 +115,20 @@ class ProjectSettings(BaseModel):
 
     resolution: tuple[int, int] = (1920, 1080)
     fps: int = 60
-    container: str = "mp4"  # "mp4" | "webm"
+    container: str = "mp4"  # "mp4" | "webm" | "mov" | "gif"
     crf: int = 18
     output_dir: str = ""  # default: ./video/
     output_filename: str = ""  # default: derived from audio stem
+    video_codec: str = ""  # empty = auto-select default for container
+    quality_preset: str = "high"
+    encoder_speed: str = "medium"
+    audio_bitrate: str = "192k"
+    prores_profile: int = 3
+    gif_max_colors: int = 256
+    gif_dither: bool = True
+    gif_loop: int = 0  # 0 = infinite
+    gif_scale: float = 1.0
+    hw_accel: str = "auto"  # "auto" | "off"
 
 
 class VisualizationParams(BaseModel):

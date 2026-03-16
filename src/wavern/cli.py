@@ -40,8 +40,31 @@ def gui(audio_file: Path | None = None, preset: str | None = None) -> None:
 @click.option("-r", "--resolution", default="1920x1080", help="Resolution WxH")
 @click.option("--fps", default=60, type=int, help="Frames per second")
 @click.option("--codec", default=None, help="Video codec (default: auto based on format)")
-@click.option("--crf", default=18, type=int, help="Quality 0-51, lower=better")
-@click.option("--format", "container", default="mp4", type=click.Choice(["mp4", "webm"]))
+@click.option("--crf", default=None, type=int, help="Quality 0-51, lower=better (overrides --quality)")
+@click.option(
+    "--format", "container", default="mp4",
+    type=click.Choice(["mp4", "webm", "mov", "gif"]),
+)
+@click.option(
+    "--quality", "quality_preset", default="high",
+    type=click.Choice(["highest", "very_high", "high", "medium", "low", "lowest", "custom"]),
+    help="Quality preset (default: high)",
+)
+@click.option("--encoder-speed", default=None, help="Encoder speed (only with --quality custom)")
+@click.option(
+    "--audio-bitrate", default="192k",
+    type=click.Choice(["128k", "192k", "256k", "320k"]),
+    help="Audio bitrate (default: 192k)",
+)
+@click.option("--gif-colors", default=256, type=int, help="GIF max colors (64-256)")
+@click.option("--gif-no-dither", is_flag=True, help="Disable GIF dithering")
+@click.option("--gif-loop", default=0, type=int, help="GIF loop count (0=infinite)")
+@click.option("--gif-scale", default=1.0, type=float, help="GIF scale factor (0.25-1.0)")
+@click.option(
+    "--hw-accel", default="auto",
+    type=click.Choice(["auto", "off"]),
+    help="Hardware acceleration: auto detects GPU encoders, off uses CPU (default: auto)",
+)
 def render(
     audio_file: Path,
     preset: str,
@@ -49,12 +72,20 @@ def render(
     resolution: str,
     fps: int,
     codec: str | None,
-    crf: int,
+    crf: int | None,
     container: str,
+    quality_preset: str,
+    encoder_speed: str | None,
+    audio_bitrate: str,
+    gif_colors: int,
+    gif_no_dither: bool,
+    gif_loop: int,
+    gif_scale: float,
+    hw_accel: str,
 ) -> None:
     """Render a visualization to video (headless, no GUI)."""
-    # Import here to avoid loading Qt for headless mode
     import wavern.visualizations  # noqa: F401
+    from wavern.core.codecs import get_default_codec, get_quality_settings
     from wavern.core.export import ExportConfig, ExportPipeline
     from wavern.presets.manager import PresetManager
 
@@ -68,7 +99,22 @@ def render(
 
     # Auto-select codec
     if codec is None:
-        codec = "libx264" if container == "mp4" else "libvpx-vp9"
+        codec = get_default_codec(container)
+
+    # Resolve quality settings
+    if quality_preset != "custom":
+        quality = get_quality_settings(quality_preset, codec)
+        resolved_crf = quality.get("crf", 18)
+        resolved_speed = quality.get("encoder_speed", "medium")
+        resolved_prores = quality.get("prores_profile", 3)
+    else:
+        resolved_crf = crf if crf is not None else 18
+        resolved_speed = encoder_speed if encoder_speed is not None else "medium"
+        resolved_prores = 3
+
+    # CLI --crf overrides preset CRF
+    if crf is not None:
+        resolved_crf = crf
 
     # Load preset
     manager = PresetManager()
@@ -84,12 +130,23 @@ def render(
         fps=fps,
         video_codec=codec,
         container=container,
-        crf=crf,
+        crf=resolved_crf,
+        encoder_speed=resolved_speed,
+        quality_preset=quality_preset,
+        audio_bitrate=audio_bitrate,
+        prores_profile=resolved_prores,
+        gif_max_colors=gif_colors,
+        gif_dither=not gif_no_dither,
+        gif_loop=gif_loop,
+        gif_scale=gif_scale,
+        hw_accel=hw_accel,
     )
 
     click.echo(f"Rendering: {audio_file.name}")
     click.echo(f"Preset: {loaded_preset.name}")
     click.echo(f"Output: {output} ({res[0]}x{res[1]}, {fps}fps, {codec})")
+    click.echo(f"Quality: {quality_preset} (CRF {resolved_crf})")
+    click.echo(f"HW Accel: {hw_accel}")
 
     def progress_callback(progress: float) -> None:
         bar_width = 40

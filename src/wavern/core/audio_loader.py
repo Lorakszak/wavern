@@ -1,6 +1,9 @@
 """Audio file loading — soundfile primary, pydub fallback for mp3/aac."""
 
+import json
 import logging
+import shutil
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -25,6 +28,7 @@ class AudioMetadata:
     num_channels: int
     num_samples: int
     file_path: str
+    bitrate: int | None = None  # kbps, None if unknown
 
 
 class AudioLoader:
@@ -74,21 +78,26 @@ class AudioLoader:
 
         audio = audio.astype(np.float32)
 
+        duration = len(audio) / sr
+        bitrate = AudioLoader._probe_bitrate(file_path, duration)
+
         metadata = AudioMetadata(
             sample_rate=sr,
-            duration=len(audio) / sr,
+            duration=duration,
             num_channels=num_channels,
             num_samples=len(audio),
             file_path=file_path,
+            bitrate=bitrate,
         )
 
         logger.info(
-            "Loaded %s: %.1fs, %dHz, %d channels, %d samples",
+            "Loaded %s: %.1fs, %dHz, %d channels, %d samples, %s kbps",
             path.name,
             metadata.duration,
             sr,
             num_channels,
             len(audio),
+            bitrate or "?",
         )
 
         return audio, metadata
@@ -121,3 +130,32 @@ class AudioLoader:
         if num_channels == 1:
             return audio.flatten()
         return np.mean(audio, axis=1).astype(np.float32)
+
+    @staticmethod
+    def _probe_bitrate(file_path: str, duration: float) -> int | None:
+        """Extract audio bitrate in kbps. Tries ffprobe, falls back to file size estimate."""
+        ffprobe = shutil.which("ffprobe")
+        if ffprobe:
+            try:
+                result = subprocess.run(
+                    [ffprobe, "-v", "quiet", "-print_format", "json",
+                     "-show_format", file_path],
+                    capture_output=True, timeout=5,
+                )
+                if result.returncode == 0:
+                    info = json.loads(result.stdout)
+                    br = info.get("format", {}).get("bit_rate")
+                    if br is not None:
+                        return int(br) // 1000
+            except Exception:
+                logger.debug("ffprobe bitrate extraction failed for %s", file_path)
+
+        # Fallback: estimate from file size / duration
+        if duration > 0:
+            try:
+                file_size_bytes = Path(file_path).stat().st_size
+                return int(file_size_bytes * 8 / duration / 1000)
+            except OSError:
+                pass
+
+        return None

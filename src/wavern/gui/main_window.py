@@ -74,7 +74,7 @@ class MainWindow(QMainWindow):
         self._preset_manager = PresetManager()
         self._favorites_store = FavoritesStore()
         self._theme_manager = ThemeManager()
-        self._prev_format: str = "mp4"  # restored when bg changes away from "none"
+
         self._bg_type: str = ""  # last known background type
         self._was_maximized: bool = False  # state before entering fullscreen
 
@@ -477,6 +477,10 @@ class MainWindow(QMainWindow):
             preset.overlay.title_text = path.stem
             self._apply_preset(preset)
 
+        # Pass source audio bitrate to export panels
+        for panel in self._all_export_panels():
+            panel.set_audio_metadata(metadata.bitrate)
+
         self.setWindowTitle(f"Wavern — {path.name}")
         logger.info("Loaded audio: %s (%.1fs)", path.name, metadata.duration)
 
@@ -575,18 +579,18 @@ class MainWindow(QMainWindow):
             self._gl_widget.render_single_frame()
 
     def _sync_format_to_background(self, bg_type: str) -> None:
-        """Force webm when background is transparent; restore previous format otherwise."""
+        """Restrict format options when background is transparent.
+
+        When bg is "none", non-alpha formats (mp4, gif) are disabled in the
+        sidebar. If the current format is incompatible, it auto-switches to
+        webm. When bg changes back, all formats are re-enabled.
+        """
         if bg_type == self._bg_type:
             return
-        prev_bg = self._bg_type
         self._bg_type = bg_type
-        if bg_type == "none":
-            self._prev_format = self._project_settings_panel.settings.container
-            for panel in self._all_export_panels():
-                panel.set_format("webm")
-        elif prev_bg == "none":
-            for panel in self._all_export_panels():
-                panel.set_format(self._prev_format)
+        is_alpha = bg_type == "none"
+        for panel in self._all_export_panels():
+            panel.set_alpha_mode(is_alpha)
 
     def _on_play(self) -> None:
         if self._audio_data is None:
