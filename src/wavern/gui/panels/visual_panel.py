@@ -208,6 +208,13 @@ class VisualPanel(QWidget):
             return
         self._viz_combo.setCurrentIndex(index)
 
+    def cycle_viz(self) -> None:
+        """Advance to the next visualization type, wrapping around."""
+        if self._preset is None or self._viz_combo.count() == 0:
+            return
+        next_index = (self._viz_combo.currentIndex() + 1) % self._viz_combo.count()
+        self._viz_combo.setCurrentIndex(next_index)
+
     # -- Section state persistence --
 
     def _save_section_states(self) -> None:

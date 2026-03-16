@@ -16,13 +16,14 @@ class KeyboardHandler(QObject):
     """Event filter for global keyboard shortcuts.
 
     Handles transport (space, arrows, home), volume (up/down, M),
-    fullscreen (F), and percentage seek (0-9).
+    fullscreen (F), percentage seek (0-9), and visualization cycling (Ctrl+Tab).
 
     Args:
         player: The audio player for position/volume queries and control.
         transport: The transport bar for UI updates.
         on_seek: Callback to seek to a position.
         on_toggle_fullscreen: Callback to toggle fullscreen mode.
+        on_cycle_viz: Callback to cycle to the next visualization type.
         parent: Optional parent QObject.
     """
 
@@ -32,6 +33,7 @@ class KeyboardHandler(QObject):
         transport: TransportBar,
         on_seek: Callable[[float], None],
         on_toggle_fullscreen: Callable[[], None],
+        on_cycle_viz: Callable[[], None] | None = None,
         parent: QObject | None = None,
     ) -> None:
         super().__init__(parent)
@@ -39,6 +41,7 @@ class KeyboardHandler(QObject):
         self._transport = transport
         self._on_seek = on_seek
         self._on_toggle_fullscreen = on_toggle_fullscreen
+        self._on_cycle_viz = on_cycle_viz
 
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:
         """Filter key events for transport shortcuts."""
@@ -92,6 +95,20 @@ class KeyboardHandler(QObject):
             self._transport.set_volume(self._player.volume, self._player.muted)
             return True
 
+        # Ctrl+Up → volume +25% (unmutes if muted)
+        if key == Qt.Key.Key_Up and mods & Qt.KeyboardModifier.ControlModifier:
+            self._player.muted = False
+            self._player.volume = self._player.volume + 0.25
+            self._transport.set_volume(self._player.volume, self._player.muted)
+            return True
+
+        # Ctrl+Down → volume -25% (unmutes if muted)
+        if key == Qt.Key.Key_Down and mods & Qt.KeyboardModifier.ControlModifier:
+            self._player.muted = False
+            self._player.volume = self._player.volume - 0.25
+            self._transport.set_volume(self._player.volume, self._player.muted)
+            return True
+
         # Up → volume +5% (unmutes if muted)
         if key == Qt.Key.Key_Up:
             self._player.muted = False
@@ -104,6 +121,12 @@ class KeyboardHandler(QObject):
             self._player.muted = False
             self._player.volume = self._player.volume - 0.05
             self._transport.set_volume(self._player.volume, self._player.muted)
+            return True
+
+        # Ctrl+Tab → cycle to next visualization type
+        if key == Qt.Key.Key_Tab and mods & Qt.KeyboardModifier.ControlModifier:
+            if self._on_cycle_viz is not None:
+                self._on_cycle_viz()
             return True
 
         # F → toggle fullscreen (same as F11)

@@ -118,6 +118,7 @@ class MainWindow(QMainWindow):
             self._transport,
             on_seek=self._on_seek,
             on_toggle_fullscreen=self._on_toggle_fullscreen,
+            on_cycle_viz=self._cycle_viz,
         )
         QApplication.instance().installEventFilter(self._keyboard_handler)
 
@@ -584,6 +585,10 @@ class MainWindow(QMainWindow):
             return
         index = action.data()
         self._visual_panel.set_viz_by_index(index)
+
+    def _cycle_viz(self) -> None:
+        """Cycle to the next visualization type (Ctrl+Tab)."""
+        self._visual_panel.cycle_viz()
 
     def closeEvent(self, event) -> None:
         """Cleanup on window close."""

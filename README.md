@@ -180,8 +180,8 @@ uv run wavern list-visualizations   # show registered visualization types
 |----------|--------|
 | `Up` | Volume +5% |
 | `Down` | Volume -5% |
-| `Ctrl+Up` | TODO: not implemented Volume +25% |
-| `Ctrl+Down` | TODO: not implemented Volume -25% |
+| `Ctrl+Up` | Volume +25% |
+| `Ctrl+Down` | Volume -25% |
 | `M` | Mute / Unmute |
 
 ### File
@@ -205,7 +205,7 @@ uv run wavern list-visualizations   # show registered visualization types
 
 | Shortcut | Action |
 |----------|--------|
-| `Ctrl+Tab` | TODO: (not implemented) Circle between visualization types |
+| `Ctrl+Tab` | Cycle between all visualization types |
 | `Ctrl+1` | Switch to Classic Waveform (Beta) |
 | `Ctrl+2` | Switch to Spectrum Bars |
 | `Ctrl+3` | Switch to Circular Spectrum |
