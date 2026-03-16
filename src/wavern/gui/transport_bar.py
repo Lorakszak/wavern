@@ -56,6 +56,7 @@ class TransportBar(QWidget):
     play_clicked = Signal()
     pause_clicked = Signal()
     seek_requested = Signal(float)  # timestamp in seconds
+    loop_toggled = Signal(bool)  # True when loop is enabled
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -64,6 +65,11 @@ class TransportBar(QWidget):
 
         self._setup_ui()
         self.set_volume(1.0, False)
+
+    @property
+    def loop_enabled(self) -> bool:
+        """Whether loop playback is active."""
+        return self._loop_btn.isChecked()
 
     def _setup_ui(self) -> None:
         layout = QHBoxLayout(self)
@@ -93,6 +99,15 @@ class TransportBar(QWidget):
         self._duration_label = QLabel("0:00")
         self._duration_label.setFixedWidth(45)
         layout.addWidget(self._duration_label)
+
+        # Loop toggle button
+        self._loop_btn = QPushButton("Loop")
+        self._loop_btn.setObjectName("LoopButton")
+        self._loop_btn.setCheckable(True)
+        self._loop_btn.setFixedWidth(60)
+        self._loop_btn.setToolTip("Loop playback")
+        self._loop_btn.toggled.connect(self.loop_toggled)
+        layout.addWidget(self._loop_btn)
 
         # Volume indicator
         self._volume_label = QLabel("Vol: 100%")

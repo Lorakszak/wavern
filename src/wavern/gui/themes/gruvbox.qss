@@ -262,6 +262,12 @@ QPushButton#PresetSizeBtn:checked {
     border-color: #fabd2f;
 }
 
+QPushButton#LoopButton:checked {
+    background: #fabd2f;
+    color: #282828;
+    border-color: #fabd2f;
+}
+
 /* ── Preset favorite toggle ── */
 QPushButton#PresetFavToggle {
     border: 1px solid #504945;

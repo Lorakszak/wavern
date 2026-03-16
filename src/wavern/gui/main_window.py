@@ -546,7 +546,11 @@ class MainWindow(QMainWindow):
         self._transport.update_position(pos)
 
         if not self._player.is_playing:
-            self._on_pause()
+            if self._transport.loop_enabled:
+                self._player.seek(0.0)
+                self._player.play()
+            else:
+                self._on_pause()
 
     # -- Menu action handlers --
 
