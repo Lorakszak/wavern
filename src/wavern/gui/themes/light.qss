@@ -245,6 +245,43 @@ QLabel#AlphaHint {
 }
 
 /* ── Tooltips ── */
+/* ── Preset size toggle ── */
+QPushButton#PresetSizeBtn {
+    border: 1px solid #ccc;
+    background: #e8e8e8;
+    color: #666;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 0;
+    border-radius: 3px;
+}
+
+QPushButton#PresetSizeBtn:checked {
+    background: #0078d4;
+    color: #fff;
+    border-color: #0078d4;
+}
+
+/* ── Preset favorite toggle ── */
+QPushButton#PresetFavToggle {
+    border: 1px solid #ccc;
+    background: #e8e8e8;
+    color: #aaa;
+    font-size: 15px;
+    padding: 0;
+    border-radius: 3px;
+}
+
+QPushButton#PresetFavToggle:checked {
+    color: #d4a017;
+    border-color: #d4a017;
+    background: #fdf5d9;
+}
+
+QPushButton#PresetFavToggle:hover {
+    background: #ddd;
+}
+
 QToolTip {
     background-color: #fff;
     color: #333;

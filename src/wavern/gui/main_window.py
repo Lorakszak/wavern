@@ -22,6 +22,7 @@ from wavern.core.audio_analyzer import AudioAnalyzer
 from wavern.core.audio_loader import AudioLoadError, AudioLoader
 from wavern.core.audio_player import AudioPlayer
 from wavern.gui.export_dialog import ExportDialog
+from wavern.gui.favorites_store import FavoritesStore
 from wavern.gui.file_import_dialog import open_audio_file
 from wavern.gui.gl_widget import GLPreviewWidget
 from wavern.gui.panels import AnalysisPanel, TextPanel, VisualPanel
@@ -71,6 +72,7 @@ class MainWindow(QMainWindow):
         self._player = AudioPlayer()
         self._analyzer = AudioAnalyzer()
         self._preset_manager = PresetManager()
+        self._favorites_store = FavoritesStore()
         self._theme_manager = ThemeManager()
         self._prev_format: str = "mp4"  # restored when bg changes away from "none"
         self._bg_type: str = ""  # last known background type
@@ -219,7 +221,7 @@ class MainWindow(QMainWindow):
         sidebar.add_tab("Export", export)
 
         # Presets panel
-        presets = PresetPanel(self._preset_manager)
+        presets = PresetPanel(self._preset_manager, self._favorites_store)
         sidebar.add_tab("Presets", presets)
 
         # Analysis panel
@@ -236,7 +238,7 @@ class MainWindow(QMainWindow):
         export_lower = ProjectSettingsPanel()
         sidebar.add_lower_tab("Export", export_lower)
 
-        presets_lower = PresetPanel(self._preset_manager)
+        presets_lower = PresetPanel(self._preset_manager, self._favorites_store)
         sidebar.add_lower_tab("Presets", presets_lower)
 
         analysis_lower = AnalysisPanel()
