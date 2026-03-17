@@ -1,24 +1,41 @@
 {
-  "name": "Particle Burst",
-  "description": "Explosive particle effects driven by beats",
+  "name": "Spiral Galaxy (Beta)",
+  "description": "[Beta] Particles spawning in a ring with strong vortex creating galactic spiral arms",
   "author": "wavern",
   "version": 1,
   "visualization": {
     "visualization_type": "particles",
     "params": {
-      "max_particles": 3000,
-      "particle_size": 5.0,
-      "spawn_rate": 1.5,
-      "lifetime": 2.5,
-      "spread": 0.6,
-      "gravity_y": -0.05
+      "max_particles": 6000,
+      "particle_size": 3.0,
+      "spawn_rate": 5.0,
+      "lifetime": 8.0,
+      "spread": 0.3,
+      "spawn_mode": "circle",
+      "spawn_x": 0.5,
+      "spawn_y": 0.5,
+      "spawn_radius": 0.15,
+      "gravity_x": 0.0,
+      "gravity_y": 0.0,
+      "speed_min": 0.01,
+      "speed_max": 0.1,
+      "drag": 0.3,
+      "turbulence": 0.15,
+      "radial_force": -0.15,
+      "vortex": 0.7,
+      "size_reactivity": 0.4,
+      "speed_reactivity": 0.3,
+      "color_shift_reactivity": 0.4,
+      "size_over_life": "grow",
+      "fade_curve": "linear",
+      "color_over_life": true
     }
   },
-  "color_palette": ["#FFD700", "#FF4500", "#FF1493", "#00CED1"],
+  "color_palette": ["#EEDDFF", "#AA66FF", "#6633CC", "#FF66AA", "#FFAADD"],
   "blend_mode": "additive",
   "background": {
     "type": "solid",
-    "color": "#050505"
+    "color": "#050208"
   },
   "overlay": {
     "title_enabled": false,
@@ -45,7 +62,7 @@
     "shadow_offset_y": 3
   },
   "fft_size": 2048,
-  "smoothing": 0.25,
+  "smoothing": 0.5,
   "beat_sensitivity": 1.8,
   "fps": 60
 }

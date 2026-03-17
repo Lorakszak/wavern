@@ -1,7 +1,7 @@
 """Tests for wavern preset defaults (showcase presets).
 
 WHAT THIS TESTS:
-- All 19 showcase preset JSON files exist in the defaults directory
+- All 22 showcase preset JSON files exist in the defaults directory
 - Each preset loads against the Preset pydantic schema with the correct visualization_type
 - All numeric params in each preset are within the bounds declared in the visualization's PARAM_SCHEMA
 - Every preset has at least one color_palette entry
@@ -30,8 +30,11 @@ NEW_PRESETS = [
     # --- 7 beta-marked presets ---
     ("neon_flood.json", "waveform", "wavern.visualizations.waveform", "WaveformVisualization"),
     ("oscilloscope.json", "waveform", "wavern.visualizations.waveform", "WaveformVisualization"),
-    ("stardust_rain.json", "particles", "wavern.visualizations.particles", "ParticlesVisualization"),
-    ("volcanic_eruption.json", "particles", "wavern.visualizations.particles", "ParticlesVisualization"),
+    ("supernova.json", "particles", "wavern.visualizations.particles", "ParticlesVisualization"),
+    ("monsoon.json", "particles", "wavern.visualizations.particles", "ParticlesVisualization"),
+    ("spiral_galaxy.json", "particles", "wavern.visualizations.particles", "ParticlesVisualization"),
+    ("closing_walls.json", "particles", "wavern.visualizations.particles", "ParticlesVisualization"),
+    ("fireflies.json", "particles", "wavern.visualizations.particles", "ParticlesVisualization"),
     ("aurora_borealis.json", "smoky_waves", "wavern.visualizations.smoky_waves", "SmokyWavesVisualization"),
     ("kaleidoscope.json", "lissajous", "wavern.visualizations.lissajous", "LissajousVisualization"),
     ("ghost_signal.json", "lissajous", "wavern.visualizations.lissajous", "LissajousVisualization"),
@@ -53,7 +56,7 @@ def preset_info(request: pytest.FixtureRequest) -> tuple[str, str, str, str]:
 
 
 class TestNewPresets:
-    """Validate all 19 showcase presets."""
+    """Validate all 22 showcase presets."""
 
     def test_preset_file_exists(self, preset_info: tuple[str, str, str, str]) -> None:
         filename = preset_info[0]
