@@ -4,6 +4,8 @@ WHAT THIS TESTS:
 - list_themes() returns all five expected themes in sorted order
 - apply() does not raise for any valid theme name, or for an unknown theme name
 - save_preference() and load_preference() round-trip the selected theme name
+- QSS content is preloaded into cache at __init__ time
+- apply() is a no-op when the requested theme is already active
 Does NOT test: visual appearance of applied QSS styles
 """
 
@@ -52,3 +54,27 @@ class TestThemeManager:
         tm = ThemeManager()
         tm.save_preference("dark")
         assert tm.load_preference() == "dark"
+
+    def test_all_themes_preloaded_in_cache(self) -> None:
+        tm = ThemeManager()
+        expected = {"dark", "light", "nord", "dracula", "gruvbox"}
+        assert expected.issubset(tm._cache.keys())
+
+    def test_cache_content_is_nonempty_strings(self) -> None:
+        tm = ThemeManager()
+        for name, content in tm._cache.items():
+            assert isinstance(content, str) and len(content) > 0, f"Empty cache entry for {name!r}"
+
+    def test_apply_same_theme_twice_is_noop(self) -> None:
+        tm = ThemeManager()
+        tm.apply(_app, "dark")
+        stylesheet_after_first = _app.styleSheet()
+        # Applying the same theme again should not change anything
+        tm.apply(_app, "dark")
+        assert _app.styleSheet() == stylesheet_after_first
+
+    def test_current_theme_tracked_after_apply(self) -> None:
+        tm = ThemeManager()
+        assert tm._current_theme is None
+        tm.apply(_app, "nord")
+        assert tm._current_theme == "nord"
