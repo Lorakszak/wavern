@@ -138,10 +138,18 @@ def build_menu_bar(
 
     viz_infos = VisualizationRegistry().list_all()
     for i, info in enumerate(viz_infos, start=1):
-        if i > 9:
-            break
-        action = QAction(f"Switch to {info['display_name']} (Ctrl+{i})", window)
-        action.setShortcut(f"Ctrl+{i}")
+        shortcut_key = None
+        if i <= 9:
+            shortcut_key = f"Ctrl+{i}"
+        elif i == 10:
+            shortcut_key = "Ctrl+0"
+
+        label = f"Switch to {info['display_name']}"
+        if shortcut_key:
+            label += f" ({shortcut_key})"
+        action = QAction(label, window)
+        if shortcut_key:
+            action.setShortcut(shortcut_key)
         action.setData(i - 1)
         action.triggered.connect(on_viz_shortcut)
         viz_menu.addAction(action)
