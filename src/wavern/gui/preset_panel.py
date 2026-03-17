@@ -19,8 +19,10 @@ from PySide6.QtWidgets import (
 )
 
 from wavern.gui.favorites_store import FavoritesStore
+from wavern.gui.no_scroll_combo import NoScrollComboBox
 from wavern.presets.manager import PresetError, PresetManager
 from wavern.presets.schema import Preset
+from wavern.visualizations.registry import VisualizationRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +47,7 @@ class PresetPanel(QWidget):
         self._manager = preset_manager
         self._favorites = favorites_store
         self._current_preset: Preset | None = None
+        self._viz_type_filter: str = ""  # "" means "All Types"
 
         self._setup_ui()
         self._favorites.changed.connect(self.refresh_list)
@@ -79,6 +82,31 @@ class PresetPanel(QWidget):
         filter_row.addWidget(self._fav_filter_btn)
 
         layout.addLayout(filter_row)
+
+        # Viz type filter row
+        viz_row = QHBoxLayout()
+        viz_row.setSpacing(4)
+
+        self._viz_combo = NoScrollComboBox()
+        self._viz_combo.addItem("All Types", "")
+        registry = VisualizationRegistry()
+        for viz in sorted(registry.list_all(), key=lambda v: v["display_name"]):
+            self._viz_combo.addItem(viz["display_name"], viz["name"])
+        self._viz_combo.currentIndexChanged.connect(self._on_viz_filter_changed)
+        viz_row.addWidget(self._viz_combo)
+
+        layout.addLayout(viz_row)
+
+        # Restore persisted viz type filter
+        settings = QSettings("wavern", "wavern")
+        saved_viz_type = settings.value("preset_panel/viz_type_filter", "")
+        if saved_viz_type:
+            idx = self._viz_combo.findData(saved_viz_type)
+            if idx >= 0:
+                self._viz_combo.blockSignals(True)
+                self._viz_combo.setCurrentIndex(idx)
+                self._viz_combo.blockSignals(False)
+                self._viz_type_filter = saved_viz_type
 
         # Size row: S / M / L exclusive toggle buttons
         size_row = QHBoxLayout()
@@ -152,7 +180,7 @@ class PresetPanel(QWidget):
         fav_only = self._fav_filter_btn.isChecked()
         height = _SIZE_HEIGHTS[self._current_size]
 
-        for info in self._manager.list_presets():
+        for info in self._manager.list_presets_with_type():
             name = info["name"]
             source = info["source"]
 
@@ -164,6 +192,10 @@ class PresetPanel(QWidget):
             if source_filter == "Built-in" and source != "builtin":
                 continue
             if source_filter == "User" and source != "user":
+                continue
+
+            # Viz type filter
+            if self._viz_type_filter and info["visualization_type"] != self._viz_type_filter:
                 continue
 
             # Favorites filter
@@ -206,6 +238,12 @@ class PresetPanel(QWidget):
         self.refresh_list()
 
     def _on_favorites_filter_toggled(self) -> None:
+        self.refresh_list()
+
+    def _on_viz_filter_changed(self) -> None:
+        self._viz_type_filter = self._viz_combo.currentData() or ""
+        settings = QSettings("wavern", "wavern")
+        settings.setValue("preset_panel/viz_type_filter", self._viz_type_filter)
         self.refresh_list()
 
     def _on_size_changed(self, label: str) -> None:

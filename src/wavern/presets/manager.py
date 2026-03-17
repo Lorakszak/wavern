@@ -72,6 +72,18 @@ class PresetManager:
 
         return list(presets.values())
 
+    def list_presets_with_type(self) -> list[dict[str, str]]:
+        """Return preset metadata including visualization_type, without full validation."""
+        result = []
+        for entry in self.list_presets():
+            try:
+                raw = json.loads(Path(entry["path"]).read_text(encoding="utf-8"))
+                viz_type = raw.get("visualization", {}).get("visualization_type", "")
+            except Exception:
+                viz_type = ""
+            result.append({**entry, "visualization_type": viz_type})
+        return result
+
     def load(self, name: str) -> Preset:
         """Load a preset by name. User presets shadow built-ins.
 
