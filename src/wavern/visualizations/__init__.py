@@ -12,4 +12,5 @@ from wavern.visualizations import smoky_waves  # noqa: F401
 from wavern.visualizations import lissajous  # noqa: F401
 from wavern.visualizations import radial_waveform  # noqa: F401
 from wavern.visualizations import spectrogram  # noqa: F401
+from wavern.visualizations import oscilloscope  # noqa: F401
 from wavern.visualizations import tunnel  # noqa: F401

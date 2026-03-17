@@ -1,0 +1,46 @@
+{
+  "name": "Neon Scope",
+  "description": "Cyan trace with strong glow and chromatic aberration — stylized aesthetic look",
+  "author": "wavern",
+  "version": 1,
+  "visualization": {
+    "visualization_type": "oscilloscope",
+    "params": {
+      "display_mode": "line",
+      "line_thickness": 2.0,
+      "sample_count": 1024,
+      "amplitude_scale": 1.5,
+      "wave_range": 0.35,
+      "trigger_mode": "rising",
+      "phosphor_glow": 1.8,
+      "glow_radius": 2.5,
+      "phosphor_persistence": 0.0,
+      "barrel_distortion": 0.05,
+      "scanline_intensity": 0.1,
+      "scanline_count": 400,
+      "chromatic_aberration": 0.8,
+      "vignette": 0.3,
+      "noise_intensity": 0.01,
+      "screen_flicker": 0.0,
+      "screen_tint": 0.03,
+      "graticule_enabled": false,
+      "graticule_intensity": 0.15,
+      "graticule_divisions": 10,
+      "bezel": false,
+      "offset_x": 0.0,
+      "offset_y": 0.0,
+      "scale": 1.0,
+      "rotation": 0.0
+    }
+  },
+  "color_palette": ["#00FFFF"],
+  "blend_mode": "additive",
+  "background": {
+    "type": "solid",
+    "color": "#08080F"
+  },
+  "fft_size": 2048,
+  "smoothing": 0.2,
+  "beat_sensitivity": 1.0,
+  "fps": 60
+}
