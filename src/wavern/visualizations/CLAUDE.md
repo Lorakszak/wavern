@@ -12,11 +12,13 @@ Self-contained visualization plugins. Each file is one visualization type.
 | `circular_spectrum.py` | `CircularSpectrum` | Stable |
 | `rect_spectrum.py` | `RectSpectrum` | Stable |
 | `waveform.py` | `Waveform` | Beta |
-| `particles.py` | `Particles` | Beta |
+| `particles.py` | `Particles` | Stable |
 | `smoky_waves.py` | `SmokyWaves` | Beta |
 | `lissajous.py` | `Lissajous` | Alpha |
 | `radial_waveform.py` | `RadialWaveform` | Alpha |
 | `spectrogram.py` | `Spectrogram` | Alpha |
+| `oscilloscope.py` | `CRTOscilloscope` | Beta |
+| `tunnel.py` | `Tunnel` | Alpha |
 
 ## Visualization Lifecycle
 ```

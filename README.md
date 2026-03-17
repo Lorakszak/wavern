@@ -65,13 +65,13 @@ Wavern is a local music visualizer for Linux. It renders GPU-accelerated audio v
 ## Features
 
 - **Real-time preview** - OpenGL 3.3+ GPU-accelerated visualization synced to audio playback
-- **9 built-in visualizations** - Spectrum Bars, Classic Waveform (Beta), Circular Spectrum, Rectangle Spectrum, Particle Burst (Beta), Smoky Waves (Beta), Lissajous (Alpha), Radial Waveform (Alpha), Spectrogram (Alpha)
+- **11 built-in visualizations** - Spectrum Bars, Classic Waveform (Beta), Circular Spectrum, Rectangle Spectrum, Particle Burst, Smoky Waves (Beta), Lissajous (Alpha), Radial Waveform (Alpha), Spectrogram (Alpha), CRT Oscilloscope (Beta), Tunnel (Alpha)
 - **Full parameter control** - every visualization exposes tunable parameters (bar count, speed, thickness, etc.) with live preview via drag-to-change spinboxes
 - **Visualization memory** - switching visualization types preserves your parameter tweaks; switch back and your settings are restored
 - **Dual tabbed sidebars** - two independent sidebars with tabs (Visual, Text, Export, Presets, Analysis), each with optional vertical split mode
 - **5 built-in themes** - Dark, Light, Nord, Dracula, Gruvbox — persists across sessions
 - **Color palettes** - multi-color gradients applied across visualizations
-- **28 built-in presets** - ranging from showcase demos to utility starting points; favorites, source filter, and item size toggle in the preset panel
+- **36 built-in presets** - ranging from showcase demos to utility starting points; favorites, source filter, and item size toggle in the preset panel
 - **Video & image backgrounds** - with movement effects (drift, shake, wave, zoom_pulse, breathe), rotation, and mirror transforms
 - **Video overlay compositing** - layer a video above the visualization with alpha, additive, or screen blend modes
 - **Advanced audio analysis** - bass-weighted beat detection with adaptive threshold, dB magnitude normalization, amplitude envelope, and spectral flux
@@ -216,11 +216,12 @@ uv run wavern list-visualizations   # show registered visualization types
 | `Ctrl+2` | Switch to Spectrum Bars |
 | `Ctrl+3` | Switch to Circular Spectrum |
 | `Ctrl+4` | Switch to Rectangle Spectrum |
-| `Ctrl+5` | Switch to Particle Burst (Beta) |
+| `Ctrl+5` | Switch to Particle Burst |
 | `Ctrl+6` | Switch to Smoky Waves (Beta) |
 | `Ctrl+7` | Switch to Lissajous (Alpha) |
 | `Ctrl+8` | Switch to Radial Waveform (Alpha) |
 | `Ctrl+9` | Switch to Spectrogram (Alpha) |
+| `Ctrl+0` | Switch to CRT Oscilloscope (Beta) |
 
 
 ## Built-in Visualizations
@@ -231,11 +232,13 @@ uv run wavern list-visualizations   # show registered visualization types
 | Spectrum Bars | Stable | ![Spectrum Bars](assets/previews/spectrum_bar.gif) | Vertical bar spectrum analyzer with logarithmic frequency binning |
 | Circular Spectrum | Stable | ![Circular Spectrum](assets/previews/circular_spectrum.gif) | Radial bars arranged around a rotating circle |
 | Rectangle Spectrum | Stable | ![Rectangle Spectrum](assets/previews/rectangle_spectrum.gif) | Spectrum bars arranged around a rectangle |
-| Particle Burst | Beta | ![Particle Burst](assets/previews/particle_burst.gif) | Audio-reactive particle system with burst effects on beats |
+| Particle Burst | Stable | ![Particle Burst](assets/previews/particle_burst.gif) | Audio-reactive particle system with burst effects on beats |
 | Smoky Waves | Beta | ![Smoky Waves](assets/previews/smoky_waves.gif) | Layered sinusoidal waves with audio-reactive turbulence |
 | Lissajous | Alpha | ![Lissajous](assets/previews/lissajous.gif) | Phase-portrait plot (X=waveform[i], Y=waveform[i+delay]) with rotational symmetry and beat-reactive glow |
 | Radial Waveform | Alpha | ![Radial Waveform](assets/previews/radial_waveform.gif) | Time-domain waveform wrapped around a circle; pulses and breathes with transients |
 | Spectrogram | Alpha | ![Spectrogram](assets/previews/spectrogram.gif) | Scrolling frequency heatmap with 6 colormaps, log/mel/linear scale, and Gaussian blur |
+| CRT Oscilloscope | Beta | ![CRT Oscilloscope](assets/previews/oscilloscope.gif) | Retro CRT oscilloscope with phosphor glow, barrel distortion, scanlines, chromatic aberration, and optional graticule grid |
+| Tunnel | Alpha | ![Tunnel](assets/previews/tunnel.gif) | Concentric rings creating a tunnel zoom effect driven by audio |
 
 ## Presets
 
