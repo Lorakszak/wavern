@@ -174,6 +174,30 @@ class ParticlesVisualization(AbstractVisualization):
         self._last_time = 0.0
         self._time = 0.0
 
+    def update_params(self, params: VisualizationParams) -> None:
+        """Reallocate particle array and VBO when max_particles changes."""
+        old_max = len(self._particles)
+        super().update_params(params)
+        new_max = self.get_param("max_particles", 2000)
+
+        if new_max != old_max:
+            old_particles = self._particles
+            self._particles = np.zeros((new_max, _COL_COUNT), dtype="f4")
+            keep = min(self._active_count, new_max)
+            self._particles[:keep] = old_particles[:keep]
+            self._active_count = keep
+
+            if self._vbo is not None:
+                self._vbo.release()
+                self._vbo = self.ctx.buffer(reserve=new_max * 7 * 4)
+            if self._vao is not None and self._program is not None and self._vbo is not None:
+                self._vao.release()
+                self._vao = self.ctx.vertex_array(
+                    self._program,
+                    [(self._vbo, "2f 1f 3f 1f",
+                      "in_position", "in_size", "in_color", "in_alpha")],
+                )
+
     def initialize(self) -> None:
         vert_src = load_shader("particles.vert")
         frag_src = load_shader("particles.frag")
