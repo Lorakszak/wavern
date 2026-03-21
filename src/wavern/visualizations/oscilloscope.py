@@ -463,6 +463,7 @@ class OscilloscopeVisualization(AbstractVisualization):
 
         if self._waveform_tex is not None and self._waveform_tex.size != (sample_count, 1):
             self._waveform_tex.release()
+            self._waveform_tex = None
             self._waveform_tex = self.ctx.texture((sample_count, 1), 1, dtype="f4")
             self._waveform_tex.filter = (moderngl.LINEAR, moderngl.LINEAR)
 

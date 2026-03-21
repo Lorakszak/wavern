@@ -215,6 +215,7 @@ class RadialWaveformVisualization(ImageTextureMixin, AbstractVisualization):
         # Recreate texture if sample count changed
         if self._waveform_tex.size != (sample_count, 1):
             self._waveform_tex.release()
+            self._waveform_tex = None
             self._waveform_tex = self.ctx.texture((sample_count, 1), 1, dtype="f4")
             self._waveform_tex.filter = (moderngl.LINEAR, moderngl.LINEAR)
 
