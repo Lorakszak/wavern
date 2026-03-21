@@ -95,13 +95,16 @@ class VideoSource:
         Returns:
             Average FPS as a float, or 0.0 if unreadable.
         """
-        container = av.open(str(video_path))
         try:
-            stream = container.streams.video[0]
-            rate = stream.average_rate
-            return float(rate) if rate is not None else 0.0
-        finally:
-            container.close()
+            container = av.open(str(video_path))
+            try:
+                stream = container.streams.video[0]
+                rate = stream.average_rate
+                return float(rate) if rate is not None else 0.0
+            finally:
+                container.close()
+        except Exception:
+            return 0.0
 
     def get_frame(self, timestamp: float, loop: bool = True) -> NDArray[np.uint8]:
         """Return the RGBA frame at the given timestamp.
