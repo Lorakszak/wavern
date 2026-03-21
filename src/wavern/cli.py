@@ -14,7 +14,7 @@ logging.basicConfig(
 
 
 @click.group(invoke_without_command=True)
-@click.version_option(version="0.1.0", prog_name="wavern")
+@click.version_option(package_name="wavern")
 @click.pass_context
 def cli(ctx: click.Context) -> None:
     """Wavern — highly customizable local music visualizer."""

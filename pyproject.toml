@@ -1,6 +1,6 @@
 [project]
 name = "wavern"
-version = "0.0.1-alpha.1"
+version = "0.1.0-alpha.1"
 description = "Highly customizable local music visualizer"
 license = "GPL-3.0-or-later"
 requires-python = ">=3.12,<3.13"
