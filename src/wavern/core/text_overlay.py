@@ -51,6 +51,7 @@ class TextOverlay:
 
         # GPU resources (created lazily)
         self._program: moderngl.Program | None = None
+        self._vbo: moderngl.Buffer | None = None
         self._vao: moderngl.VertexArray | None = None
         self._texture: moderngl.Texture | None = None
 
@@ -74,10 +75,10 @@ class TextOverlay:
             -1.0,  1.0, 0.0, 1.0,
              1.0,  1.0, 1.0, 1.0,
         ], dtype="f4")
-        vbo = self.ctx.buffer(vertices.tobytes())
+        self._vbo = self.ctx.buffer(vertices.tobytes())
         self._vao = self.ctx.vertex_array(
             self._program,
-            [(vbo, "2f 2f", "in_position", "in_texcoord")],
+            [(self._vbo, "2f 2f", "in_position", "in_texcoord")],
         )
 
     def update_config(self, config: OverlayConfig) -> None:
@@ -281,6 +282,9 @@ class TextOverlay:
         if self._vao is not None:
             self._vao.release()
             self._vao = None
+        if self._vbo is not None:
+            self._vbo.release()
+            self._vbo = None
         if self._program is not None:
             self._program.release()
             self._program = None

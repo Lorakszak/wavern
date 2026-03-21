@@ -92,6 +92,7 @@ class Renderer:
 
         # Background quad rendering resources (created lazily)
         self._bg_program: moderngl.Program | None = None
+        self._bg_vbo: moderngl.Buffer | None = None
         self._bg_vao: moderngl.VertexArray | None = None
         self._bg_texture: moderngl.Texture | None = None
         self._bg_image_path: str | None = None  # tracks loaded image to avoid reloading
@@ -104,6 +105,7 @@ class Renderer:
         self._overlay_video_source: VideoSource | None = None
         self._overlay_texture: moderngl.Texture | None = None
         self._overlay_program: moderngl.Program | None = None
+        self._overlay_vbo: moderngl.Buffer | None = None
         self._overlay_vao: moderngl.VertexArray | None = None
         self._overlay_video_path: str | None = None
 
@@ -137,10 +139,10 @@ class Renderer:
             ],
             dtype="f4",
         )
-        vbo = self.ctx.buffer(vertices.tobytes())
+        self._bg_vbo = self.ctx.buffer(vertices.tobytes())
         self._bg_vao = self.ctx.vertex_array(
             self._bg_program,
-            [(vbo, "2f 2f", "in_position", "in_texcoord")],
+            [(self._bg_vbo, "2f 2f", "in_position", "in_texcoord")],
         )
 
     def _release_bg_texture(self) -> None:
@@ -451,10 +453,10 @@ class Renderer:
             ],
             dtype="f4",
         )
-        vbo = self.ctx.buffer(vertices.tobytes())
+        self._overlay_vbo = self.ctx.buffer(vertices.tobytes())
         self._overlay_vao = self.ctx.vertex_array(
             self._overlay_program,
-            [(vbo, "2f 2f", "in_position", "in_texcoord")],
+            [(self._overlay_vbo, "2f 2f", "in_position", "in_texcoord")],
         )
 
     def _update_overlay(self, config: VideoOverlayConfig) -> None:
@@ -590,12 +592,18 @@ class Renderer:
         if self._bg_vao is not None:
             self._bg_vao.release()
             self._bg_vao = None
+        if self._bg_vbo is not None:
+            self._bg_vbo.release()
+            self._bg_vbo = None
         if self._bg_program is not None:
             self._bg_program.release()
             self._bg_program = None
         if self._overlay_vao is not None:
             self._overlay_vao.release()
             self._overlay_vao = None
+        if self._overlay_vbo is not None:
+            self._overlay_vbo.release()
+            self._overlay_vbo = None
         if self._overlay_program is not None:
             self._overlay_program.release()
             self._overlay_program = None
