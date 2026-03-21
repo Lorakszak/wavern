@@ -475,10 +475,14 @@ class ExportDialog(QDialog):
         self._worker.error.connect(self._on_error)
         self._worker.start()
 
-    def _on_cancel(self) -> None:
+    def reject(self) -> None:
+        """Stop any running worker before closing the dialog."""
         if self._worker is not None and self._worker.isRunning():
             self._worker.cancel()
             self._worker.wait()
+        super().reject()
+
+    def _on_cancel(self) -> None:
         self.reject()
 
     def _on_progress(self, value: float) -> None:
