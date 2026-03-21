@@ -1,8 +1,8 @@
 """Visualization registry — singleton that maps names to visualization classes."""
 
 import importlib
+import importlib.util
 import logging
-import sys
 from pathlib import Path
 from typing import Type
 
@@ -83,23 +83,32 @@ class VisualizationRegistry:
 
         before = set(self._registry.keys())
 
-        # Add plugin dir to sys.path temporarily
-        str_path = str(path)
-        if str_path not in sys.path:
-            sys.path.insert(0, str_path)
-
         for py_file in sorted(path.glob("*.py")):
             try:
-                importlib.import_module(py_file.stem)
+                spec = importlib.util.spec_from_file_location(
+                    py_file.stem, py_file,
+                )
+                if spec is None or spec.loader is None:
+                    continue
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
                 logger.info("Loaded plugin: %s", py_file.name)
             except Exception as e:
                 logger.warning("Failed to load plugin %s: %s", py_file.name, e)
 
         # Also check for package plugins (directories with __init__.py)
         for pkg_dir in sorted(path.iterdir()):
-            if pkg_dir.is_dir() and (pkg_dir / "__init__.py").exists():
+            init_file = pkg_dir / "__init__.py"
+            if pkg_dir.is_dir() and init_file.exists():
                 try:
-                    importlib.import_module(pkg_dir.name)
+                    spec = importlib.util.spec_from_file_location(
+                        pkg_dir.name, init_file,
+                        submodule_search_locations=[str(pkg_dir)],
+                    )
+                    if spec is None or spec.loader is None:
+                        continue
+                    module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(module)
                     logger.info("Loaded plugin package: %s", pkg_dir.name)
                 except Exception as e:
                     logger.warning("Failed to load plugin package %s: %s", pkg_dir.name, e)
