@@ -112,7 +112,9 @@ def _download_font(filename: str, url: str) -> Path | None:
         )
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = resp.read()
-        dest.write_bytes(data)
+        tmp = dest.with_suffix(".tmp")
+        tmp.write_bytes(data)
+        tmp.rename(dest)
         logger.info("Font cached: %s", dest)
         return dest
     except (urllib.error.URLError, OSError, TimeoutError) as e:
