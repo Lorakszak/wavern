@@ -561,8 +561,8 @@ class Renderer:
                 and self._offscreen_texture.size == resolution
             ):
                 return self._offscreen_fbo
-            self._offscreen_texture.release()
             self._offscreen_fbo.release()
+            self._offscreen_texture.release()
 
         self._offscreen_texture = self.ctx.texture(resolution, 4)
         self._offscreen_fbo = self.ctx.framebuffer(
