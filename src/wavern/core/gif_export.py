@@ -112,6 +112,11 @@ def export_gif(
         for frame_idx in range(timeline.total_frames):
             if is_cancelled():
                 proc.kill()
+                try:
+                    proc.stdin.close()
+                except OSError:
+                    pass
+                proc.wait()
                 raise RuntimeError("Export cancelled")
             timestamp = timeline.frame_to_time(frame_idx)
             frame_analysis = analyzer.analyze_frame(timestamp)

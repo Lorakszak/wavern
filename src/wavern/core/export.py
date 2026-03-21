@@ -241,6 +241,11 @@ class ExportPipeline:
         for frame_idx in range(timeline.total_frames):
             if self._cancelled:
                 proc.kill()
+                try:
+                    proc.stdin.close()
+                except OSError:
+                    pass
+                proc.wait()
                 raise RuntimeError("Export cancelled")
 
             timestamp = timeline.frame_to_time(frame_idx)
