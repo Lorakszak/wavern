@@ -5,6 +5,7 @@ and provides transparent mapping from software codecs to their hardware
 equivalents with correct quality/speed flag translation.
 """
 
+import glob
 import logging
 import shutil
 import subprocess
@@ -66,6 +67,19 @@ _SW_TO_QSV_SPEED: dict[str, str] = {
 }
 
 
+def _find_vaapi_device() -> str:
+    """Find the first available VAAPI render node.
+
+    Probes /dev/dri/renderD* and returns the first match, falling back
+    to /dev/dri/renderD128 if none are found.
+    """
+    devices = sorted(glob.glob("/dev/dri/renderD*"))
+    return devices[0] if devices else "/dev/dri/renderD128"
+
+
+_VAAPI_DEVICE = _find_vaapi_device()
+
+
 # Complete mapping: software_codec → list of possible HW encoders
 HW_ENCODER_MAP: dict[str, list[HWEncoder]] = {
     "libx264": [
@@ -83,7 +97,7 @@ HW_ENCODER_MAP: dict[str, list[HWEncoder]] = {
         HWEncoder(
             "h264_vaapi", HWAccelBackend.VAAPI, "libx264",
             quality_flag="-qp", speed_flag=None,
-            init_flags=["-vaapi_device", "/dev/dri/renderD128"],
+            init_flags=["-vaapi_device", _VAAPI_DEVICE],
         ),
         HWEncoder(
             "h264_amf", HWAccelBackend.AMF, "libx264",
@@ -105,7 +119,7 @@ HW_ENCODER_MAP: dict[str, list[HWEncoder]] = {
         HWEncoder(
             "hevc_vaapi", HWAccelBackend.VAAPI, "libx265",
             quality_flag="-qp", speed_flag=None,
-            init_flags=["-vaapi_device", "/dev/dri/renderD128"],
+            init_flags=["-vaapi_device", _VAAPI_DEVICE],
         ),
         HWEncoder(
             "hevc_amf", HWAccelBackend.AMF, "libx265",
@@ -127,14 +141,14 @@ HW_ENCODER_MAP: dict[str, list[HWEncoder]] = {
         HWEncoder(
             "av1_vaapi", HWAccelBackend.VAAPI, "libaom-av1",
             quality_flag="-qp", speed_flag=None,
-            init_flags=["-vaapi_device", "/dev/dri/renderD128"],
+            init_flags=["-vaapi_device", _VAAPI_DEVICE],
         ),
     ],
     "libvpx-vp9": [
         HWEncoder(
             "vp9_vaapi", HWAccelBackend.VAAPI, "libvpx-vp9",
             quality_flag="-qp", speed_flag=None,
-            init_flags=["-vaapi_device", "/dev/dri/renderD128"],
+            init_flags=["-vaapi_device", _VAAPI_DEVICE],
         ),
         HWEncoder(
             "vp9_qsv", HWAccelBackend.QSV, "libvpx-vp9",
