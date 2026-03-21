@@ -75,7 +75,7 @@ class ExportPipeline:
         self._preset = preset
         self._config = export_config
         self._progress_callback = progress_callback
-        self._cancelled = False
+        self._cancelled = threading.Event()
 
     def run(self) -> Path:
         """Execute the full export pipeline. Returns path to the output video."""
@@ -86,7 +86,7 @@ class ExportPipeline:
                 self._preset,
                 self._config,
                 self._progress_callback,
-                lambda: self._cancelled,
+                self._cancelled.is_set,
             )
         return self._export_video()
 
@@ -261,7 +261,7 @@ class ExportPipeline:
     ) -> None:
         """Render all frames and pipe to ffmpeg process."""
         for frame_idx in range(timeline.total_frames):
-            if self._cancelled:
+            if self._cancelled.is_set():
                 proc.kill()
                 try:
                     proc.stdin.close()
@@ -285,7 +285,7 @@ class ExportPipeline:
     def _wait_for_process(self, proc: subprocess.Popen) -> None:
         """Wait for ffmpeg process, checking for cancellation."""
         while proc.poll() is None:
-            if self._cancelled:
+            if self._cancelled.is_set():
                 proc.kill()
                 proc.wait()
                 raise RuntimeError("Export cancelled")
@@ -327,4 +327,4 @@ class ExportPipeline:
 
     def cancel(self) -> None:
         """Signal the export loop to stop."""
-        self._cancelled = True
+        self._cancelled.set()
