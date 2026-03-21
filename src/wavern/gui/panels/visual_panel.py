@@ -42,32 +42,22 @@ class VisualPanel(QWidget):
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self._content_layout = layout
 
-        # Section widgets (created in set_preset, but we need references for tests)
-        self._param_section = ParamSection()
-        self._color_section_widget = ColorSection()
-        self._bg_section_widget = BackgroundSection()
-        self._overlay_section_widget = OverlaySection()
-
-        # Connect section signals
-        self._param_section.params_changed.connect(self._on_param_changed)
-        self._color_section_widget.colors_changed.connect(self._emit_update)
-        self._bg_section_widget.background_changed.connect(self._emit_update)
-        self._bg_section_widget.preview_flags_changed.connect(
-            self._on_bg_preview_changed
-        )
-        self._overlay_section_widget.overlay_changed.connect(self._emit_update)
-        self._overlay_section_widget.preview_flags_changed.connect(
-            self._on_overlay_preview_changed
-        )
+        # Section widgets (created lazily in set_preset)
+        self._param_section: ParamSection | None = None
+        self._color_section_widget: ColorSection | None = None
+        self._bg_section_widget: BackgroundSection | None = None
+        self._overlay_section_widget: OverlaySection | None = None
 
     # -- Expose internals needed by tests / dual-sidebar sync --
 
     @property
     def _widgets(self) -> dict[str, QWidget]:
-        return self._param_section.widgets
+        return self._param_section.widgets if self._param_section is not None else {}
 
     @property
     def _color_buttons(self) -> list:
+        if self._color_section_widget is None:
+            return []
         return self._color_section_widget._color_buttons
 
     def set_preset(self, preset: Preset) -> None:
@@ -277,14 +267,16 @@ class VisualPanel(QWidget):
 
     def _on_bg_preview_changed(self, skip_bg: bool) -> None:
         skip_overlay = (
-            hasattr(self._overlay_section_widget, "_overlay_disable_preview")
+            self._overlay_section_widget is not None
+            and hasattr(self._overlay_section_widget, "_overlay_disable_preview")
             and self._overlay_section_widget._overlay_disable_preview.isChecked()
         )
         self.preview_flags_changed.emit(skip_bg, skip_overlay)
 
     def _on_overlay_preview_changed(self, skip_overlay: bool) -> None:
         skip_bg = (
-            hasattr(self._bg_section_widget, "_bg_disable_preview")
+            self._bg_section_widget is not None
+            and hasattr(self._bg_section_widget, "_bg_disable_preview")
             and self._bg_section_widget._bg_disable_preview.isChecked()
         )
         self.preview_flags_changed.emit(skip_bg, skip_overlay)
