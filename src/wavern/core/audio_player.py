@@ -59,7 +59,8 @@ class AudioPlayer:
         if self._stream is not None:
             self._stream.close()
 
-        self._playing = True
+        with self._lock:
+            self._playing = True
         self._stream = sd.OutputStream(
             samplerate=self._sample_rate,
             channels=1,
@@ -71,18 +72,20 @@ class AudioPlayer:
 
     def pause(self) -> None:
         """Pause playback."""
-        self._playing = False
+        with self._lock:
+            self._playing = False
         if self._stream is not None:
             self._stream.stop()
 
     def stop(self) -> None:
         """Stop playback and reset position."""
-        self._playing = False
+        with self._lock:
+            self._playing = False
+            self._position = 0
         if self._stream is not None:
             self._stream.stop()
             self._stream.close()
             self._stream = None
-        self._position = 0
 
     def seek(self, timestamp: float) -> None:
         """Seek to a specific time in seconds."""
