@@ -6,6 +6,7 @@ import logging
 import shutil
 import subprocess
 import tempfile
+import threading
 from pathlib import Path
 from typing import Callable
 
@@ -21,6 +22,25 @@ from wavern.core.export_config import ExportConfig
 from wavern.presets.schema import Preset
 
 logger = logging.getLogger(__name__)
+
+
+def _start_stderr_drain(proc: subprocess.Popen) -> Callable[[], str]:
+    """Start a daemon thread to drain process stderr, preventing pipe deadlock.
+
+    Returns a callable that joins the thread and returns the collected output.
+    """
+    chunks: list[bytes] = []
+    thread = threading.Thread(
+        target=lambda: chunks.append(proc.stderr.read()),
+        daemon=True,
+    )
+    thread.start()
+
+    def get_stderr() -> str:
+        thread.join(timeout=10)
+        return b"".join(chunks).decode(errors="replace")
+
+    return get_stderr
 
 
 def export_gif(
@@ -102,6 +122,7 @@ def export_gif(
             stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE,
         )
+        get_stderr = _start_stderr_drain(proc)
 
         logger.info(
             "GIF export: %d frames at %dx%d → %dx%d",
@@ -140,8 +161,7 @@ def export_gif(
                 pass
 
         if proc.returncode != 0:
-            stderr = proc.stderr.read().decode()
-            raise RuntimeError(f"ffmpeg raw render failed: {stderr}")
+            raise RuntimeError(f"ffmpeg raw render failed: {get_stderr()}")
 
         # Step 2: Generate palette
         palette_cmd = [

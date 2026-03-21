@@ -4,6 +4,7 @@ import logging
 import shutil
 import subprocess
 import tempfile
+import threading
 from pathlib import Path
 from typing import Callable
 
@@ -21,6 +22,25 @@ from wavern.presets.schema import Preset
 __all__ = ["ExportConfig", "ExportPipeline"]
 
 logger = logging.getLogger(__name__)
+
+
+def _start_stderr_drain(proc: subprocess.Popen) -> Callable[[], str]:
+    """Start a daemon thread to drain process stderr, preventing pipe deadlock.
+
+    Returns a callable that joins the thread and returns the collected output.
+    """
+    chunks: list[bytes] = []
+    thread = threading.Thread(
+        target=lambda: chunks.append(proc.stderr.read()),
+        daemon=True,
+    )
+    thread.start()
+
+    def get_stderr() -> str:
+        thread.join(timeout=10)
+        return b"".join(chunks).decode(errors="replace")
+
+    return get_stderr
 
 
 def _find_ffmpeg() -> str:
@@ -141,6 +161,8 @@ class ExportPipeline:
                 has_alpha, self._config.video_codec,
             )
 
+            get_stderr = _start_stderr_drain(proc)
+
             hw_failed = False
             try:
                 self._render_frames(renderer, analyzer, timeline, fbo, proc, components)
@@ -166,8 +188,7 @@ class ExportPipeline:
                             "HW encoder returned error, falling back to software encoding"
                         )
                     else:
-                        stderr = proc.stderr.read().decode()
-                        raise RuntimeError(f"ffmpeg failed: {stderr}")
+                        raise RuntimeError(f"ffmpeg failed: {get_stderr()}")
 
             # Fallback: re-render with software encoding
             if hw_failed:
@@ -205,13 +226,14 @@ class ExportPipeline:
                     stderr=subprocess.PIPE,
                 )
 
+                get_stderr = _start_stderr_drain(proc)
+
                 self._render_frames(renderer, analyzer, timeline, fbo, proc, components)
                 proc.stdin.close()
                 self._wait_for_process(proc)
 
                 if proc.returncode != 0:
-                    stderr = proc.stderr.read().decode()
-                    raise RuntimeError(f"ffmpeg failed: {stderr}")
+                    raise RuntimeError(f"ffmpeg failed: {get_stderr()}")
 
             self._mux_audio(ffmpeg_bin, temp_video, self._audio_path,
                             self._config.output_path)
