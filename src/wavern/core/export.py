@@ -321,7 +321,7 @@ class ExportPipeline:
             "-shortest",
             str(output_path),
         ]
-        result = subprocess.run(cmd, capture_output=True)
+        result = subprocess.run(cmd, capture_output=True, timeout=300)
         if result.returncode != 0:
             raise RuntimeError(f"Audio muxing failed: {result.stderr.decode()}")
 

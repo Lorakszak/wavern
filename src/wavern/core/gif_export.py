@@ -170,7 +170,7 @@ def export_gif(
             "-vf", f"palettegen=max_colors={config.gif_max_colors}",
             str(palette_path),
         ]
-        result = subprocess.run(palette_cmd, capture_output=True)
+        result = subprocess.run(palette_cmd, capture_output=True, timeout=300)
         if result.returncode != 0:
             raise RuntimeError(f"GIF palette generation failed: {result.stderr.decode()}")
 
@@ -184,7 +184,7 @@ def export_gif(
             "-loop", str(config.gif_loop),
             str(config.output_path),
         ]
-        result = subprocess.run(gif_cmd, capture_output=True)
+        result = subprocess.run(gif_cmd, capture_output=True, timeout=300)
         if result.returncode != 0:
             raise RuntimeError(f"GIF encoding failed: {result.stderr.decode()}")
 
