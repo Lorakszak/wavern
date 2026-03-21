@@ -1,5 +1,6 @@
 """Audio analysis — FFT, frequency bands, beat detection, spectral features."""
 
+import bisect
 import logging
 import math
 from dataclasses import dataclass, field
@@ -97,6 +98,7 @@ class AudioAnalyzer:
         self._band_envelopes = {name: 0.0 for name in FREQUENCY_BANDS}
         self._prev_timestamp = 0.0
         self._beat_timestamps = self.precompute_beats()
+        self._beat_times = [bt for bt, _ in self._beat_timestamps]
         logger.info(
             "Analyzer configured: %d samples, %dHz, %d beats detected",
             len(audio_data),
@@ -312,9 +314,14 @@ class AudioAnalyzer:
 
         tolerance = 1.0 / 30.0  # ~1 frame at 30fps
 
-        for bt, strength in self._beat_timestamps:
+        idx = bisect.bisect_left(self._beat_times, timestamp - tolerance)
+        while idx < len(self._beat_timestamps):
+            bt, strength = self._beat_timestamps[idx]
+            if bt > timestamp + tolerance:
+                break
             if abs(bt - timestamp) < tolerance:
                 return True, strength
+            idx += 1
 
         return False, 0.0
 
