@@ -526,16 +526,17 @@ class OscilloscopeVisualization(AbstractVisualization):
 
         if persistence > 0.0:
             self._ensure_persistence_fbos(resolution)
-            assert (
-                self._osc_fbo is not None
-                and self._osc_tex is not None
-                and self._blend_program is not None
-                and self._blend_vao is not None
-                and self._ping_fbo is not None
-                and self._ping_tex is not None
-                and self._pong_fbo is not None
-                and self._pong_tex is not None
-            )
+            if (
+                self._osc_fbo is None
+                or self._osc_tex is None
+                or self._blend_program is None
+                or self._blend_vao is None
+                or self._ping_fbo is None
+                or self._ping_tex is None
+                or self._pong_fbo is None
+                or self._pong_tex is None
+            ):
+                return
 
             # Step 1: render oscilloscope to internal FBO
             self._osc_fbo.use()
