@@ -12,6 +12,7 @@ from wavern.presets.schema import VisualizationParams
 from wavern.shaders import load_shader
 from wavern.visualizations.base import AbstractVisualization
 from wavern.visualizations.image_mixin import ImageTextureMixin
+from wavern.utils.color import hex_to_rgb
 from wavern.visualizations.registry import register
 from wavern.visualizations.spectrum_bars import _log_resample
 
@@ -304,9 +305,7 @@ class CircularSpectrumVisualization(ImageTextureMixin, AbstractVisualization):
             1 if self.get_param("shadow_enabled", False) else 0,
         )
         shadow_hex = self.get_param("shadow_color", "#000000")
-        sr = int(shadow_hex[1:3], 16) / 255.0
-        sg = int(shadow_hex[3:5], 16) / 255.0
-        sb = int(shadow_hex[5:7], 16) / 255.0
+        sr, sg, sb = hex_to_rgb(shadow_hex)
         self._set_uniform(prog, "u_shadow_color", (sr, sg, sb))
         self._set_uniform(prog, "u_shadow_opacity", self.get_param("shadow_opacity", 0.4))
         self._set_uniform(prog, "u_shadow_offset", (
