@@ -2,8 +2,31 @@
 
 import sys
 from pathlib import Path
+from typing import Any
 
 import click
+
+
+def _logging_kwargs(ctx: click.Context, default_level: str) -> dict[str, Any]:
+    """Build kwargs for setup_logging() from CLI context."""
+    level = ctx.obj.get("log_level")
+    verbose = ctx.obj.get("verbose", False)
+    log_file = ctx.obj.get("log_file")
+
+    if level:
+        console_level = level.upper()
+    elif verbose:
+        console_level = "DEBUG"
+    else:
+        console_level = default_level
+
+    kwargs: dict[str, Any] = {"console_level": console_level}
+    if log_file is not None:
+        kwargs["log_file"] = log_file
+    file_log_level = ctx.obj.get("file_log_level")
+    if file_log_level is not None:
+        kwargs["file_level"] = file_log_level.upper()
+    return kwargs
 
 
 @click.group(invoke_without_command=True)
@@ -20,12 +43,32 @@ import click
     default=None,
     help="Log file path (default: ~/.config/wavern/wavern.log)",
 )
+@click.option(
+    "-v", "--verbose",
+    is_flag=True,
+    default=False,
+    help="Stream logs to terminal (sets console level to DEBUG)",
+)
+@click.option(
+    "--file-log-level",
+    type=click.Choice(["debug", "info", "warning", "error", "critical"], case_sensitive=False),
+    default=None,
+    help="File log level (default: DEBUG)",
+)
 @click.pass_context
-def cli(ctx: click.Context, log_level: str | None, log_file: Path | None) -> None:
+def cli(
+    ctx: click.Context,
+    log_level: str | None,
+    log_file: Path | None,
+    verbose: bool,
+    file_log_level: str | None,
+) -> None:
     """Wavern — highly customizable local music visualizer."""
     ctx.ensure_object(dict)
     ctx.obj["log_level"] = log_level
     ctx.obj["log_file"] = log_file
+    ctx.obj["verbose"] = verbose
+    ctx.obj["file_log_level"] = file_log_level
     if ctx.invoked_subcommand is None:
         ctx.invoke(gui)
 
@@ -38,12 +81,7 @@ def gui(ctx: click.Context, audio_file: Path | None = None, preset: str | None =
     """Launch the GUI (default command)."""
     from wavern.logging_setup import log_startup_banner, setup_logging
 
-    level = ctx.obj.get("log_level")
-    log_file = ctx.obj.get("log_file")
-    kwargs: dict = {"console_level": (level or "warning").upper()}
-    if log_file is not None:
-        kwargs["log_file"] = log_file
-    setup_logging(**kwargs)
+    setup_logging(**_logging_kwargs(ctx, "WARNING"))
     log_startup_banner()
 
     from wavern.app import run_gui
@@ -106,12 +144,7 @@ def render(
     """Render a visualization to video (headless, no GUI)."""
     from wavern.logging_setup import log_startup_banner, setup_logging
 
-    level = ctx.obj.get("log_level")
-    log_file = ctx.obj.get("log_file")
-    kwargs: dict = {"console_level": (level or "info").upper()}
-    if log_file is not None:
-        kwargs["log_file"] = log_file
-    setup_logging(**kwargs)
+    setup_logging(**_logging_kwargs(ctx, "INFO"))
     log_startup_banner()
 
     import wavern.visualizations  # noqa: F401
@@ -205,12 +238,7 @@ def list_presets(ctx: click.Context) -> None:
     """List all available visualization presets."""
     from wavern.logging_setup import setup_logging
 
-    level = ctx.obj.get("log_level")
-    log_file = ctx.obj.get("log_file")
-    kwargs: dict = {"console_level": (level or "warning").upper()}
-    if log_file is not None:
-        kwargs["log_file"] = log_file
-    setup_logging(**kwargs)
+    setup_logging(**_logging_kwargs(ctx, "WARNING"))
 
     from wavern.presets.manager import PresetManager
 
@@ -233,12 +261,7 @@ def list_visualizations(ctx: click.Context) -> None:
     """List all registered visualization types."""
     from wavern.logging_setup import setup_logging
 
-    level = ctx.obj.get("log_level")
-    log_file = ctx.obj.get("log_file")
-    kwargs: dict = {"console_level": (level or "warning").upper()}
-    if log_file is not None:
-        kwargs["log_file"] = log_file
-    setup_logging(**kwargs)
+    setup_logging(**_logging_kwargs(ctx, "WARNING"))
 
     import wavern.visualizations  # noqa: F401
     from wavern.visualizations.registry import VisualizationRegistry

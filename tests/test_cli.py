@@ -6,6 +6,7 @@ WHAT THIS TESTS:
 - list-visualizations subcommand exits with code 0 and includes core visualization names
 - --log-level flag is accepted and passes validation
 - --log-file flag accepts a path argument
+- -v/--verbose flag is accepted
 Does NOT test: GUI launch (requires display) or headless render pipeline
 """
 
@@ -47,4 +48,14 @@ class TestCLI:
         runner = CliRunner()
         log_file = str(tmp_path / "test.log")
         result = runner.invoke(cli, ["--log-file", log_file, "list-presets"])
+        assert result.exit_code == 0
+
+    def test_verbose_flag_accepted(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["-v", "list-presets"])
+        assert result.exit_code == 0
+
+    def test_verbose_long_flag_accepted(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["--verbose", "list-presets"])
         assert result.exit_code == 0

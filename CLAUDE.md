@@ -37,7 +37,7 @@ Three tools gate every change. Run all three before considering work done:
 
 Centralized in `src/wavern/logging_setup.py`, called from CLI entry points (`cli.py`). Two handlers:
 
-- **Console** (`stderr`): defaults to WARNING for `gui`, INFO for `render`. User-configurable via `--log-level`.
+- **Console** (`stderr`): defaults to WARNING for `gui`, INFO for `render`. Use `-v`/`--verbose` to stream all logs to terminal, or `--log-level` for fine-grained control.
 - **File** (`~/.config/wavern/wavern.log`): always DEBUG, rotating 5 MB × 4 files. User-configurable via `--log-file`.
 
 All modules use `logger = logging.getLogger(__name__)`. The `wavern` package logger is configured (not the root logger), so third-party noise is excluded. New modules must follow this pattern — never use `logging.basicConfig()` or `print()` for diagnostics.
