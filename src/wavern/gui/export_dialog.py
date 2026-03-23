@@ -501,6 +501,8 @@ class ExportDialog(QDialog):
         if msg.clickedButton() == open_btn:
             parent_dir = str(Path(output_path).parent)
             QDesktopServices.openUrl(QUrl.fromLocalFile(parent_dir))
+        if self._worker is not None:
+            self._worker.wait()
         self.accept()
 
     def _on_error(self, error_msg: str) -> None:
