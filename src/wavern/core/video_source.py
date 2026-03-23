@@ -167,8 +167,10 @@ class VideoSource:
 
         # Fallback: return cached frame or black
         if self._last_frame is not None:
+            logger.debug("No frame decoded at %.2fs, using cached frame", timestamp)
             return self._last_frame
 
+        logger.warning("No frame available at %.2fs, returning black", timestamp)
         return np.zeros((self._size[1], self._size[0], 4), dtype=np.uint8)
 
     def reset(self) -> None:

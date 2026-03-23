@@ -328,6 +328,10 @@ class Renderer:
             else None
         )
         if current_type != preset.visualization.visualization_type:
+            logger.debug(
+                "Visualization type changed: %s -> %s",
+                current_type, preset.visualization.visualization_type,
+            )
             self.set_preset(preset)
             return
 
@@ -574,6 +578,7 @@ class Renderer:
         self._offscreen_fbo = self.ctx.framebuffer(
             color_attachments=[self._offscreen_texture]
         )
+        logger.debug("Created offscreen FBO: %dx%d", resolution[0], resolution[1])
         return self._offscreen_fbo
 
     def cleanup(self) -> None:

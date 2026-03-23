@@ -117,4 +117,5 @@ def build_ffmpeg_cmd(
         ]
 
     cmd.append(str(output_path))
+    logger.debug("Built ffmpeg command: %s", cmd)
     return cmd, using_hw
