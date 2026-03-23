@@ -265,7 +265,7 @@ class BackgroundSection(QWidget):
         form.setContentsMargins(0, 4, 0, 0)
         self._bg_disable_preview = QCheckBox()
         self._bg_disable_preview.setChecked(False)
-        self._bg_disable_preview.stateChanged.connect(
+        self._bg_disable_preview.toggled.connect(
             self._on_preview_flags_changed
         )
         wrapped = self._wrap_with_buttons(
@@ -388,7 +388,7 @@ class BackgroundSection(QWidget):
 
         self._bg_mirror_x = QCheckBox()
         self._bg_mirror_x.setChecked(bg.mirror_x)
-        self._bg_mirror_x.stateChanged.connect(
+        self._bg_mirror_x.toggled.connect(
             self._on_bg_transform_changed
         )
         wrapped_mx = self._wrap_with_buttons(
@@ -401,7 +401,7 @@ class BackgroundSection(QWidget):
 
         self._bg_mirror_y = QCheckBox()
         self._bg_mirror_y.setChecked(bg.mirror_y)
-        self._bg_mirror_y.stateChanged.connect(
+        self._bg_mirror_y.toggled.connect(
             self._on_bg_transform_changed
         )
         wrapped_my = self._wrap_with_buttons(
@@ -506,7 +506,7 @@ class BackgroundSection(QWidget):
         )
         self._mv_clamp = QCheckBox()
         self._mv_clamp.setChecked(movement.clamp_to_frame)
-        self._mv_clamp.stateChanged.connect(self._on_movement_changed)
+        self._mv_clamp.toggled.connect(self._on_movement_changed)
         self._mv_clamp_wrapper = self._wrap_with_buttons(
             self._mv_clamp,
             description=clamp_desc,
@@ -568,9 +568,9 @@ class BackgroundSection(QWidget):
     def _on_bg_video_pick(self) -> None:
         if self._preset is None:
             return
-        project_root = str(Path(__file__).resolve().parents[4])
+        default_dir = str(Path.home())
         path, _ = QFileDialog.getOpenFileName(
-            self, "Select Background Video", project_root,
+            self, "Select Background Video", default_dir,
             "Video Files (*.mp4 *.webm *.mkv *.avi *.mov)",
         )
         if path:

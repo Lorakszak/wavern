@@ -61,7 +61,7 @@ class OverlaySection(QWidget):
 
         self._overlay_enabled = QCheckBox()
         self._overlay_enabled.setChecked(overlay.enabled)
-        self._overlay_enabled.stateChanged.connect(self._on_overlay_changed)
+        self._overlay_enabled.toggled.connect(self._on_overlay_changed)
         wrapped_enabled = self._wrap_with_buttons(
             self._overlay_enabled,
             description="Enable video overlay compositing on top of the visualization.",
@@ -72,7 +72,7 @@ class OverlaySection(QWidget):
 
         self._overlay_disable_preview = QCheckBox()
         self._overlay_disable_preview.setChecked(False)
-        self._overlay_disable_preview.stateChanged.connect(
+        self._overlay_disable_preview.toggled.connect(
             self._on_preview_flags_changed
         )
         wrapped_disable_preview = self._wrap_with_buttons(
@@ -156,7 +156,7 @@ class OverlaySection(QWidget):
 
         self._overlay_mirror_x = QCheckBox()
         self._overlay_mirror_x.setChecked(overlay.mirror_x)
-        self._overlay_mirror_x.stateChanged.connect(self._on_overlay_changed)
+        self._overlay_mirror_x.toggled.connect(self._on_overlay_changed)
         wrapped_mirror_x = self._wrap_with_buttons(
             self._overlay_mirror_x,
             description="Mirror the overlay video horizontally.",
@@ -167,7 +167,7 @@ class OverlaySection(QWidget):
 
         self._overlay_mirror_y = QCheckBox()
         self._overlay_mirror_y.setChecked(overlay.mirror_y)
-        self._overlay_mirror_y.stateChanged.connect(self._on_overlay_changed)
+        self._overlay_mirror_y.toggled.connect(self._on_overlay_changed)
         wrapped_mirror_y = self._wrap_with_buttons(
             self._overlay_mirror_y,
             description="Mirror the overlay video vertically.",
@@ -230,9 +230,7 @@ class OverlaySection(QWidget):
     def _on_overlay_video_pick(self) -> None:
         if self._preset is None:
             return
-        default_dir = str(
-            Path(__file__).resolve().parents[4] / "video" / "particles"
-        )
+        default_dir = str(Path.home())
         path, _ = QFileDialog.getOpenFileName(
             self,
             "Select Overlay Video",
