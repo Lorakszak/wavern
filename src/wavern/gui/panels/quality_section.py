@@ -240,7 +240,7 @@ class QualitySection(QWidget):
             self._on_setting_changed,
         )
         self._gif_colors_spin.valueChanged.connect(self._on_setting_changed)
-        self._gif_dither_check.stateChanged.connect(self._on_setting_changed)
+        self._gif_dither_check.toggled.connect(self._on_setting_changed)
         self._gif_loop_spin.valueChanged.connect(self._on_setting_changed)
         self._gif_scale_spin.valueChanged.connect(self._on_setting_changed)
 

@@ -155,7 +155,7 @@ class TextPanel(QWidget):
         # --- Title ---
         self._overlay_title_cb = QCheckBox()
         self._overlay_title_cb.setChecked(cfg.title_enabled)
-        self._overlay_title_cb.stateChanged.connect(self._on_overlay_changed)
+        self._overlay_title_cb.toggled.connect(self._on_overlay_changed)
         layout.addRow("Show Title:", self._overlay_title_cb)
 
         self._overlay_title_edit = QLineEdit()
@@ -168,7 +168,7 @@ class TextPanel(QWidget):
         # --- Countdown ---
         self._overlay_countdown_cb = QCheckBox()
         self._overlay_countdown_cb.setChecked(cfg.countdown_enabled)
-        self._overlay_countdown_cb.stateChanged.connect(self._on_overlay_changed)
+        self._overlay_countdown_cb.toggled.connect(self._on_overlay_changed)
         layout.addRow("Show Countdown:", self._overlay_countdown_cb)
 
         self._overlay_format_combo = NoScrollComboBox()
@@ -185,7 +185,7 @@ class TextPanel(QWidget):
         # --- Position ---
         self._overlay_link_cb = QCheckBox("Link positions")
         self._overlay_link_cb.setChecked(cfg.link_positions)
-        self._overlay_link_cb.stateChanged.connect(self._on_overlay_link_changed)
+        self._overlay_link_cb.toggled.connect(self._on_overlay_link_changed)
         layout.addRow(self._overlay_link_cb)
 
         self._overlay_title_x = DragSpinBox(minimum=0.0, maximum=1.0, step=0.05, decimals=2, default_value=0.5)
@@ -243,7 +243,7 @@ class TextPanel(QWidget):
 
         self._overlay_bold_cb = QCheckBox()
         self._overlay_bold_cb.setChecked(cfg.font_bold)
-        self._overlay_bold_cb.stateChanged.connect(self._on_overlay_changed)
+        self._overlay_bold_cb.toggled.connect(self._on_overlay_changed)
         layout.addRow("Bold:", self._overlay_bold_cb)
 
         self._overlay_font_size = DragSpinBox(minimum=8, maximum=120, step=1, decimals=0, default_value=28)
@@ -267,7 +267,7 @@ class TextPanel(QWidget):
         # --- Outline ---
         self._overlay_outline_cb = QCheckBox()
         self._overlay_outline_cb.setChecked(cfg.outline_enabled)
-        self._overlay_outline_cb.stateChanged.connect(self._on_overlay_changed)
+        self._overlay_outline_cb.toggled.connect(self._on_overlay_changed)
         layout.addRow("Outline:", self._overlay_outline_cb)
 
         self._overlay_outline_color_btn = QPushButton()
@@ -288,7 +288,7 @@ class TextPanel(QWidget):
         # --- Shadow ---
         self._overlay_shadow_cb = QCheckBox()
         self._overlay_shadow_cb.setChecked(cfg.shadow_enabled)
-        self._overlay_shadow_cb.stateChanged.connect(self._on_overlay_changed)
+        self._overlay_shadow_cb.toggled.connect(self._on_overlay_changed)
         layout.addRow("Shadow:", self._overlay_shadow_cb)
 
         self._overlay_shadow_color_btn = QPushButton()

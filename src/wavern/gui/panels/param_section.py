@@ -114,7 +114,7 @@ class ParamSection(QWidget):
             elif param_type == "bool":
                 widget = QCheckBox()
                 widget.setChecked(bool(current_val))
-                widget.stateChanged.connect(
+                widget.toggled.connect(
                     lambda v, n=param_name: self._on_param_changed(n, bool(v))
                 )
 
