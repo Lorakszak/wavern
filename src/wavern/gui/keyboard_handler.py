@@ -16,7 +16,8 @@ class KeyboardHandler(QObject):
     """Event filter for global keyboard shortcuts.
 
     Handles transport (space, arrows, home), volume (up/down, M),
-    fullscreen (F), percentage seek (0-9), and visualization cycling (Ctrl+Tab).
+    fullscreen (F), percentage seek (0-9), and visualization cycling
+    (Ctrl+Tab forward, Ctrl+Shift+Tab backward).
 
     Args:
         player: The audio player for position/volume queries and control.
@@ -24,6 +25,7 @@ class KeyboardHandler(QObject):
         on_seek: Callback to seek to a position.
         on_toggle_fullscreen: Callback to toggle fullscreen mode.
         on_cycle_viz: Callback to cycle to the next visualization type.
+        on_cycle_viz_reverse: Callback to cycle to the previous visualization type.
         parent: Optional parent QObject.
     """
 
@@ -34,6 +36,7 @@ class KeyboardHandler(QObject):
         on_seek: Callable[[float], None],
         on_toggle_fullscreen: Callable[[], None],
         on_cycle_viz: Callable[[], None] | None = None,
+        on_cycle_viz_reverse: Callable[[], None] | None = None,
         parent: QObject | None = None,
     ) -> None:
         super().__init__(parent)
@@ -42,6 +45,7 @@ class KeyboardHandler(QObject):
         self._on_seek = on_seek
         self._on_toggle_fullscreen = on_toggle_fullscreen
         self._on_cycle_viz = on_cycle_viz
+        self._on_cycle_viz_reverse = on_cycle_viz_reverse
 
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:
         """Filter key events for transport shortcuts."""
@@ -124,6 +128,13 @@ class KeyboardHandler(QObject):
             self._player.muted = False
             self._player.volume = self._player.volume - 0.05
             self._transport.set_volume(self._player.volume, self._player.muted)
+            return True
+
+        # Ctrl+Shift+Tab → cycle to previous visualization type
+        # Qt sends Key_Backtab (not Key_Tab) when Shift is held
+        if key == Qt.Key.Key_Backtab and mods & Qt.KeyboardModifier.ControlModifier:
+            if self._on_cycle_viz_reverse is not None:
+                self._on_cycle_viz_reverse()
             return True
 
         # Ctrl+Tab → cycle to next visualization type
