@@ -401,7 +401,7 @@ class MainWindow(QMainWindow):
         self._gl_widget.set_audio_duration(metadata.duration)
 
         # Auto-set overlay title from filename if empty
-        preset = self._visual_panel._preset
+        preset = self._visual_panel.preset
         if preset is not None and not preset.overlay.title_text:
             preset.overlay.title_text = path.stem
             self._apply_preset(preset)
@@ -467,7 +467,7 @@ class MainWindow(QMainWindow):
                 return
             return
 
-        preset = self._visual_panel._preset
+        preset = self._visual_panel.preset
         if preset is None:
             preset = DEFAULT_PRESET
 

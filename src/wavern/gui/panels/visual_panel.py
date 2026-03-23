@@ -48,6 +48,11 @@ class VisualPanel(QWidget):
         self._bg_section_widget: BackgroundSection | None = None
         self._overlay_section_widget: OverlaySection | None = None
 
+    @property
+    def preset(self) -> Preset | None:
+        """The currently loaded preset, or None."""
+        return self._preset
+
     # -- Expose internals needed by tests / dual-sidebar sync --
 
     @property
