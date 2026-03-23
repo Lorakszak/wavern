@@ -90,20 +90,20 @@ class TestOscilloscopeParamSchema:
             assert schema[key]["type"] == "bool"
             assert isinstance(schema[key]["default"], bool)
 
-    def test_choice_params_have_options(self) -> None:
+    def test_choice_params_have_choices(self) -> None:
         schema = self._schema()
         for key in ("display_mode", "trigger_mode"):
-            assert schema[key]["type"] == "str"
-            assert "options" in schema[key]
-            assert schema[key]["default"] in schema[key]["options"]
+            assert schema[key]["type"] == "choice"
+            assert "choices" in schema[key]
+            assert schema[key]["default"] in schema[key]["choices"]
 
-    def test_display_mode_options(self) -> None:
-        opts = self._schema()["display_mode"]["options"]
-        assert set(opts) == {"line", "dot", "filled"}
+    def test_display_mode_choices(self) -> None:
+        choices = self._schema()["display_mode"]["choices"]
+        assert set(choices) == {"line", "dot", "filled"}
 
-    def test_trigger_mode_options(self) -> None:
-        opts = self._schema()["trigger_mode"]["options"]
-        assert set(opts) == {"none", "rising", "falling"}
+    def test_trigger_mode_choices(self) -> None:
+        choices = self._schema()["trigger_mode"]["choices"]
+        assert set(choices) == {"none", "rising", "falling"}
 
     def test_phosphor_persistence_range(self) -> None:
         entry = self._schema()["phosphor_persistence"]

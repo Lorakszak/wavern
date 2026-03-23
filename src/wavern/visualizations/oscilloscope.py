@@ -225,7 +225,7 @@ class OscilloscopeVisualization(AbstractVisualization):
     PARAM_SCHEMA: ClassVar[dict[str, dict[str, Any]]] = {
         # Trace
         "display_mode": {
-            "type": "str", "default": "line", "options": ["line", "dot", "filled"],
+            "type": "choice", "default": "line", "choices": ["line", "dot", "filled"],
             "label": "Display Mode",
             "description": "How the trace is drawn: line, individual dots, or filled area.",
         },
@@ -250,7 +250,7 @@ class OscilloscopeVisualization(AbstractVisualization):
             "description": "Vertical extent of waveform (fraction of screen height).",
         },
         "trigger_mode": {
-            "type": "str", "default": "rising", "options": ["none", "rising", "falling"],
+            "type": "choice", "default": "rising", "choices": ["none", "rising", "falling"],
             "label": "Trigger Mode",
             "description": "Edge trigger for stable display. 'none' = free-running.",
         },

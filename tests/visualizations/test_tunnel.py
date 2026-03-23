@@ -63,15 +63,15 @@ class TestTunnelParamSchema:
 
     def test_direction_choices(self) -> None:
         p = self._schema()["direction"]
-        assert p["type"] == "str"
-        assert set(p["options"]) == {"inward", "outward"}
-        assert p["default"] in p["options"]
+        assert p["type"] == "choice"
+        assert set(p["choices"]) == {"inward", "outward"}
+        assert p["default"] in p["choices"]
 
     def test_ring_shape_choices(self) -> None:
         p = self._schema()["ring_shape"]
-        assert p["type"] == "str"
-        assert set(p["options"]) == {"circle", "square", "hexagon", "octagon"}
-        assert p["default"] in p["options"]
+        assert p["type"] == "choice"
+        assert set(p["choices"]) == {"circle", "square", "hexagon", "octagon"}
+        assert p["default"] in p["choices"]
 
     def test_spiral_twist_allows_negative(self) -> None:
         p = self._schema()["spiral_twist"]

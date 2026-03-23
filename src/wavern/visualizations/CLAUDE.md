@@ -42,7 +42,7 @@ PARAM_SCHEMA: dict[str, dict]       # parameter definitions (see below)
 ```python
 PARAM_SCHEMA = {
     "bar_count": {"type": "int", "default": 64, "min": 8, "max": 256, "label": "Bar Count"},
-    "color_mode": {"type": "str", "default": "solid", "options": ["solid", "gradient"]},
+    "color_mode": {"type": "choice", "default": "solid", "choices": ["solid", "gradient"]},
     "glow": {"type": "bool", "default": False},
     "color": {"type": "color", "default": "#ff6600"},
     "image": {"type": "file", "default": ""},

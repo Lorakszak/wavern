@@ -169,7 +169,7 @@ class TunnelVisualization(AbstractVisualization):
             "description": "Number of visible concentric rings.",
         },
         "direction": {
-            "type": "str", "default": "inward", "options": ["inward", "outward"],
+            "type": "choice", "default": "inward", "choices": ["inward", "outward"],
             "label": "Direction",
             "description": "'inward' = flying into tunnel, 'outward' = rings expanding toward you.",
         },
@@ -234,7 +234,7 @@ class TunnelVisualization(AbstractVisualization):
             "description": "How much rings pulse in thickness with amplitude.",
         },
         "ring_shape": {
-            "type": "str", "default": "circle", "options": ["circle", "square", "hexagon", "octagon"],
+            "type": "choice", "default": "circle", "choices": ["circle", "square", "hexagon", "octagon"],
             "label": "Ring Shape",
             "description": "Shape of the concentric rings.",
         },
