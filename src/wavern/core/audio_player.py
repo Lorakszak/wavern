@@ -92,7 +92,7 @@ class AudioPlayer:
         with self._lock:
             self._position = int(timestamp * self._sample_rate)
             if self._audio_data is not None:
-                self._position = max(0, min(self._position, len(self._audio_data) - 1))
+                self._position = max(0, min(self._position, len(self._audio_data)))
 
     def get_position(self) -> float:
         """Get the current playback position in seconds."""
