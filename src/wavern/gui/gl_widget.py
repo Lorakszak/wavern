@@ -90,6 +90,14 @@ class GLPreviewWidget(QOpenGLWidget):
             self._timer.timeout.connect(self.update)
             self._timer.setInterval(int(1000 / self._target_fps))
 
+            # Log OpenGL driver info for diagnostics
+            info = self._ctx.info
+            logger.info(
+                "OpenGL: %s %s (GLSL %s)",
+                info.get("GL_VENDOR", "unknown"),
+                info.get("GL_RENDERER", "unknown"),
+                info.get("GL_VERSION", "unknown"),
+            )
             logger.info("GL context initialized")
         except Exception as e:
             logger.error("Failed to initialize GL context: %s", e)

@@ -43,6 +43,7 @@ class PresetManager:
     def __init__(self, user_preset_dir: Path | None = None) -> None:
         self._user_dir = user_preset_dir or get_preset_directory()
         self._user_dir.mkdir(parents=True, exist_ok=True)
+        logger.debug("Preset directories: user=%s", self._user_dir)
 
     @property
     def user_dir(self) -> Path:

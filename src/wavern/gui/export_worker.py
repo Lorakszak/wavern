@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from PySide6.QtCore import QThread, Signal
 
 from wavern.core.export import ExportConfig, ExportPipeline
 from wavern.presets.schema import Preset
+
+logger = logging.getLogger(__name__)
 
 
 class ExportWorker(QThread):
@@ -33,6 +36,7 @@ class ExportWorker(QThread):
             output = self._pipeline.run()
             self.finished.emit(str(output))
         except Exception as e:
+            logger.error("Export failed: %s", e, exc_info=True)
             self.error.emit(str(e))
 
     def cancel(self) -> None:

@@ -35,8 +35,10 @@ class FavoritesStore(QObject):
         """Add or remove a preset name from favorites, persist, and emit ``changed``."""
         if name in self._favorites:
             self._favorites.discard(name)
+            logger.debug("Favorite removed: %s", name)
         else:
             self._favorites.add(name)
+            logger.debug("Favorite added: %s", name)
         self._save()
         self.changed.emit()
 
