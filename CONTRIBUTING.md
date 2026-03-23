@@ -57,7 +57,7 @@ All existing tests must pass. New features and visualizations must include corre
 ```bash
 uv run ruff check src/          # lint
 uv run ruff check src/ --fix    # auto-fix safe issues
-uv run mypy src/                # type-check
+uv run pyright src/             # type-check
 ```
 
 Line length is **100 characters** (configured in `pyproject.toml`). All function signatures must have type hints. Use Google-style docstrings.
@@ -89,5 +89,5 @@ See `src/wavern/visualizations/spectrum_bars.py` as a reference implementation (
 Use the GitHub issue templates:
 
 - **Bug report** — [open a bug](https://github.com/Lorakszak/wavern/issues/new?template=bug_report.yml)
-  - Please attach `~/.config/wavern/wavern.log` with your bug report. Run with `--log-level debug` to capture maximum detail.
+  - Please attach `~/.config/wavern/wavern.log` with your bug report. Run with `-v` to capture maximum detail.
 - **Feature request** — [open a feature request](https://github.com/Lorakszak/wavern/issues/new?template=feature_request.yml)

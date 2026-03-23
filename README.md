@@ -94,7 +94,7 @@ Make sure all requirements are met (Python 3.12 via pyenv/asdf, uv, ffmpeg, Open
 ```bash
 git clone https://github.com/Lorakszak/wavern && cd wavern
 uv sync                    # runtime dependencies
-uv sync --extra dev        # + dev dependencies: pytest, ruff, mypy
+uv sync --extra dev        # + dev dependencies: pytest, ruff, pyright
 ```
 
 ## Project Layout
@@ -110,7 +110,7 @@ wavern/
 
 ## Development
 
-Install dev dependencies - includes **pytest** and **pytest-qt** (testing), **ruff** (linting), and **mypy** (type checking):
+Install dev dependencies - includes **pytest** and **pytest-qt** (testing), **ruff** (linting), and **pyright** (type checking):
 
 ```bash
 uv sync --extra dev
@@ -122,7 +122,7 @@ Run the full quality pipeline:
 uv run pytest tests/ -v        # run test suite
 uv run ruff check src/         # lint
 uv run ruff check src/ --fix   # auto-fix safe issues
-uv run mypy src/               # type-check
+uv run pyright src/            # type-check
 ```
 
 ## Usage
@@ -216,6 +216,7 @@ uv run wavern --file-log-level warning gui            # reduce file log verbosit
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl+Tab` | Cycle between all visualization types |
+| `Ctrl+Shift+Tab` | Cycle visualizations in reverse |
 | `Ctrl+1` | Switch to Classic Waveform (Beta) |
 | `Ctrl+2` | Switch to Spectrum Bars |
 | `Ctrl+3` | Switch to Circular Spectrum |
@@ -246,7 +247,7 @@ uv run wavern --file-log-level warning gui            # reduce file log verbosit
 
 ## Presets
 
-28 built-in presets ship with the package, covering all visualization types from utility starting points to showcase demos (aurora_borealis, cyberpunk_skyline, ghost_signal, etc.). The preset panel includes:
+36 built-in presets ship with the package, covering all visualization types from utility starting points to showcase demos (aurora_borealis, cyberpunk_skyline, ghost_signal, etc.). The preset panel includes:
 
 - **Search** — filter by name
 - **Source filter** — show All, Built-in only, or User only
