@@ -40,7 +40,10 @@ def gui(ctx: click.Context, audio_file: Path | None = None, preset: str | None =
 
     level = ctx.obj.get("log_level")
     log_file = ctx.obj.get("log_file")
-    setup_logging(console_level=(level or "warning").upper(), log_file=log_file)
+    kwargs: dict = {"console_level": (level or "warning").upper()}
+    if log_file is not None:
+        kwargs["log_file"] = log_file
+    setup_logging(**kwargs)
     log_startup_banner()
 
     from wavern.app import run_gui
@@ -105,7 +108,10 @@ def render(
 
     level = ctx.obj.get("log_level")
     log_file = ctx.obj.get("log_file")
-    setup_logging(console_level=(level or "info").upper(), log_file=log_file)
+    kwargs: dict = {"console_level": (level or "info").upper()}
+    if log_file is not None:
+        kwargs["log_file"] = log_file
+    setup_logging(**kwargs)
     log_startup_banner()
 
     import wavern.visualizations  # noqa: F401
@@ -201,7 +207,10 @@ def list_presets(ctx: click.Context) -> None:
 
     level = ctx.obj.get("log_level")
     log_file = ctx.obj.get("log_file")
-    setup_logging(console_level=(level or "warning").upper(), log_file=log_file)
+    kwargs: dict = {"console_level": (level or "warning").upper()}
+    if log_file is not None:
+        kwargs["log_file"] = log_file
+    setup_logging(**kwargs)
 
     from wavern.presets.manager import PresetManager
 
@@ -226,7 +235,10 @@ def list_visualizations(ctx: click.Context) -> None:
 
     level = ctx.obj.get("log_level")
     log_file = ctx.obj.get("log_file")
-    setup_logging(console_level=(level or "warning").upper(), log_file=log_file)
+    kwargs: dict = {"console_level": (level or "warning").upper()}
+    if log_file is not None:
+        kwargs["log_file"] = log_file
+    setup_logging(**kwargs)
 
     import wavern.visualizations  # noqa: F401
     from wavern.visualizations.registry import VisualizationRegistry
