@@ -58,7 +58,10 @@ class KeyboardHandler(QObject):
         if key == Qt.Key.Key_Space:
             if isinstance(focused, QLineEdit):
                 return super().eventFilter(obj, event)
-            self._transport._on_play_clicked()
+            if self._player.is_playing:
+                self._transport.pause_clicked.emit()
+            else:
+                self._transport.play_clicked.emit()
             return True
 
         if input_focused:
