@@ -5,9 +5,7 @@
 - **Language**: Python 3.12 (strict: `>=3.12,<3.13`)
 - **Package manager**: `uv` (not pip)
 - **Build**: hatchling, src layout (`src/wavern/`)
-- **Tests**: `uv run pytest tests/ -v` (all tests must pass)
 - **Run GUI**: `uv run wavern gui`
-- **Lint**: ruff, line-length 100
 
 ## Setup
 
@@ -16,10 +14,24 @@ Install runtime dependencies:
 uv sync
 ```
 
-Install dev dependencies (pytest, ruff, mypy, pytest-qt) — required before running tests or linting:
+Install dev dependencies (pytest, pytest-qt, ruff, pyright) — required before running tests or checks:
 ```
 uv sync --extra dev
 ```
+
+## Quality Tools
+
+Three tools gate every change. Run all three before considering work done:
+
+| Tool | Command | Purpose |
+|------|---------|---------|
+| **ruff** | `uv run ruff check src/ tests/` | Linting (line-length 100, Python 3.12 target) |
+| **pyright** | `uv run pyright src/` | Static type checking (standard mode) |
+| **pytest** | `uv run pytest tests/ -v` | All tests must pass |
+
+- **ruff**: Auto-fix safe issues with `uv run ruff check --fix src/ tests/`. Format with `uv run ruff format src/ tests/`.
+- **pyright**: Runs in `standard` mode (configured in `pyproject.toml`). All new code must have type annotations that satisfy pyright.
+- **pytest**: All tests must pass. See [Testing Policy](#testing-policy) for coverage expectations.
 
 ## Architecture
 

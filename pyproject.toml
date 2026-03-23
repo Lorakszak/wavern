@@ -20,7 +20,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "pytest-qt>=4.3", "ruff>=0.4", "mypy>=1.9"]
+dev = ["pytest>=8.0", "pytest-qt>=4.3", "ruff>=0.4", "pyright>=1.1"]
 
 [project.scripts]
 wavern = "wavern.cli:cli"
@@ -36,6 +36,6 @@ packages = ["src/wavern"]
 target-version = "py312"
 line-length = 100
 
-[tool.mypy]
-python_version = "3.12"
-strict = true
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
