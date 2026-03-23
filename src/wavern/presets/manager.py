@@ -17,10 +17,16 @@ class PresetError(Exception):
 
 
 def _slugify(name: str) -> str:
-    """Convert a preset name to a safe filename slug."""
+    """Convert a preset name to a safe filename slug.
+
+    Raises:
+        PresetError: If the name produces an empty slug.
+    """
     slug = name.lower().strip()
     slug = re.sub(r"[^\w\s-]", "", slug)
     slug = re.sub(r"[\s_-]+", "_", slug)
+    if not slug:
+        raise PresetError(f"Preset name produces an empty slug: {name!r}")
     return slug
 
 
@@ -96,7 +102,8 @@ class PresetManager:
                 data = json.loads(f.read_text(encoding="utf-8"))
                 if data.get("name") == name:
                     return Preset.model_validate(data)
-            except (json.JSONDecodeError, Exception):
+            except Exception:
+                logger.warning("Failed to load user preset %s: %s", f, exc_info=True)
                 continue
 
         # Check built-in dir
@@ -107,7 +114,8 @@ class PresetManager:
                     data = json.loads(f.read_text(encoding="utf-8"))
                     if data.get("name") == name:
                         return Preset.model_validate(data)
-                except (json.JSONDecodeError, Exception):
+                except Exception:
+                    logger.warning("Failed to load built-in preset %s", f, exc_info=True)
                     continue
 
         raise PresetError(f"Preset not found: {name}")
@@ -144,7 +152,8 @@ class PresetManager:
                     f.unlink()
                     logger.info("Deleted preset '%s'", name)
                     return
-            except (json.JSONDecodeError, Exception):
+            except Exception:
+                logger.warning("Failed to read preset %s during delete", f, exc_info=True)
                 continue
 
         raise PresetError(f"User preset not found: {name}")
