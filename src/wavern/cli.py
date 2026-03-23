@@ -1,33 +1,48 @@
 """CLI interface for Wavern — GUI launch and headless rendering."""
 
-import logging
 import sys
 from pathlib import Path
 
 import click
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-    datefmt="%H:%M:%S",
-)
-
 
 @click.group(invoke_without_command=True)
 @click.version_option(package_name="wavern")
+@click.option(
+    "--log-level",
+    type=click.Choice(["debug", "info", "warning", "error", "critical"], case_sensitive=False),
+    default=None,
+    help="Console log level (default: WARNING for gui, INFO for render)",
+)
+@click.option(
+    "--log-file",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Log file path (default: ~/.config/wavern/wavern.log)",
+)
 @click.pass_context
-def cli(ctx: click.Context) -> None:
+def cli(ctx: click.Context, log_level: str | None, log_file: Path | None) -> None:
     """Wavern — highly customizable local music visualizer."""
+    ctx.ensure_object(dict)
+    ctx.obj["log_level"] = log_level
+    ctx.obj["log_file"] = log_file
     if ctx.invoked_subcommand is None:
-        # Default to GUI
         ctx.invoke(gui)
 
 
 @cli.command()
 @click.argument("audio_file", required=False, type=click.Path(exists=True, path_type=Path))
 @click.option("-p", "--preset", default=None, help="Preset name to load on startup")
-def gui(audio_file: Path | None = None, preset: str | None = None) -> None:
+@click.pass_context
+def gui(ctx: click.Context, audio_file: Path | None = None, preset: str | None = None) -> None:
     """Launch the GUI (default command)."""
+    from wavern.logging_setup import log_startup_banner, setup_logging
+
+    level = ctx.obj.get("log_level")
+    log_file = ctx.obj.get("log_file")
+    setup_logging(console_level=(level or "warning").upper(), log_file=log_file)
+    log_startup_banner()
+
     from wavern.app import run_gui
 
     sys.exit(run_gui(audio_path=audio_file, preset_name=preset))
@@ -65,7 +80,9 @@ def gui(audio_file: Path | None = None, preset: str | None = None) -> None:
     type=click.Choice(["auto", "off"]),
     help="Hardware acceleration: auto detects GPU encoders, off uses CPU (default: auto)",
 )
+@click.pass_context
 def render(
+    ctx: click.Context,
     audio_file: Path,
     preset: str,
     output: Path,
@@ -84,6 +101,13 @@ def render(
     hw_accel: str,
 ) -> None:
     """Render a visualization to video (headless, no GUI)."""
+    from wavern.logging_setup import log_startup_banner, setup_logging
+
+    level = ctx.obj.get("log_level")
+    log_file = ctx.obj.get("log_file")
+    setup_logging(console_level=(level or "info").upper(), log_file=log_file)
+    log_startup_banner()
+
     import wavern.visualizations  # noqa: F401
     from wavern.core.codecs import get_default_codec, get_quality_settings
     from wavern.core.export import ExportConfig, ExportPipeline
@@ -170,8 +194,15 @@ def render(
 
 
 @cli.command("list-presets")
-def list_presets() -> None:
+@click.pass_context
+def list_presets(ctx: click.Context) -> None:
     """List all available visualization presets."""
+    from wavern.logging_setup import setup_logging
+
+    level = ctx.obj.get("log_level")
+    log_file = ctx.obj.get("log_file")
+    setup_logging(console_level=(level or "warning").upper(), log_file=log_file)
+
     from wavern.presets.manager import PresetManager
 
     manager = PresetManager()
@@ -188,8 +219,15 @@ def list_presets() -> None:
 
 
 @cli.command("list-visualizations")
-def list_visualizations() -> None:
+@click.pass_context
+def list_visualizations(ctx: click.Context) -> None:
     """List all registered visualization types."""
+    from wavern.logging_setup import setup_logging
+
+    level = ctx.obj.get("log_level")
+    log_file = ctx.obj.get("log_file")
+    setup_logging(console_level=(level or "warning").upper(), log_file=log_file)
+
     import wavern.visualizations  # noqa: F401
     from wavern.visualizations.registry import VisualizationRegistry
 

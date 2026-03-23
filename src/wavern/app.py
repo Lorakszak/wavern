@@ -7,12 +7,6 @@ from pathlib import Path
 from PySide6.QtGui import QIcon, QPixmap, QSurfaceFormat
 from PySide6.QtWidgets import QApplication
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-    datefmt="%H:%M:%S",
-)
-
 logger = logging.getLogger(__name__)
 
 
