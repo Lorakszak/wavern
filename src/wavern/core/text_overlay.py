@@ -4,7 +4,7 @@ import logging
 
 import moderngl
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 from wavern.core.font_manager import get_font, list_available_fonts
 from wavern.presets.schema import OverlayConfig
@@ -133,12 +133,15 @@ class TextOverlay:
         if self._texture is None:
             return
 
+        assert self._program is not None
+        assert self._vao is not None
+
         # Draw the text quad with alpha blending
         fbo.use()
         self.ctx.enable(moderngl.BLEND)
         self.ctx.blend_func = (moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA)
         self._texture.use(location=0)
-        self._program["u_background"].value = 0
+        self._program["u_background"].value = 0  # type: ignore[reportAttributeAccessIssue]
         self._vao.render(moderngl.TRIANGLE_STRIP)
 
     def _render_text_image(
@@ -220,7 +223,7 @@ class TextOverlay:
         draw: ImageDraw.ImageDraw,
         pos: tuple[int, int],
         text: str,
-        font: object,
+        font: ImageFont.ImageFont | ImageFont.FreeTypeFont | ImageFont.TransposedFont,
         color: tuple[int, int, int, int],
         stroke_width: int,
         stroke_fill: tuple[int, int, int, int] | None,

@@ -42,8 +42,10 @@ class AnalysisPanel(QWidget):
 
         while self._content_layout.count():
             item = self._content_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+            assert item is not None
+            w = item.widget()
+            if w is not None:
+                w.deleteLater()
 
         self._analysis_section = CollapsibleSection("Analysis")
         self._build_analysis_section(preset)

@@ -41,10 +41,14 @@ class ColorSection(QWidget):
         # Remove all existing child widgets and sub-layouts.
         while self._layout.count():
             item = self._layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-            elif item.layout():
-                _clear_layout(item.layout())
+            assert item is not None
+            w = item.widget()
+            if w is not None:
+                w.deleteLater()
+            else:
+                sub = item.layout()
+                if sub is not None and isinstance(sub, (QVBoxLayout, QHBoxLayout)):
+                    _clear_layout(sub)
 
         for i, color_hex in enumerate(preset.color_palette):
             row = QHBoxLayout()
@@ -168,7 +172,11 @@ def _clear_layout(layout: QVBoxLayout | QHBoxLayout) -> None:
     """Recursively remove all items from a layout and delete their widgets."""
     while layout.count():
         item = layout.takeAt(0)
-        if item.widget():
-            item.widget().deleteLater()
-        elif item.layout():
-            _clear_layout(item.layout())
+        assert item is not None
+        w = item.widget()
+        if w is not None:
+            w.deleteLater()
+        else:
+            sub = item.layout()
+            if sub is not None and isinstance(sub, (QVBoxLayout, QHBoxLayout)):
+                _clear_layout(sub)

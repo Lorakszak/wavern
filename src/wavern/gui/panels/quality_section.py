@@ -1,6 +1,7 @@
 """Format, codec, quality, audio, and GIF settings section for the project settings panel."""
 
 from PySide6.QtCore import Signal
+from PySide6.QtGui import QStandardItemModel
 from PySide6.QtWidgets import (
     QCheckBox,
     QFormLayout,
@@ -22,6 +23,7 @@ from wavern.gui.constants import PRORES_PROFILES, QUALITY_PRESET_DISPLAY
 from wavern.gui.drag_spinbox import DragSpinBox
 from wavern.gui.help_button import make_help_button
 from wavern.gui.no_scroll_combo import NoScrollComboBox
+from wavern.presets.schema import ProjectSettings
 
 
 class QualitySection(QWidget):
@@ -272,7 +274,7 @@ class QualitySection(QWidget):
             "gif_scale": float(self._gif_scale_spin.value()),
         }
 
-    def reset(self, defaults: object) -> None:
+    def reset(self, defaults: ProjectSettings) -> None:
         """Reset all widgets to default values.
 
         Args:
@@ -342,6 +344,7 @@ class QualitySection(QWidget):
         for i in range(self._format_combo.count()):
             fmt = self._format_combo.itemText(i)
             item_model = self._format_combo.model()
+            assert isinstance(item_model, QStandardItemModel)
             item = item_model.item(i)
             if enabled and fmt not in alpha_containers:
                 item.setEnabled(False)
@@ -512,15 +515,25 @@ class QualitySection(QWidget):
         """Show/hide all widgets in the same form layout row as target_widget."""
         for i in range(self._form.rowCount()):
             item = self._form.itemAt(i, QFormLayout.ItemRole.FieldRole)
-            if item and item.layout():
-                for j in range(item.layout().count()):
-                    w = item.layout().itemAt(j).widget()
-                    if w is target_widget:
-                        for k in range(item.layout().count()):
-                            widget = item.layout().itemAt(k).widget()
-                            if widget:
-                                widget.setVisible(visible)
-                        return
+            if item is None:
+                continue
+            row_layout = item.layout()
+            if row_layout is None:
+                continue
+            for j in range(row_layout.count()):
+                child = row_layout.itemAt(j)
+                if child is None:
+                    continue
+                w = child.widget()
+                if w is target_widget:
+                    for k in range(row_layout.count()):
+                        kchild = row_layout.itemAt(k)
+                        if kchild is None:
+                            continue
+                        widget = kchild.widget()
+                        if widget is not None:
+                            widget.setVisible(visible)
+                    return
 
     # --- Callbacks ---
 

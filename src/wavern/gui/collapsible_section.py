@@ -38,8 +38,11 @@ class CollapsibleSection(QWidget):
         # Clear existing content
         while self._container_layout.count():
             item = self._container_layout.takeAt(0)
-            if item.widget():
-                item.widget().setParent(None)
+            if item is None:
+                break
+            w = item.widget()
+            if w is not None:
+                w.setParent(None)
         self._container_layout.addWidget(widget)
 
     def set_expanded(self, expanded: bool) -> None:

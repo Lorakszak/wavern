@@ -113,7 +113,7 @@ class SidebarWidget(QWidget):
         return self._upper
 
     @property
-    def lower(self) -> _TabPane:
+    def lower(self) -> _TabPane:  # type: ignore[override]
         return self._lower
 
     def add_tab(self, name: str, widget: QWidget) -> int:

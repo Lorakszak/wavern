@@ -52,13 +52,13 @@ class AbstractVisualization(ABC):
     def _set_uniform(prog: moderngl.Program, name: str, value: Any) -> None:
         """Set a uniform value safely, skipping if the uniform was optimized out."""
         if name in prog:
-            prog[name].value = value
+            prog[name].value = value  # type: ignore[reportAttributeAccessIssue]
 
     @staticmethod
     def _write_uniform(prog: moderngl.Program, name: str, data: bytes) -> None:
         """Write raw bytes to a uniform safely, skipping if optimized out."""
         if name in prog:
-            prog[name].write(data)
+            prog[name].write(data)  # type: ignore[reportAttributeAccessIssue]
 
     @abstractmethod
     def initialize(self) -> None:

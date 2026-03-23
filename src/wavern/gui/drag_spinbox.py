@@ -44,7 +44,7 @@ class DragSpinBox(QWidget):
         self._value = minimum
 
         self._dragging = False
-        self._drag_start_x = 0
+        self._drag_start_x: float = 0.0
         self._drag_start_value = 0.0
 
         self.setMinimumHeight(28)

@@ -24,14 +24,16 @@ from wavern.presets.schema import Preset
 logger = logging.getLogger(__name__)
 
 
-def _start_stderr_drain(proc: subprocess.Popen) -> Callable[[], str]:
+def _start_stderr_drain(proc: subprocess.Popen[bytes]) -> Callable[[], str]:
     """Start a daemon thread to drain process stderr, preventing pipe deadlock.
 
     Returns a callable that joins the thread and returns the collected output.
     """
+    assert proc.stderr is not None
+    stderr = proc.stderr
     chunks: list[bytes] = []
     thread = threading.Thread(
-        target=lambda: chunks.append(proc.stderr.read()),
+        target=lambda: chunks.append(stderr.read()),
         daemon=True,
     )
     thread.start()
@@ -116,7 +118,7 @@ def export_gif(
             str(temp_raw),
         ]
 
-        proc = subprocess.Popen(
+        proc: subprocess.Popen[bytes] = subprocess.Popen(
             raw_cmd,
             stdin=subprocess.PIPE,
             stdout=subprocess.DEVNULL,
@@ -129,6 +131,7 @@ def export_gif(
             timeline.total_frames, w, h, gif_w, gif_h,
         )
 
+        assert proc.stdin is not None
         # Render loop
         for frame_idx in range(timeline.total_frames):
             if is_cancelled():

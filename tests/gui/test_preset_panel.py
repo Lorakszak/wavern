@@ -7,9 +7,8 @@ WHAT THIS TESTS:
 Does NOT test: save/delete/rename operations, favorites, or source filter (covered elsewhere)
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import pytest
 
 from wavern.gui.favorites_store import FavoritesStore
 from wavern.gui.preset_panel import PresetPanel

@@ -13,6 +13,7 @@ from wavern.gui.constants import ASPECT_RATIOS, FPS_OPTIONS, RESOLUTION_PRESETS
 from wavern.gui.drag_spinbox import DragSpinBox
 from wavern.gui.help_button import make_help_button
 from wavern.gui.no_scroll_combo import NoScrollComboBox
+from wavern.presets.schema import ProjectSettings
 
 
 class ResolutionSection(QWidget):
@@ -126,7 +127,7 @@ class ResolutionSection(QWidget):
             "fps": int(self._fps_spin.value()),
         }
 
-    def reset(self, defaults: object) -> None:
+    def reset(self, defaults: ProjectSettings) -> None:
         """Reset all widgets to default values.
 
         Args:
@@ -201,7 +202,7 @@ class ResolutionSection(QWidget):
     def _sync_spinboxes_from_combo(self) -> None:
         """Update width/height spinboxes from the resolution combo selection."""
         data = self._res_combo.currentData()
-        if data is None:
+        if not isinstance(data, tuple):
             return
         w, h = data
         self._rebuilding = True
@@ -221,7 +222,7 @@ class ResolutionSection(QWidget):
 
     def _on_fps_combo_changed(self, index: int) -> None:
         fps_val = self._fps_combo.currentData()
-        if fps_val != -1:
+        if isinstance(fps_val, int) and fps_val != -1:
             self._rebuilding = True
             self._fps_spin.setValue(fps_val)
             self._rebuilding = False

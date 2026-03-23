@@ -299,7 +299,7 @@ class ParticlesVisualization(AbstractVisualization):
         self._vbo.write(vbo_data.tobytes())
 
         if "u_resolution" in self._program:
-            self._program["u_resolution"].value = resolution
+            self._program["u_resolution"].value = resolution  # type: ignore[reportAttributeAccessIssue]
         self._vao.render(moderngl.POINTS, vertices=self._active_count)
 
         self.ctx.disable(moderngl.PROGRAM_POINT_SIZE | moderngl.BLEND)
@@ -366,14 +366,6 @@ class ParticlesVisualization(AbstractVisualization):
 
         # --- Update age ---
         active[:, _AGE] += dt
-
-        # --- Audio-reactive size modulation (stored in base_size for VBO build) ---
-        size_reactivity = self.get_param("size_reactivity", 0.3)
-        if size_reactivity > 0.0:
-            bass = frame.frequency_bands_norm.get("bass", 0.0)
-            # Temporarily inflate base_size won't compound — we re-derive in VBO build
-            # So we store original base_size at spawn, and apply multiplier in render()
-            pass  # handled in render() via computed_size — see note below
 
         # --- Remove dead particles ---
         alive_mask = (

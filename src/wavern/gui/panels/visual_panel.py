@@ -74,8 +74,10 @@ class VisualPanel(QWidget):
 
         while self._content_layout.count():
             item = self._content_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+            assert item is not None
+            w = item.widget()
+            if w is not None:
+                w.deleteLater()
 
         # --- Visualization (type + parameters) ---
         self._viz_section = CollapsibleSection("Visualization")
@@ -190,6 +192,10 @@ class VisualPanel(QWidget):
         self._viz_combo.blockSignals(False)
 
         # Delegate to sections
+        assert self._param_section is not None
+        assert self._color_section_widget is not None
+        assert self._bg_section_widget is not None
+        assert self._overlay_section_widget is not None
         self._param_section.update_values(preset.visualization.params)
         self._color_section_widget.update_values(preset.color_palette)
         self._bg_section_widget.update_values(preset.background)
@@ -250,6 +256,7 @@ class VisualPanel(QWidget):
         self._preset.visualization = VisualizationParams(
             visualization_type=new_type, params=restored,
         )
+        assert self._param_section is not None
         self._param_section.build(new_type, restored)
         self._emit_update()
 
@@ -262,6 +269,7 @@ class VisualPanel(QWidget):
         self._preset.visualization = VisualizationParams(
             visualization_type=current_type, params={},
         )
+        assert self._param_section is not None
         self._param_section.build(current_type, {})
         self._emit_update()
 

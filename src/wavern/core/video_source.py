@@ -19,8 +19,8 @@ class VideoSource:
 
     def __init__(self, video_path: str | Path) -> None:
         self._path = Path(video_path)
-        self._container: av.container.InputContainer | None = None
-        self._stream: av.video.stream.VideoStream | None = None
+        self._container: av.container.InputContainer | None = None  # type: ignore[reportAttributeAccessIssue]
+        self._stream: av.video.stream.VideoStream | None = None  # type: ignore[reportAttributeAccessIssue]
         self._duration: float = 0.0
         self._size: tuple[int, int] = (0, 0)
         self._fps: float = 30.0
@@ -34,7 +34,9 @@ class VideoSource:
             self.close()
 
         self._container = av.open(str(self._path))
+        assert self._container is not None
         self._stream = self._container.streams.video[0]
+        assert self._stream is not None
         self._stream.thread_type = "AUTO"
 
         # Extract metadata
@@ -151,11 +153,11 @@ class VideoSource:
                 best_frame = frame
                 if frame.pts is not None and frame.pts >= target_pts:
                     break
-        except av.error.EOFError:
+        except av.error.EOFError:  # type: ignore[reportAttributeAccessIssue]
             pass
 
         if best_frame is not None:
-            arr = best_frame.to_ndarray(format="rgba")
+            arr: NDArray[np.uint8] = best_frame.to_ndarray(format="rgba").astype(np.uint8)
             # Flip vertically: video decoders produce top-down rows but
             # OpenGL textures expect bottom-up (origin at bottom-left).
             arr = np.flipud(arr).copy()

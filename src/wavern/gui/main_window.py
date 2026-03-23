@@ -2,11 +2,11 @@
 
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtGui import QAction, QIcon, QPixmap
 from PySide6.QtWidgets import QApplication
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -34,7 +34,7 @@ from wavern.gui.sidebar import SidebarWidget
 from wavern.gui.theme_manager import ThemeManager
 from wavern.gui.transport_bar import TransportBar
 from wavern.presets.manager import PresetManager
-from wavern.presets.schema import Preset, VisualizationParams
+from wavern.presets.schema import BackgroundConfig, Preset, VisualizationParams
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ DEFAULT_PRESET = Preset(
         params={"bar_count": 64, "mirror": True},
     ),
     color_palette=["#00FFAA", "#FF00AA", "#FFAA00"],
-    background={"type": "solid", "color": "#0A0A0F"},
+    background=BackgroundConfig(type="solid", color="#0A0A0F"),
 )
 
 
@@ -78,6 +78,8 @@ class MainWindow(QMainWindow):
 
         self._bg_type: str = ""  # last known background type
         self._was_maximized: bool = False  # state before entering fullscreen
+        self._left_panels: dict[str, Any] = {}
+        self._right_panels: dict[str, Any] = {}
 
         # Shared viz memory between both sidebars' VisualPanels
         self._viz_memory: dict[str, dict[str, Any]] = {}
@@ -121,7 +123,9 @@ class MainWindow(QMainWindow):
             on_cycle_viz=self._cycle_viz,
             on_cycle_viz_reverse=self._cycle_viz_reverse,
         )
-        QApplication.instance().installEventFilter(self._keyboard_handler)
+        app_instance = QApplication.instance()
+        assert app_instance is not None
+        app_instance.installEventFilter(self._keyboard_handler)
 
         # Load audio if provided
         if audio_path:
@@ -286,12 +290,16 @@ class MainWindow(QMainWindow):
         self._left_split_btn = QPushButton("Split Sidebar")
         self._left_split_btn.setObjectName("SidebarSplitToggle")
         self._left_split_btn.clicked.connect(self._toggle_split_left)
-        self._left_sidebar.layout().addWidget(self._left_split_btn)
+        left_sidebar_layout = self._left_sidebar.layout()
+        assert left_sidebar_layout is not None
+        left_sidebar_layout.addWidget(self._left_split_btn)
 
         self._right_split_btn = QPushButton("Split Sidebar")
         self._right_split_btn.setObjectName("SidebarSplitToggle")
         self._right_split_btn.clicked.connect(self._toggle_split_right)
-        self._right_sidebar.layout().addWidget(self._right_split_btn)
+        right_sidebar_layout = self._right_sidebar.layout()
+        assert right_sidebar_layout is not None
+        right_sidebar_layout.addWidget(self._right_split_btn)
 
         # Center area (GL preview + transport)
         center = QWidget()
@@ -577,10 +585,10 @@ class MainWindow(QMainWindow):
         action = self.sender()
         if action is None:
             return
-        theme_name = action.data()
+        theme_name = str(cast(QAction, action).data())
         app = QApplication.instance()
         if app is not None:
-            self._theme_manager.apply(app, theme_name)
+            self._theme_manager.apply(cast(QApplication, app), theme_name)
             self._theme_manager.save_preference(theme_name)
 
     def _on_viz_shortcut(self) -> None:
@@ -588,7 +596,7 @@ class MainWindow(QMainWindow):
         action = self.sender()
         if action is None:
             return
-        index = action.data()
+        index = cast(QAction, action).data()
         self._visual_panel.set_viz_by_index(index)
 
     def _cycle_viz(self) -> None:
@@ -601,7 +609,9 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:
         """Cleanup on window close."""
-        QApplication.instance().removeEventFilter(self._keyboard_handler)
+        close_app = QApplication.instance()
+        assert close_app is not None
+        close_app.removeEventFilter(self._keyboard_handler)
         self._player.stop()
         self._gl_widget.stop_preview()
         self._gl_widget.cleanup()

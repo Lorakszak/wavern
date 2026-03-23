@@ -24,14 +24,16 @@ __all__ = ["ExportConfig", "ExportPipeline"]
 logger = logging.getLogger(__name__)
 
 
-def _start_stderr_drain(proc: subprocess.Popen) -> Callable[[], str]:
+def _start_stderr_drain(proc: subprocess.Popen[bytes]) -> Callable[[], str]:
     """Start a daemon thread to drain process stderr, preventing pipe deadlock.
 
     Returns a callable that joins the thread and returns the collected output.
     """
+    assert proc.stderr is not None
+    stderr = proc.stderr
     chunks: list[bytes] = []
     thread = threading.Thread(
-        target=lambda: chunks.append(proc.stderr.read()),
+        target=lambda: chunks.append(stderr.read()),
         daemon=True,
     )
     thread.start()
@@ -148,7 +150,7 @@ class ExportPipeline:
                 input_pix_fmt, output_pix_fmt, temp_video,
             )
 
-            proc = subprocess.Popen(
+            proc: subprocess.Popen[bytes] = subprocess.Popen(
                 ffmpeg_cmd,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.DEVNULL,
@@ -178,6 +180,7 @@ class ExportPipeline:
                     raise
 
             if not hw_failed:
+                assert proc.stdin is not None
                 proc.stdin.close()
                 self._wait_for_process(proc)
 
@@ -219,7 +222,7 @@ class ExportPipeline:
 
                 logger.info("Retrying with software encoder: %s", self._config.video_codec)
 
-                proc = subprocess.Popen(
+                proc = subprocess.Popen(  # type: ignore[assignment]
                     ffmpeg_cmd,
                     stdin=subprocess.PIPE,
                     stdout=subprocess.DEVNULL,
@@ -229,6 +232,7 @@ class ExportPipeline:
                 get_stderr = _start_stderr_drain(proc)
 
                 self._render_frames(renderer, analyzer, timeline, fbo, proc, components)
+                assert proc.stdin is not None
                 proc.stdin.close()
                 self._wait_for_process(proc)
 
@@ -255,11 +259,12 @@ class ExportPipeline:
         renderer: Renderer,
         analyzer: AudioAnalyzer,
         timeline: Timeline,
-        fbo: object,
-        proc: subprocess.Popen,
+        fbo: moderngl.Framebuffer,
+        proc: subprocess.Popen[bytes],
         components: int,
     ) -> None:
         """Render all frames and pipe to ffmpeg process."""
+        assert proc.stdin is not None
         for frame_idx in range(timeline.total_frames):
             if self._cancelled.is_set():
                 proc.kill()
@@ -282,7 +287,7 @@ class ExportPipeline:
                 progress = (frame_idx + 1) / timeline.total_frames
                 self._progress_callback(progress)
 
-    def _wait_for_process(self, proc: subprocess.Popen) -> None:
+    def _wait_for_process(self, proc: subprocess.Popen[bytes]) -> None:
         """Wait for ffmpeg process, checking for cancellation."""
         while proc.poll() is None:
             if self._cancelled.is_set():

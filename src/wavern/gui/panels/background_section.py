@@ -16,6 +16,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from typing import cast
+
 from wavern.gui.background_picker import open_background_image
 from wavern.gui.drag_spinbox import DragSpinBox
 from wavern.gui.help_button import make_help_button
@@ -51,14 +53,19 @@ class BackgroundSection(QWidget):
         # Clear existing content
         while self._layout.count():
             item = self._layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-            elif item.layout():
+            assert item is not None
+            w = item.widget()
+            if w is not None:
+                w.deleteLater()
+            else:
                 sub = item.layout()
-                while sub.count():
-                    sub_item = sub.takeAt(0)
-                    if sub_item.widget():
-                        sub_item.widget().deleteLater()
+                if sub is not None:
+                    while sub.count():
+                        sub_item = sub.takeAt(0)
+                        assert sub_item is not None
+                        sw = sub_item.widget()
+                        if sw is not None:
+                            sw.deleteLater()
 
         bg_content = QWidget()
         self._bg_layout = QFormLayout(bg_content)
@@ -104,7 +111,7 @@ class BackgroundSection(QWidget):
                         f"background-color: {stop.color};"
                         " border: 1px solid #555;"
                     )
-                    pos_spin = stop_widgets["pos_spin"]
+                    pos_spin = cast(DragSpinBox, stop_widgets["pos_spin"])
                     pos_spin.blockSignals(True)
                     pos_spin.setValue(stop.position)
                     pos_spin.blockSignals(False)
@@ -161,14 +168,19 @@ class BackgroundSection(QWidget):
         layout = self._bg_type_container_layout
         while layout.count():
             item = layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-            elif item.layout():
+            assert item is not None
+            w = item.widget()
+            if w is not None:
+                w.deleteLater()
+            else:
                 sub = item.layout()
-                while sub.count():
-                    sub_item = sub.takeAt(0)
-                    if sub_item.widget():
-                        sub_item.widget().deleteLater()
+                if sub is not None:
+                    while sub.count():
+                        sub_item = sub.takeAt(0)
+                        assert sub_item is not None
+                        sw = sub_item.widget()
+                        if sw is not None:
+                            sw.deleteLater()
 
         if bg.type == "solid":
             self._bg_color_btn = QPushButton()

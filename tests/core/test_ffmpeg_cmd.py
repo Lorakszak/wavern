@@ -9,7 +9,6 @@ Does NOT test: actual ffmpeg execution or GPU encoder availability
 
 from pathlib import Path
 
-import pytest
 
 from wavern.core.export_config import ExportConfig
 from wavern.core.ffmpeg_cmd import build_ffmpeg_cmd

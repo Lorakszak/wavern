@@ -53,14 +53,19 @@ class ParamSection(QWidget):
 
         while self._params_layout.count():
             item = self._params_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-            elif item.layout():
+            assert item is not None
+            w = item.widget()
+            if w is not None:
+                w.deleteLater()
+            else:
                 sub = item.layout()
-                while sub.count():
-                    sub_item = sub.takeAt(0)
-                    if sub_item.widget():
-                        sub_item.widget().deleteLater()
+                if sub is not None:
+                    while sub.count():
+                        sub_item = sub.takeAt(0)
+                        assert sub_item is not None
+                        sw = sub_item.widget()
+                        if sw is not None:
+                            sw.deleteLater()
 
         registry = VisualizationRegistry()
         try:

@@ -142,6 +142,8 @@ class GLPreviewWidget(QOpenGLWidget):
         """Lazily compile the checkerboard shader and build the fullscreen quad VAO."""
         if self._checker_program is not None:
             return
+        if self._ctx is None:
+            return
 
         vert_src = load_shader("common.vert")
         frag_src = load_shader("checkerboard.frag")
@@ -173,6 +175,8 @@ class GLPreviewWidget(QOpenGLWidget):
         clearing the framebuffer.
         """
         self._ensure_checker_quad()
+        if self._ctx is None or self._checker_program is None or self._checker_vao is None:
+            return
         fbo.use()
         self._ctx.viewport = (0, 0, resolution[0], resolution[1])
         # Destination-over blend: src_factor=ONE_MINUS_DST_ALPHA, dst_factor=ONE
@@ -181,7 +185,7 @@ class GLPreviewWidget(QOpenGLWidget):
         # Tile size in UV space: ~0.04 gives ~20px tiles on a 500px canvas
         tile_size = 0.04
         if "u_tile_size" in self._checker_program:
-            self._checker_program["u_tile_size"].value = tile_size
+            self._checker_program["u_tile_size"].value = tile_size  # type: ignore[reportAttributeAccessIssue]
         self._checker_vao.render(moderngl.TRIANGLE_STRIP)
         # Restore standard blend state — renderer relies on BLEND staying enabled
         # across frames (it only enables it, never disables). Using dest-over above

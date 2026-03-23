@@ -2,9 +2,13 @@
 
 import logging
 import math
+from collections.abc import Callable
+from typing import Any
 
 import moderngl
 from PIL import Image
+
+from wavern.core.audio_analyzer import FrameAnalysis
 
 logger = logging.getLogger(__name__)
 
@@ -72,9 +76,9 @@ class ImageTextureMixin:
     def _bind_image_uniforms(
         self,
         prog: moderngl.Program,
-        frame: object,
-        get_param: object,
-        _set_uniform: object,
+        frame: FrameAnalysis,
+        get_param: Callable[..., Any],
+        _set_uniform: Callable[..., None],
         ctx: moderngl.Context,
     ) -> None:
         """Upload all image-related uniforms. Call before vao.render()."""
@@ -86,6 +90,7 @@ class ImageTextureMixin:
         _set_uniform(prog, "u_image_enabled", 1 if has_image else 0)
 
         tex = self._image_texture if has_image else self._fallback_texture
+        assert tex is not None
         tex.use(location=1)
         _set_uniform(prog, "u_image_tex", 1)
 

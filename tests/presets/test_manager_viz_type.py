@@ -7,7 +7,6 @@ WHAT THIS TESTS:
 Does NOT test: full pydantic Preset validation, built-in preset loading
 """
 
-import json
 
 import pytest
 

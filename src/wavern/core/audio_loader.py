@@ -108,7 +108,7 @@ class AudioLoader:
         import soundfile as sf
 
         audio, sr = sf.read(file_path, dtype="float32")
-        return audio, sr
+        return audio.astype(np.float32), sr
 
     @staticmethod
     def _load_pydub_fallback(file_path: str) -> tuple[NDArray[np.float32], int]:

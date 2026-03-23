@@ -99,7 +99,7 @@ class PresetPanel(QWidget):
 
         # Restore persisted viz type filter
         settings = QSettings("wavern", "wavern")
-        saved_viz_type = settings.value("preset_panel/viz_type_filter", "")
+        saved_viz_type = str(settings.value("preset_panel/viz_type_filter", ""))
         if saved_viz_type:
             idx = self._viz_combo.findData(saved_viz_type)
             if idx >= 0:
@@ -113,7 +113,7 @@ class PresetPanel(QWidget):
         size_row.setSpacing(2)
 
         settings = QSettings("wavern", "wavern")
-        saved_size = settings.value("preset_item_size", "M")
+        saved_size = str(settings.value("preset_item_size", "M"))
         if saved_size not in _SIZE_HEIGHTS:
             saved_size = "M"
 

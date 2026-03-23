@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, cast
 
 from PySide6.QtCore import QEvent, QObject, Qt
+from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import QAbstractSpinBox, QApplication, QLineEdit
 
 if TYPE_CHECKING:
@@ -52,8 +53,9 @@ class KeyboardHandler(QObject):
         if event.type() != QEvent.Type.KeyPress:
             return super().eventFilter(obj, event)
 
-        key = event.key()
-        mods = event.modifiers()
+        key_event = cast(QKeyEvent, event)
+        key = key_event.key()
+        mods = key_event.modifiers()
 
         focused = QApplication.focusWidget()
         input_focused = isinstance(focused, (QAbstractSpinBox, QLineEdit))

@@ -156,11 +156,11 @@ def _load_font(
             axes = font.get_variation_axes()
             axis_values = []
             for axis in axes:
-                if axis["tag"] == "wght":
+                if axis["tag"] == "wght":  # type: ignore[reportGeneralTypeIssues]
                     axis_values.append(700)  # Bold weight
-                elif axis["tag"] == "opsz":
+                elif axis["tag"] == "opsz":  # type: ignore[reportGeneralTypeIssues]
                     axis_values.append(axis.get("default", 14))
-                elif axis["tag"] == "wdth":
+                elif axis["tag"] == "wdth":  # type: ignore[reportGeneralTypeIssues]
                     axis_values.append(axis.get("default", 100))
                 else:
                     axis_values.append(axis.get("default", axis["minimum"]))

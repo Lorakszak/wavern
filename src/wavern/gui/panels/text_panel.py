@@ -50,8 +50,10 @@ class TextPanel(QWidget):
 
         while self._content_layout.count():
             item = self._content_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+            assert item is not None
+            w = item.widget()
+            if w is not None:
+                w.deleteLater()
 
         self._overlay_section = CollapsibleSection("Overlay")
         self._build_overlay_section(preset)

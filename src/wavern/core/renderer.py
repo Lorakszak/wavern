@@ -214,17 +214,17 @@ class Renderer:
             return
         mv_type = self._MOVEMENT_TYPE_MAP.get(movement.type, 0)
         if "u_time" in prog:
-            prog["u_time"].value = timestamp
+            prog["u_time"].value = timestamp  # type: ignore[reportAttributeAccessIssue]
         if "u_movement_type" in prog:
-            prog["u_movement_type"].value = mv_type
+            prog["u_movement_type"].value = mv_type  # type: ignore[reportAttributeAccessIssue]
         if "u_movement_speed" in prog:
-            prog["u_movement_speed"].value = movement.speed
+            prog["u_movement_speed"].value = movement.speed  # type: ignore[reportAttributeAccessIssue]
         if "u_movement_intensity" in prog:
-            prog["u_movement_intensity"].value = movement.intensity
+            prog["u_movement_intensity"].value = movement.intensity  # type: ignore[reportAttributeAccessIssue]
         if "u_movement_angle" in prog:
-            prog["u_movement_angle"].value = math.radians(movement.angle)
+            prog["u_movement_angle"].value = math.radians(movement.angle)  # type: ignore[reportAttributeAccessIssue]
         if "u_clamp_to_frame" in prog:
-            prog["u_clamp_to_frame"].value = int(movement.clamp_to_frame)
+            prog["u_clamp_to_frame"].value = int(movement.clamp_to_frame)  # type: ignore[reportAttributeAccessIssue]
 
     def _render_bg_quad(self, fbo: moderngl.Framebuffer, frame: FrameAnalysis) -> None:
         """Render the background texture as a fullscreen quad."""
@@ -237,7 +237,7 @@ class Renderer:
             self._bg_texture.write(frame_data.tobytes())
 
         self._bg_texture.use(location=0)
-        self._bg_program["u_background"].value = 0
+        self._bg_program["u_background"].value = 0  # type: ignore[reportAttributeAccessIssue]
 
         # Set transform and movement uniforms
         if self._preset is not None:
@@ -246,12 +246,12 @@ class Renderer:
             self._set_bg_movement_uniforms(movement, frame.timestamp)
 
             # Transform uniforms (rotation, mirror)
-            if "u_rotation" in self._bg_program:
-                self._bg_program["u_rotation"].value = math.radians(bg.rotation)
-            if "u_mirror_x" in self._bg_program:
-                self._bg_program["u_mirror_x"].value = int(bg.mirror_x)
-            if "u_mirror_y" in self._bg_program:
-                self._bg_program["u_mirror_y"].value = int(bg.mirror_y)
+            if "u_rotation" in self._bg_program:  # type: ignore[reportOperatorIssue]
+                self._bg_program["u_rotation"].value = math.radians(bg.rotation)  # type: ignore[reportAttributeAccessIssue]
+            if "u_mirror_x" in self._bg_program:  # type: ignore[reportOperatorIssue]
+                self._bg_program["u_mirror_x"].value = int(bg.mirror_x)  # type: ignore[reportAttributeAccessIssue]
+            if "u_mirror_y" in self._bg_program:  # type: ignore[reportOperatorIssue]
+                self._bg_program["u_mirror_y"].value = int(bg.mirror_y)  # type: ignore[reportAttributeAccessIssue]
 
             # Enable texture repeat for drift (when not clamped)
             if movement.type == "drift" and self._bg_texture is not None:
@@ -292,6 +292,7 @@ class Renderer:
 
         # Update text overlay config
         self._ensure_text_overlay()
+        assert self._text_overlay is not None
         self._text_overlay.update_config(preset.overlay)
 
         # Prepare color data for the visualization
@@ -356,6 +357,7 @@ class Renderer:
 
         # Update text overlay config
         self._ensure_text_overlay()
+        assert self._text_overlay is not None
         self._text_overlay.update_config(preset.overlay)
 
         if self._visualization is not None:
@@ -364,6 +366,7 @@ class Renderer:
     def set_duration(self, total_seconds: float) -> None:
         """Set total audio duration for countdown overlay."""
         self._ensure_text_overlay()
+        assert self._text_overlay is not None
         self._text_overlay.set_duration(total_seconds)
 
     def _ensure_text_overlay(self) -> None:
@@ -504,16 +507,16 @@ class Renderer:
         frame_data = self._overlay_video_source.get_frame(frame.timestamp)
         self._overlay_texture.write(frame_data.tobytes())
         self._overlay_texture.use(location=0)
-        self._overlay_program["u_overlay"].value = 0
+        self._overlay_program["u_overlay"].value = 0  # type: ignore[reportAttributeAccessIssue]
 
         if "u_opacity" in self._overlay_program:
-            self._overlay_program["u_opacity"].value = overlay_cfg.opacity
+            self._overlay_program["u_opacity"].value = overlay_cfg.opacity  # type: ignore[reportAttributeAccessIssue]
         if "u_rotation" in self._overlay_program:
-            self._overlay_program["u_rotation"].value = math.radians(overlay_cfg.rotation)
+            self._overlay_program["u_rotation"].value = math.radians(overlay_cfg.rotation)  # type: ignore[reportAttributeAccessIssue]
         if "u_mirror_x" in self._overlay_program:
-            self._overlay_program["u_mirror_x"].value = int(overlay_cfg.mirror_x)
+            self._overlay_program["u_mirror_x"].value = int(overlay_cfg.mirror_x)  # type: ignore[reportAttributeAccessIssue]
         if "u_mirror_y" in self._overlay_program:
-            self._overlay_program["u_mirror_y"].value = int(overlay_cfg.mirror_y)
+            self._overlay_program["u_mirror_y"].value = int(overlay_cfg.mirror_y)  # type: ignore[reportAttributeAccessIssue]
 
         # Set blend mode
         self.ctx.enable(moderngl.BLEND)
@@ -564,7 +567,8 @@ class Renderer:
             ):
                 return self._offscreen_fbo
             self._offscreen_fbo.release()
-            self._offscreen_texture.release()
+            if self._offscreen_texture is not None:
+                self._offscreen_texture.release()
 
         self._offscreen_texture = self.ctx.texture(resolution, 4)
         self._offscreen_fbo = self.ctx.framebuffer(
