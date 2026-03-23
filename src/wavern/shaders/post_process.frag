@@ -28,7 +28,7 @@ void main() {
             }
         }
 
-        bloom /= total_weight;
+        bloom /= max(total_weight, 0.001);
         color += bloom * u_bloom_intensity;
     }
 

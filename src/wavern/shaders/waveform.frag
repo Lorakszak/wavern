@@ -27,7 +27,7 @@ void main() {
     // Apply transform (offset in screen space, before scale)
     uv -= 0.5;
     uv -= u_offset;
-    uv /= u_scale;
+    uv /= max(u_scale, 0.001);
     float c = cos(u_rotation), s = sin(u_rotation);
     uv = mat2(c, s, -s, c) * uv;
     uv += 0.5;

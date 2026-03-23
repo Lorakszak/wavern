@@ -63,7 +63,8 @@ vec4 compute_bar(vec2 uv, float size_scale) {
     angle = mod(angle + u_time * u_rotation_speed + u_rotation_offset, 2.0 * PI);
 
     // Map angle to bar index
-    float bar_angle = 2.0 * PI / float(u_bar_count);
+    int safe_bar_count = max(u_bar_count, 1);
+    float bar_angle = 2.0 * PI / float(safe_bar_count);
     int bar_idx = int(floor(angle / bar_angle));
     bar_idx = clamp(bar_idx, 0, u_bar_count - 1);
 
@@ -101,8 +102,8 @@ vec4 compute_bar(vec2 uv, float size_scale) {
             if (dx * dx + dy * dy > r * r) return vec4(0.0);
         }
 
-        float t = (dist - scaled_inner) / (outer_radius - scaled_inner);
-        float bar_pos = float(bar_idx) / float(u_bar_count);
+        float t = (dist - scaled_inner) / max(outer_radius - scaled_inner, 0.001);
+        float bar_pos = float(bar_idx) / float(safe_bar_count);
         vec3 color = get_color(bar_pos);
 
         // Fade at edges

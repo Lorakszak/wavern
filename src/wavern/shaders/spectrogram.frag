@@ -121,8 +121,9 @@ void main() {
         return;
     }
 
-    float ring_newest = float(u_write_pos) / float(u_history_length);
-    float ring_oldest = fract(ring_newest + 1.0 / float(u_history_length));
+    float safe_history = max(float(u_history_length), 1.0);
+    float ring_newest = float(u_write_pos) / safe_history;
+    float ring_oldest = fract(ring_newest + 1.0 / safe_history);
 
     // Sample with optional blur (5x5 Gaussian in screen space)
     float value;

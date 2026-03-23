@@ -46,7 +46,8 @@ vec4 compute_bar(vec2 uv, float size_scale) {
         return vec4(0.0);
     }
 
-    float bar_width = 1.0 / float(u_bar_count);
+    int safe_bar_count = max(u_bar_count, 1);
+    float bar_width = 1.0 / float(safe_bar_count);
     float gap = u_bar_spacing;
 
     int bar_index = int(floor(uv.x / bar_width));
@@ -90,15 +91,15 @@ vec4 compute_bar(vec2 uv, float size_scale) {
             float color_t;
             if (u_color_mode == 1) {
                 if (u_height_reference == 1) {
-                    color_t = y / u_max_height;
+                    color_t = y / max(u_max_height, 0.001);
                 } else {
-                    color_t = y / bar_height;
+                    color_t = y / max(bar_height, 0.001);
                 }
             } else {
-                color_t = float(bar_index) / float(u_bar_count);
+                color_t = float(bar_index) / float(safe_bar_count);
             }
             vec3 color = get_bar_color(color_t);
-            float base_intensity = 1.0 - (y / bar_height) * 0.3;
+            float base_intensity = 1.0 - (y / max(bar_height, 0.001)) * 0.3;
             return vec4(color * base_intensity * u_intensity, 1.0);
         }
         return vec4(0.0);
@@ -112,15 +113,15 @@ vec4 compute_bar(vec2 uv, float size_scale) {
             float color_t;
             if (u_color_mode == 1) {
                 if (u_height_reference == 1) {
-                    color_t = y / u_max_height;
+                    color_t = y / max(u_max_height, 0.001);
                 } else {
-                    color_t = y / bar_height;
+                    color_t = y / max(bar_height, 0.001);
                 }
             } else {
-                color_t = float(bar_index) / float(u_bar_count);
+                color_t = float(bar_index) / float(safe_bar_count);
             }
             vec3 color = get_bar_color(color_t);
-            float base_intensity = 0.7 + 0.3 * (y / bar_height);
+            float base_intensity = 0.7 + 0.3 * (y / max(bar_height, 0.001));
             return vec4(color * base_intensity * u_intensity, 1.0);
         }
         return vec4(0.0);
@@ -133,7 +134,7 @@ void main() {
     // Apply transform (offset in screen space, before scale)
     uv -= 0.5;
     uv -= u_offset;
-    uv /= u_scale;
+    uv /= max(u_scale, 0.001);
     float c = cos(u_rotation), s = sin(u_rotation);
     uv = mat2(c, s, -s, c) * uv;
     uv += 0.5;

@@ -244,8 +244,9 @@ void main() {
         edge_dist = 1.0;
     }
 
-    if (edge_dist > -0.008 * u_viz_scale && edge_dist <= 0.0) {
-        float glow_t = 1.0 + edge_dist / (0.008 * u_viz_scale);
+    float safe_scale = max(u_viz_scale, 0.001);
+    if (edge_dist > -0.008 * safe_scale && edge_dist <= 0.0) {
+        float glow_t = 1.0 + edge_dist / (0.008 * safe_scale);
         float ring_glow = u_amplitude * u_glow_intensity * 0.6 * glow_t;
         float perim;
         if (sz - abs(uv.x) < sz - abs(uv.y)) {
