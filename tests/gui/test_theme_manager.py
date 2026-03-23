@@ -13,8 +13,6 @@ from PySide6.QtWidgets import QApplication
 
 from wavern.gui.theme_manager import ThemeManager
 
-_app = QApplication.instance() or QApplication([])
-
 
 class TestThemeManager:
     """Tests for theme listing, application, and preference save/load."""
@@ -30,18 +28,18 @@ class TestThemeManager:
         themes = tm.list_themes()
         assert themes == sorted(themes)
 
-    def test_apply_dark_does_not_crash(self) -> None:
+    def test_apply_dark_does_not_crash(self, qapp: QApplication) -> None:
         tm = ThemeManager()
-        tm.apply(_app, "dark")
+        tm.apply(qapp, "dark")
 
-    def test_apply_all_themes_does_not_crash(self) -> None:
+    def test_apply_all_themes_does_not_crash(self, qapp: QApplication) -> None:
         tm = ThemeManager()
         for theme in tm.list_themes():
-            tm.apply(_app, theme)
+            tm.apply(qapp, theme)
 
-    def test_apply_nonexistent_theme_is_safe(self) -> None:
+    def test_apply_nonexistent_theme_is_safe(self, qapp: QApplication) -> None:
         tm = ThemeManager()
-        tm.apply(_app, "nonexistent_theme_xyz")
+        tm.apply(qapp, "nonexistent_theme_xyz")
 
     def test_save_and_load_preference(self) -> None:
         tm = ThemeManager()
@@ -65,16 +63,16 @@ class TestThemeManager:
         for name, content in tm._cache.items():
             assert isinstance(content, str) and len(content) > 0, f"Empty cache entry for {name!r}"
 
-    def test_apply_same_theme_twice_is_noop(self) -> None:
+    def test_apply_same_theme_twice_is_noop(self, qapp: QApplication) -> None:
         tm = ThemeManager()
-        tm.apply(_app, "dark")
-        stylesheet_after_first = _app.styleSheet()
+        tm.apply(qapp, "dark")
+        stylesheet_after_first = qapp.styleSheet()
         # Applying the same theme again should not change anything
-        tm.apply(_app, "dark")
-        assert _app.styleSheet() == stylesheet_after_first
+        tm.apply(qapp, "dark")
+        assert qapp.styleSheet() == stylesheet_after_first
 
-    def test_current_theme_tracked_after_apply(self) -> None:
+    def test_current_theme_tracked_after_apply(self, qapp: QApplication) -> None:
         tm = ThemeManager()
         assert tm._current_theme is None
-        tm.apply(_app, "nord")
+        tm.apply(qapp, "nord")
         assert tm._current_theme == "nord"

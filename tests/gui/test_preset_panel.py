@@ -10,13 +10,10 @@ Does NOT test: save/delete/rename operations, favorites, or source filter (cover
 from unittest.mock import MagicMock, patch
 
 import pytest
-from PySide6.QtWidgets import QApplication
 
 from wavern.gui.favorites_store import FavoritesStore
 from wavern.gui.preset_panel import PresetPanel
 from wavern.presets.manager import PresetManager
-
-_app = QApplication.instance() or QApplication([])
 
 
 def _make_panel(tmp_path, preset_entries_with_type):

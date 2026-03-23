@@ -9,13 +9,10 @@ Does NOT test: OpenGL rendering, preset file I/O, or sidebar layout
 """
 
 import pytest
-from PySide6.QtWidgets import QApplication
 
 from wavern.gui.panels.visual_panel import VisualPanel
 from wavern.presets.schema import Preset, VisualizationParams
 from wavern.visualizations.registry import VisualizationRegistry
-
-_app = QApplication.instance() or QApplication([])
 
 
 def _get_two_viz_types() -> tuple[str, str]:

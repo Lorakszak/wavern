@@ -22,6 +22,7 @@ from PIL import ImageFont
 logger = logging.getLogger(__name__)
 
 # Track background preload state
+_preload_lock = threading.Lock()
 _preload_thread: threading.Thread | None = None
 _preload_done = threading.Event()
 
@@ -129,19 +130,20 @@ def preload_all_fonts() -> None:
     picks one. Safe to call multiple times — only runs once.
     """
     global _preload_thread
-    if _preload_thread is not None:
-        return
+    with _preload_lock:
+        if _preload_thread is not None:
+            return
 
-    def _worker() -> None:
-        for key, entry in FONT_CATALOG.items():
-            _download_font(entry.filename, entry.url)
-        for filename, url in _BOLD_VARIANTS.values():
-            _download_font(filename, url)
-        _preload_done.set()
-        logger.info("All fonts preloaded")
+        def _worker() -> None:
+            for key, entry in FONT_CATALOG.items():
+                _download_font(entry.filename, entry.url)
+            for filename, url in _BOLD_VARIANTS.values():
+                _download_font(filename, url)
+            _preload_done.set()
+            logger.info("All fonts preloaded")
 
-    _preload_thread = threading.Thread(target=_worker, daemon=True, name="font-preload")
-    _preload_thread.start()
+        _preload_thread = threading.Thread(target=_worker, daemon=True, name="font-preload")
+        _preload_thread.start()
 
 
 def _load_font(

@@ -9,12 +9,8 @@ Does NOT test: mouse drag interaction or keyboard input handling
 """
 
 import pytest
-from PySide6.QtWidgets import QApplication
 
 from wavern.gui.drag_spinbox import DragSpinBox
-
-# Ensure a QApplication exists for widget tests
-_app = QApplication.instance() or QApplication([])
 
 
 class TestDragSpinBox:

@@ -60,7 +60,7 @@ class AudioLoader:
         try:
             audio, sr = AudioLoader._load_soundfile(file_path)
         except Exception:
-            logger.info("soundfile failed for %s, trying pydub fallback", file_path)
+            logger.info("soundfile failed for %s, trying pydub fallback", file_path, exc_info=True)
             try:
                 audio, sr = AudioLoader._load_pydub_fallback(file_path)
             except Exception as e:

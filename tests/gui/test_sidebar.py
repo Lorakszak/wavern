@@ -8,11 +8,9 @@ WHAT THIS TESTS:
 Does NOT test: preset panel content or visual rendering of the sidebar
 """
 
-from PySide6.QtWidgets import QApplication, QLabel
+from PySide6.QtWidgets import QLabel
 
 from wavern.gui.sidebar import SidebarWidget
-
-_app = QApplication.instance() or QApplication([])
 
 
 class TestSidebarWidget:

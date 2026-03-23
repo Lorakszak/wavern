@@ -58,7 +58,9 @@ class FavoritesStore(QObject):
         return set()
 
     def _save(self) -> None:
-        """Persist the current favorites set to disk."""
+        """Persist the current favorites set to disk (atomic write)."""
         self._config_dir.mkdir(parents=True, exist_ok=True)
         payload = {"favorites": sorted(self._favorites)}
-        self._path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        tmp_path = self._path.with_suffix(".tmp")
+        tmp_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        tmp_path.rename(self._path)
