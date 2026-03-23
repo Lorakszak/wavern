@@ -163,4 +163,3 @@ class TransportBar(QWidget):
     def _on_slider_moved(self, value: int) -> None:
         timestamp = (value / 10000.0) * self._duration
         self._time_label.setText(_format_time(timestamp))
-        self.seek_requested.emit(timestamp)
