@@ -427,6 +427,7 @@ class MainWindow(QMainWindow):
 
     def _apply_preset(self, preset: Preset) -> None:
         """Apply a preset to all components across both sidebars."""
+        logger.info("Applying preset: %s (%s)", preset.name, preset.visualization.visualization_type)
         self._gl_widget.set_preset(preset)
 
         for panel in self._all_visual_panels():

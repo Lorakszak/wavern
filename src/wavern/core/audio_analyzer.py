@@ -88,6 +88,10 @@ class AudioAnalyzer:
 
     def configure(self, audio_data: NDArray[np.float32], sample_rate: int) -> None:
         """Prepare analyzer for a specific audio track."""
+        logger.debug(
+            "Configuring analyzer: fft_size=%d, hop_size=%d, smoothing=%.2f",
+            self.fft_size, self.hop_size, self.smoothing_factor,
+        )
         self._audio_data = audio_data
         self._sample_rate = sample_rate
         self._prev_magnitudes = None

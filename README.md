@@ -164,6 +164,10 @@ uv run wavern render audio/song.mp3 \
 ```bash
 uv run wavern list-presets          # show all available presets
 uv run wavern list-visualizations   # show registered visualization types
+uv run wavern -v gui                                  # stream logs to terminal
+uv run wavern --log-level debug gui                   # set specific console log level
+uv run wavern --log-file /tmp/wavern.log gui          # custom log file path
+uv run wavern --file-log-level warning gui            # reduce file log verbosity (default: debug)
 ```
 
 ## Keyboard Shortcuts
@@ -326,6 +330,13 @@ Any format that ffmpeg can decode: MP3, FLAC, WAV, OGG, AAC, M4A, and more. The 
 **Transparent export produces a black background.**
 
 Use `--format webm` (VP9/WebM supports alpha). MP4/H.264 does not support an alpha channel.
+
+**How do I get logs for a bug report?**
+
+Wavern automatically writes detailed logs to `~/.config/wavern/wavern.log`. Attach this file when opening a GitHub issue. To also stream logs to the terminal:
+```bash
+uv run wavern -v gui
+```
 
 **Can I add my own visualizations?**
 

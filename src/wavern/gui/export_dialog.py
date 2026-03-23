@@ -469,6 +469,12 @@ class ExportDialog(QDialog):
         self._progress.setVisible(True)
         self._status_label.setText("Rendering...")
 
+        logger.info(
+            "Export started: %s (%dx%d, %dfps, %s/%s)",
+            output_path, config.resolution[0], config.resolution[1],
+            config.fps, codec_id, container,
+        )
+
         self._worker = ExportWorker(self._audio_path, self._preset, config)
         self._worker.progress.connect(self._on_progress)
         self._worker.finished.connect(self._on_finished)
@@ -490,6 +496,7 @@ class ExportDialog(QDialog):
         self._status_label.setText(f"Rendering... {int(value * 100)}%")
 
     def _on_finished(self, output_path: str) -> None:
+        logger.info("Export completed: %s", output_path)
         self._status_label.setText(f"Done: {output_path}")
         self._export_btn.setEnabled(True)
         msg = QMessageBox(self)

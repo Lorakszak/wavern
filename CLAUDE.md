@@ -33,6 +33,15 @@ Three tools gate every change. Run all three before considering work done:
 - **pyright**: Runs in `standard` mode (configured in `pyproject.toml`). All new code must have type annotations that satisfy pyright.
 - **pytest**: All tests must pass. See [Testing Policy](#testing-policy) for coverage expectations.
 
+## Logging
+
+Centralized in `src/wavern/logging_setup.py`, called from CLI entry points (`cli.py`). Two handlers:
+
+- **Console** (`stderr`): defaults to WARNING for `gui`, INFO for `render`. Use `-v`/`--verbose` to stream all logs to terminal, or `--log-level` for fine-grained control.
+- **File** (`~/.config/wavern/wavern.log`): always DEBUG, rotating 5 MB × 4 files. User-configurable via `--log-file`.
+
+All modules use `logger = logging.getLogger(__name__)`. The `wavern` package logger is configured (not the root logger), so third-party noise is excluded. New modules must follow this pattern — never use `logging.basicConfig()` or `print()` for diagnostics.
+
 ## Architecture
 
 ### Source Layout
@@ -70,6 +79,7 @@ src/wavern/
     text_panel.py, analysis_panel.py, export_panel.py
   gui/themes/     — QSS theme files (dark, light, nord, dracula, gruvbox)
   utils/          — color, math_utils
+  logging_setup.py — centralized logging config (setup_logging, log_startup_banner)
   cli.py          — click CLI entry point
   app.py          — QApplication bootstrap
 ```

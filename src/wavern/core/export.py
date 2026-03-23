@@ -149,6 +149,7 @@ class ExportPipeline:
                 self._config, ffmpeg_bin, w, h,
                 input_pix_fmt, output_pix_fmt, temp_video,
             )
+            logger.debug("ffmpeg command: %s", ffmpeg_cmd)
 
             proc: subprocess.Popen[bytes] = subprocess.Popen(
                 ffmpeg_cmd,
@@ -191,7 +192,9 @@ class ExportPipeline:
                             "HW encoder returned error, falling back to software encoding"
                         )
                     else:
-                        raise RuntimeError(f"ffmpeg failed: {get_stderr()}")
+                        stderr_output = get_stderr()
+                        logger.error("ffmpeg failed with stderr: %s", stderr_output)
+                        raise RuntimeError(f"ffmpeg failed: {stderr_output}")
 
             # Fallback: re-render with software encoding
             if hw_failed:
@@ -237,7 +240,9 @@ class ExportPipeline:
                 self._wait_for_process(proc)
 
                 if proc.returncode != 0:
-                    raise RuntimeError(f"ffmpeg failed: {get_stderr()}")
+                    stderr_output = get_stderr()
+                    logger.error("ffmpeg software fallback failed: %s", stderr_output)
+                    raise RuntimeError(f"ffmpeg failed: {stderr_output}")
 
             self._mux_audio(ffmpeg_bin, temp_video, self._audio_path,
                             self._config.output_path)
@@ -283,6 +288,8 @@ class ExportPipeline:
             )
             proc.stdin.write(pixels.tobytes())
 
+            if frame_idx % 100 == 0:
+                logger.debug("Rendered frame %d/%d", frame_idx, timeline.total_frames)
             if self._progress_callback and frame_idx % 10 == 0:
                 progress = (frame_idx + 1) / timeline.total_frames
                 self._progress_callback(progress)

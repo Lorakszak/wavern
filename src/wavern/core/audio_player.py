@@ -69,6 +69,7 @@ class AudioPlayer:
             blocksize=1024,
         )
         self._stream.start()
+        logger.debug("Audio stream started: %dHz, blocksize=1024", self._sample_rate)
 
     def pause(self) -> None:
         """Pause playback."""
@@ -86,6 +87,7 @@ class AudioPlayer:
             self._stream.stop()
             self._stream.close()
             self._stream = None
+            logger.debug("Audio stream stopped")
 
     def seek(self, timestamp: float) -> None:
         """Seek to a specific time in seconds."""

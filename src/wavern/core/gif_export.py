@@ -167,14 +167,17 @@ def export_gif(
             raise RuntimeError(f"ffmpeg raw render failed: {get_stderr()}")
 
         # Step 2: Generate palette
+        logger.debug("Raw render complete, generating palette")
         palette_cmd = [
             ffmpeg_bin, "-y",
             "-i", str(temp_raw),
             "-vf", f"palettegen=max_colors={config.gif_max_colors}",
             str(palette_path),
         ]
+        logger.debug("Palette command: %s", palette_cmd)
         result = subprocess.run(palette_cmd, capture_output=True, timeout=300)
         if result.returncode != 0:
+            logger.error("Palette generation failed: %s", result.stderr.decode())
             raise RuntimeError(f"GIF palette generation failed: {result.stderr.decode()}")
 
         # Step 3: Apply palette and produce GIF
@@ -187,8 +190,10 @@ def export_gif(
             "-loop", str(config.gif_loop),
             str(config.output_path),
         ]
+        logger.debug("GIF encode command: %s", gif_cmd)
         result = subprocess.run(gif_cmd, capture_output=True, timeout=300)
         if result.returncode != 0:
+            logger.error("GIF encoding failed: %s", result.stderr.decode())
             raise RuntimeError(f"GIF encoding failed: {result.stderr.decode()}")
 
         if progress_callback:

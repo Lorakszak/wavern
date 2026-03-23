@@ -89,4 +89,5 @@ See `src/wavern/visualizations/spectrum_bars.py` as a reference implementation (
 Use the GitHub issue templates:
 
 - **Bug report** — [open a bug](https://github.com/Lorakszak/wavern/issues/new?template=bug_report.yml)
+  - Please attach `~/.config/wavern/wavern.log` with your bug report. Run with `--log-level debug` to capture maximum detail.
 - **Feature request** — [open a feature request](https://github.com/Lorakszak/wavern/issues/new?template=feature_request.yml)
