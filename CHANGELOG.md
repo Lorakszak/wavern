@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Centralized logging system: rotating file log at `~/.config/wavern/wavern.log`, `--log-level` and `--log-file` CLI flags, startup diagnostics banner, comprehensive debug logging across core/GUI/visualization modules
+
 - 3 new visualizations: Lissajous (Alpha), Radial Waveform (Alpha), Spectrogram (Alpha)
   - Lissajous: phase-portrait (X=waveform[i], Y=waveform[i+delay]), rotational symmetry 1–8, beat-reactive glow
   - Radial Waveform: time-domain waveform wrapped around a circle with optional center image, mirror modes, beat-reactive pulse

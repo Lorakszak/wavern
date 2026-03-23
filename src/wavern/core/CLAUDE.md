@@ -32,6 +32,9 @@ contract. All visualizations receive it — never pass raw audio arrays to rende
 
 Never add Qt imports or GUI awareness to any file in this directory.
 
+## Logging Pattern
+All core modules use `logger = logging.getLogger(__name__)`. Never use `print()` or `logging.basicConfig()`. The centralized setup in `src/wavern/logging_setup.py` handles handler configuration.
+
 ## Safe Uniform Setting
 GLSL compilers strip unused uniforms. Always use:
 - `self._set_uniform(prog, name, value)` — sets a scalar/vector uniform safely
