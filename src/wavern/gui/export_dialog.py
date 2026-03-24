@@ -1,6 +1,7 @@
 """Export settings dialog — resolution, format, codec, quality."""
 
 import logging
+import time
 from pathlib import Path
 
 from PySide6.QtCore import QUrl
@@ -475,6 +476,7 @@ class ExportDialog(QDialog):
             config.fps, codec_id, container,
         )
 
+        self._export_start_time = time.monotonic()
         self._worker = ExportWorker(self._audio_path, self._preset, config)
         self._worker.progress.connect(self._on_progress)
         self._worker.finished.connect(self._on_finished)
@@ -496,12 +498,18 @@ class ExportDialog(QDialog):
         self._status_label.setText(f"Rendering... {int(value * 100)}%")
 
     def _on_finished(self, output_path: str) -> None:
-        logger.info("Export completed: %s", output_path)
+        elapsed = time.monotonic() - self._export_start_time
+        minutes, seconds = divmod(int(elapsed), 60)
+        if minutes > 0:
+            time_str = f"{minutes}m {seconds}s"
+        else:
+            time_str = f"{seconds}s"
+        logger.info("Export completed in %s: %s", time_str, output_path)
         self._status_label.setText(f"Done: {output_path}")
         self._export_btn.setEnabled(True)
         msg = QMessageBox(self)
         msg.setWindowTitle("Render Complete")
-        msg.setText(f"Video saved to:\n{output_path}")
+        msg.setText(f"Video saved to:\n{output_path}\n\nRender time: {time_str}")
         msg.addButton(QMessageBox.StandardButton.Ok)
         open_btn = msg.addButton("Open Directory", QMessageBox.ButtonRole.ActionRole)
         msg.exec()
