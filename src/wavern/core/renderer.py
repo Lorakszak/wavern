@@ -161,6 +161,10 @@ class Renderer:
 
     def _update_bg_texture(self, bg: BackgroundConfig) -> None:
         """Create or update the background texture based on config."""
+        logger.debug(
+            "Updating bg texture: type=%s, image_path=%s, video_path=%s",
+            bg.type, bg.image_path, bg.video_path,
+        )
         if bg.type == "gradient":
             self._release_bg_texture()
             self._close_video_source()
@@ -178,10 +182,15 @@ class Renderer:
                     self._bg_texture = self.ctx.texture(img.size, 4, img.tobytes())
                     self._bg_texture.filter = (moderngl.LINEAR, moderngl.LINEAR)
                     self._bg_image_path = bg.image_path
+                    logger.debug(
+                        "Loaded bg image: %s, texture size=%s",
+                        bg.image_path, self._bg_texture.size,
+                    )
                 except Exception as e:
                     logger.error("Failed to load background image %s: %s", bg.image_path, e)
                     self._bg_texture = None
             elif not bg.image_path:
+                logger.debug("No image_path set — releasing bg texture")
                 self._release_bg_texture()
 
         elif bg.type == "video":
@@ -410,13 +419,14 @@ class Renderer:
         if self._bg_texture is not None and not skip_bg:
             self._render_bg_quad(fbo, frame)
 
-        # Enable blending for transparent compositing
-        if self._bg_color[3] < 1.0:
-            self.ctx.enable(moderngl.BLEND)
-            self.ctx.blend_func = (
-                moderngl.SRC_ALPHA,
-                moderngl.ONE_MINUS_SRC_ALPHA,
-            )
+        # Enable blending so visualization transparent pixels don't overwrite
+        # the background. All visualization shaders output alpha=0 for empty
+        # areas, which requires blending to composite correctly.
+        self.ctx.enable(moderngl.BLEND)
+        self.ctx.blend_func = (
+            moderngl.SRC_ALPHA,
+            moderngl.ONE_MINUS_SRC_ALPHA,
+        )
 
         # Render visualization
         if self._visualization is not None:
