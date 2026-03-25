@@ -163,4 +163,7 @@ class Preset(BaseModel):
     smoothing: float = Field(default=0.3, ge=0.0, le=0.99)
     beat_sensitivity: float = Field(default=1.0, ge=0.1, le=5.0)
 
+    fade_in: float = Field(default=0.0, ge=0.0, le=30.0, description="Fade-in duration in seconds")
+    fade_out: float = Field(default=0.0, ge=0.0, le=30.0, description="Fade-out duration in seconds")
+
     fps: int = Field(default=60, ge=24, le=144)

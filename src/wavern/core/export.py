@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Callable
 
 import moderngl
+import numpy as np
 
 from wavern.core.audio_analyzer import AudioAnalyzer
 from wavern.core.audio_loader import AudioLoader
@@ -19,9 +20,31 @@ from wavern.core.renderer import Renderer
 from wavern.core.timeline import Timeline
 from wavern.presets.schema import Preset
 
-__all__ = ["ExportConfig", "ExportPipeline"]
+__all__ = ["ExportConfig", "ExportPipeline", "compute_fade_factor"]
 
 logger = logging.getLogger(__name__)
+
+
+def compute_fade_factor(
+    timestamp: float, duration: float, fade_in: float, fade_out: float
+) -> float:
+    """Compute opacity multiplier (0.0-1.0) for fade-in/out at a given timestamp.
+
+    Args:
+        timestamp: Current position in seconds.
+        duration: Total duration in seconds.
+        fade_in: Fade-in duration in seconds (0 = no fade-in).
+        fade_out: Fade-out duration in seconds (0 = no fade-out).
+
+    Returns:
+        A factor between 0.0 and 1.0 to multiply pixel values by.
+    """
+    factor = 1.0
+    if fade_in > 0.0 and timestamp < fade_in:
+        factor = min(factor, timestamp / fade_in)
+    if fade_out > 0.0 and timestamp > duration - fade_out:
+        factor = min(factor, (duration - timestamp) / fade_out)
+    return max(0.0, min(1.0, factor))
 
 
 def _start_stderr_drain(proc: subprocess.Popen[bytes]) -> Callable[[], str]:
@@ -270,6 +293,10 @@ class ExportPipeline:
     ) -> None:
         """Render all frames and pipe to ffmpeg process."""
         assert proc.stdin is not None
+        fade_in = self._preset.fade_in
+        fade_out = self._preset.fade_out
+        has_fade = fade_in > 0.0 or fade_out > 0.0
+
         for frame_idx in range(timeline.total_frames):
             if self._cancelled.is_set():
                 proc.kill()
@@ -286,6 +313,14 @@ class ExportPipeline:
             pixels = renderer.read_pixels(
                 fbo, self._config.resolution, components=components
             )
+
+            if has_fade:
+                fade = compute_fade_factor(
+                    timestamp, timeline.duration, fade_in, fade_out
+                )
+                if fade < 1.0:
+                    pixels = (pixels.astype(np.float32) * fade).astype(np.uint8)
+
             proc.stdin.write(pixels.tobytes())
 
             if frame_idx % 100 == 0:

@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Callable
 
 import moderngl
+import numpy as np
 
 from wavern.core.audio_analyzer import AudioAnalyzer
 from wavern.core.audio_loader import AudioLoader
@@ -18,7 +19,6 @@ from wavern.core.renderer import Renderer
 from wavern.core.timeline import Timeline
 
 from wavern.core.export_config import ExportConfig
-
 from wavern.presets.schema import Preset
 
 logger = logging.getLogger(__name__)
@@ -70,7 +70,7 @@ def export_gif(
     Raises:
         RuntimeError: On ffmpeg failure or cancellation.
     """
-    from wavern.core.export import _find_ffmpeg  # avoid circular at module level
+    from wavern.core.export import _find_ffmpeg, compute_fade_factor  # avoid circular at module level
 
     ffmpeg_bin = _find_ffmpeg()
 
@@ -133,6 +133,10 @@ def export_gif(
 
         assert proc.stdin is not None
         # Render loop
+        fade_in = preset.fade_in
+        fade_out = preset.fade_out
+        has_fade = fade_in > 0.0 or fade_out > 0.0
+
         for frame_idx in range(timeline.total_frames):
             if is_cancelled():
                 proc.kill()
@@ -146,6 +150,14 @@ def export_gif(
             frame_analysis = analyzer.analyze_frame(timestamp)
             renderer.render_frame(frame_analysis, fbo, config.resolution)
             pixels = renderer.read_pixels(fbo, config.resolution, components=3)
+
+            if has_fade:
+                fade = compute_fade_factor(
+                    timestamp, timeline.duration, fade_in, fade_out
+                )
+                if fade < 1.0:
+                    pixels = (pixels.astype(np.float32) * fade).astype(np.uint8)
+
             proc.stdin.write(pixels.tobytes())
             if progress_callback and frame_idx % 10 == 0:
                 progress_callback((frame_idx + 1) / timeline.total_frames * 0.5)

@@ -10,6 +10,7 @@ from wavern.gui.collapsible_section import CollapsibleSection
 from wavern.gui.no_scroll_combo import NoScrollComboBox
 from wavern.gui.panels.background_section import BackgroundSection
 from wavern.gui.panels.color_section import ColorSection
+from wavern.gui.panels.fade_section import FadeSection
 from wavern.gui.panels.overlay_section import OverlaySection
 from wavern.gui.panels.param_section import ParamSection
 from wavern.presets.schema import Preset, VisualizationParams
@@ -47,6 +48,7 @@ class VisualPanel(QWidget):
         self._color_section_widget: ColorSection | None = None
         self._bg_section_widget: BackgroundSection | None = None
         self._overlay_section_widget: OverlaySection | None = None
+        self._fade_section_widget: FadeSection | None = None
 
     @property
     def preset(self) -> Preset | None:
@@ -149,6 +151,14 @@ class VisualPanel(QWidget):
         self._overlay_section.set_content(self._overlay_section_widget)
         self._content_layout.addWidget(self._overlay_section)
 
+        # --- Fade ---
+        self._fade_section = CollapsibleSection("Fade")
+        self._fade_section_widget = FadeSection()
+        self._fade_section_widget.fade_changed.connect(self._emit_update)
+        self._fade_section_widget.build(preset)
+        self._fade_section.set_content(self._fade_section_widget)
+        self._content_layout.addWidget(self._fade_section)
+
         self._restore_section_states()
         self._rebuilding = False
 
@@ -196,10 +206,12 @@ class VisualPanel(QWidget):
         assert self._color_section_widget is not None
         assert self._bg_section_widget is not None
         assert self._overlay_section_widget is not None
+        assert self._fade_section_widget is not None
         self._param_section.update_values(preset.visualization.params)
         self._color_section_widget.update_values(preset.color_palette)
         self._bg_section_widget.update_values(preset.background)
         self._overlay_section_widget.update_values(preset.video_overlay)
+        self._fade_section_widget.update_values(preset)
 
         self._rebuilding = False
 
@@ -225,6 +237,7 @@ class VisualPanel(QWidget):
             "Colors": "_color_section",
             "Background": "_bg_section",
             "Video Overlay": "_overlay_section",
+            "Fade": "_fade_section",
         }
         for name, attr in attr_map.items():
             if hasattr(self, attr):
@@ -236,6 +249,7 @@ class VisualPanel(QWidget):
             "Colors": "_color_section",
             "Background": "_bg_section",
             "Video Overlay": "_overlay_section",
+            "Fade": "_fade_section",
         }
         for name, expanded in self._section_states.items():
             attr = attr_map.get(name)
