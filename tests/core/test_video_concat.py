@@ -8,7 +8,9 @@ WHAT THIS TESTS:
 - detect_mismatches() respects 1% fps tolerance (29.97 vs 30)
 - resolve_audio_codec() returns correct codec per container
 - build_concat_cmd() produces valid ffmpeg command structure
+- build_concat_cmd() injects fade/afade filters when fade durations > 0
 - ExportConfig intro/outro fields default to None/True
+- ExportConfig fade fields default to 0.0
 
 Does NOT test: actual ffmpeg execution (see test_concat_integration)
 """
@@ -226,6 +228,78 @@ class TestBuildConcatCmd:
         assert cmd[bv_idx + 1] == "0"
 
 
+class TestBuildConcatCmdFades:
+    """Tests for fade-in/fade-out filter injection in build_concat_cmd."""
+
+    def _target(self) -> ConcatTarget:
+        return ConcatTarget(
+            resolution=(1920, 1080), fps=60, video_codec="libx264",
+            audio_codec="aac", audio_bitrate="192k", pixel_format="yuv420p",
+            container="mp4", crf=18,
+        )
+
+    def test_no_fades_no_fade_filter(self, tmp_path: Path) -> None:
+        """When all fades are 0, no fade/afade filters appear."""
+        cmd = build_concat_cmd(
+            "ffmpeg", [tmp_path / "a.mp4", tmp_path / "b.mp4"],
+            [True, True], [True, True], self._target(), tmp_path / "out.mp4",
+            fade_in_durations=[0.0, 0.0], fade_out_durations=[0.0, 0.0],
+            segment_durations=[5.0, 5.0],
+        )
+        fc = cmd[cmd.index("-filter_complex") + 1]
+        assert "fade=" not in fc
+        assert "afade=" not in fc
+
+    def test_intro_fade_in(self, tmp_path: Path) -> None:
+        """Fade-in on first segment produces fade=t=in filter."""
+        cmd = build_concat_cmd(
+            "ffmpeg", [tmp_path / "intro.mp4", tmp_path / "main.mp4"],
+            [True, True], [True, True], self._target(), tmp_path / "out.mp4",
+            fade_in_durations=[1.5, 0.0], fade_out_durations=[0.0, 0.0],
+            segment_durations=[5.0, 10.0],
+        )
+        fc = cmd[cmd.index("-filter_complex") + 1]
+        assert "fade=t=in:st=0:d=1.5" in fc
+        assert "afade=t=in:st=0:d=1.5" in fc
+
+    def test_outro_fade_out(self, tmp_path: Path) -> None:
+        """Fade-out on second segment produces fade=t=out filter with correct start."""
+        cmd = build_concat_cmd(
+            "ffmpeg", [tmp_path / "main.mp4", tmp_path / "outro.mp4"],
+            [True, True], [True, True], self._target(), tmp_path / "out.mp4",
+            fade_in_durations=[0.0, 0.0], fade_out_durations=[0.0, 2.0],
+            segment_durations=[10.0, 5.0],
+        )
+        fc = cmd[cmd.index("-filter_complex") + 1]
+        # fade-out start = duration - fade_out = 5.0 - 2.0 = 3.0
+        assert "fade=t=out:st=3.0:d=2.0" in fc
+        assert "afade=t=out:st=3.0:d=2.0" in fc
+
+    def test_both_fades_on_segment(self, tmp_path: Path) -> None:
+        """A segment can have both fade-in and fade-out."""
+        cmd = build_concat_cmd(
+            "ffmpeg", [tmp_path / "intro.mp4"],
+            [True], [True], self._target(), tmp_path / "out.mp4",
+            fade_in_durations=[1.0], fade_out_durations=[1.0],
+            segment_durations=[5.0],
+        )
+        fc = cmd[cmd.index("-filter_complex") + 1]
+        assert "fade=t=in:st=0:d=1.0" in fc
+        assert "fade=t=out:st=4.0:d=1.0" in fc
+
+    def test_no_afade_on_silent_segment(self, tmp_path: Path) -> None:
+        """Segments without audio use anullsrc; afade is not applied."""
+        cmd = build_concat_cmd(
+            "ffmpeg", [tmp_path / "silent.mp4"],
+            [True], [False], self._target(), tmp_path / "out.mp4",
+            fade_in_durations=[1.0], fade_out_durations=[0.0],
+            segment_durations=[5.0],
+        )
+        fc = cmd[cmd.index("-filter_complex") + 1]
+        assert "fade=t=in:st=0:d=1.0" in fc
+        assert "afade=" not in fc
+
+
 class TestExportConfigConcatFields:
     def test_defaults_none(self) -> None:
         config = ExportConfig(output_path=Path("/tmp/out.mp4"))
@@ -246,3 +320,23 @@ class TestExportConfigConcatFields:
         assert config.outro_path == Path("/tmp/outro.mp4")
         assert config.intro_keep_audio is False
         assert config.outro_keep_audio is True
+
+    def test_fade_defaults_zero(self) -> None:
+        config = ExportConfig(output_path=Path("/tmp/out.mp4"))
+        assert config.intro_fade_in == 0.0
+        assert config.intro_fade_out == 0.0
+        assert config.outro_fade_in == 0.0
+        assert config.outro_fade_out == 0.0
+
+    def test_fade_fields_settable(self) -> None:
+        config = ExportConfig(
+            output_path=Path("/tmp/out.mp4"),
+            intro_fade_in=1.5,
+            intro_fade_out=2.0,
+            outro_fade_in=0.5,
+            outro_fade_out=3.0,
+        )
+        assert config.intro_fade_in == 1.5
+        assert config.intro_fade_out == 2.0
+        assert config.outro_fade_in == 0.5
+        assert config.outro_fade_out == 3.0

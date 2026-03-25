@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QDialogButtonBox,
+    QDoubleSpinBox,
     QFileDialog,
     QFormLayout,
     QHBoxLayout,
@@ -190,10 +191,14 @@ class ExportDialog(QDialog):
             self._intro_edit.setText(ps.intro_path)
             self._probe_and_show_clip_info(Path(ps.intro_path), self._intro_info_label)
         self._intro_keep_audio.setChecked(ps.intro_keep_audio)
+        self._intro_fade_in.setValue(ps.intro_fade_in)
+        self._intro_fade_out.setValue(ps.intro_fade_out)
         if ps.outro_path:
             self._outro_edit.setText(ps.outro_path)
             self._probe_and_show_clip_info(Path(ps.outro_path), self._outro_info_label)
         self._outro_keep_audio.setChecked(ps.outro_keep_audio)
+        self._outro_fade_in.setValue(ps.outro_fade_in)
+        self._outro_fade_out.setValue(ps.outro_fade_out)
 
         # GIF settings
         self._gif_colors_spin = QSpinBox()
@@ -285,6 +290,12 @@ class ExportDialog(QDialog):
         self._intro_keep_audio.setChecked(True)
         content_layout.addRow("", self._intro_keep_audio)
 
+        self._intro_fade_in = self._make_fade_spin()
+        content_layout.addRow("Fade in:", self._intro_fade_in)
+
+        self._intro_fade_out = self._make_fade_spin()
+        content_layout.addRow("Fade out:", self._intro_fade_out)
+
         # Outro row
         outro_layout = QHBoxLayout()
         self._outro_edit = QLineEdit()
@@ -309,8 +320,25 @@ class ExportDialog(QDialog):
         self._outro_keep_audio.setChecked(True)
         content_layout.addRow("", self._outro_keep_audio)
 
+        self._outro_fade_in = self._make_fade_spin()
+        content_layout.addRow("Fade in:", self._outro_fade_in)
+
+        self._outro_fade_out = self._make_fade_spin()
+        content_layout.addRow("Fade out:", self._outro_fade_out)
+
         section.set_content(content)
         return section
+
+    @staticmethod
+    def _make_fade_spin() -> QDoubleSpinBox:
+        """Create a fade-duration spinbox (0.0–30.0 s, step 0.1)."""
+        spin = QDoubleSpinBox()
+        spin.setRange(0.0, 30.0)
+        spin.setSingleStep(0.1)
+        spin.setDecimals(1)
+        spin.setSuffix(" s")
+        spin.setValue(0.0)
+        return spin
 
     def _browse_clip(self, edit: QLineEdit, info_label: QLabel, file_filter: str) -> None:
         """Open file dialog to select a video clip."""
@@ -634,6 +662,10 @@ class ExportDialog(QDialog):
             outro_path=outro_path,
             intro_keep_audio=self._intro_keep_audio.isChecked(),
             outro_keep_audio=self._outro_keep_audio.isChecked(),
+            intro_fade_in=self._intro_fade_in.value(),
+            intro_fade_out=self._intro_fade_out.value(),
+            outro_fade_in=self._outro_fade_in.value(),
+            outro_fade_out=self._outro_fade_out.value(),
         )
 
         self._export_btn.setEnabled(False)

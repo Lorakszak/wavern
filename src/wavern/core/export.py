@@ -306,6 +306,10 @@ class ExportPipeline:
                     target=target,
                     cancelled=self._cancelled,
                     progress_callback=concat_progress,
+                    intro_fade_in=self._config.intro_fade_in,
+                    intro_fade_out=self._config.intro_fade_out,
+                    outro_fade_in=self._config.outro_fade_in,
+                    outro_fade_out=self._config.outro_fade_out,
                 )
 
             if self._progress_callback:

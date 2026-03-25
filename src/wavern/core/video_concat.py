@@ -171,6 +171,9 @@ def build_concat_cmd(
     has_audio_flags: list[bool],
     target: ConcatTarget,
     output_path: Path,
+    fade_in_durations: list[float] | None = None,
+    fade_out_durations: list[float] | None = None,
+    segment_durations: list[float] | None = None,
 ) -> list[str]:
     """Build an ffmpeg command to concatenate video segments.
 
@@ -185,12 +188,18 @@ def build_concat_cmd(
         has_audio_flags: Whether each segment actually has an audio stream.
         target: Encoding target parameters.
         output_path: Path for the concatenated output.
+        fade_in_durations: Per-segment fade-in duration in seconds (0 = none).
+        fade_out_durations: Per-segment fade-out duration in seconds (0 = none).
+        segment_durations: Per-segment duration in seconds (needed for fade-out start time).
 
     Returns:
         The ffmpeg command as a list of strings.
     """
     w, h = target.resolution
     n = len(segments)
+    fi = fade_in_durations or [0.0] * n
+    fo = fade_out_durations or [0.0] * n
+    durs = segment_durations or [0.0] * n
 
     cmd: list[str] = [ffmpeg_bin, "-y"]
 
@@ -203,23 +212,35 @@ def build_concat_cmd(
     concat_inputs: list[str] = []
 
     for i in range(n):
-        # Video: scale + pad + fps + setsar
-        vfilter = (
+        # Video: scale + pad + fps + setsar + optional fade
+        vchain = (
             f"[{i}:v]scale={w}:{h}:force_original_aspect_ratio=decrease,"
-            f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2,fps={target.fps},setsar=1[v{i}]"
+            f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2,fps={target.fps},setsar=1"
         )
-        filter_parts.append(vfilter)
+        if fi[i] > 0:
+            vchain += f",fade=t=in:st=0:d={fi[i]}"
+        if fo[i] > 0 and durs[i] > 0:
+            fo_start = max(0.0, durs[i] - fo[i])
+            vchain += f",fade=t=out:st={fo_start}:d={fo[i]}"
+        vchain += f"[v{i}]"
+        filter_parts.append(vchain)
 
-        # Audio: use source audio or generate silence
+        # Audio: use source audio or generate silence, with optional afade
         use_source_audio = keep_audio_flags[i] and has_audio_flags[i]
         if use_source_audio:
-            afilter = f"[{i}:a]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo[a{i}]"
+            achain = f"[{i}:a]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo"
+            if fi[i] > 0:
+                achain += f",afade=t=in:st=0:d={fi[i]}"
+            if fo[i] > 0 and durs[i] > 0:
+                fo_start = max(0.0, durs[i] - fo[i])
+                achain += f",afade=t=out:st={fo_start}:d={fo[i]}"
+            achain += f"[a{i}]"
         else:
-            afilter = (
+            achain = (
                 f"anullsrc=r=48000:cl=stereo:d=1[silence{i}];"
                 f"[silence{i}]aformat=sample_fmts=fltp:channel_layouts=stereo[a{i}]"
             )
-        filter_parts.append(afilter)
+        filter_parts.append(achain)
 
         concat_inputs.append(f"[v{i}][a{i}]")
 
@@ -261,6 +282,10 @@ def run_concat_pipeline(
     target: ConcatTarget,
     cancelled: threading.Event,
     progress_callback: Callable[[float], None] | None = None,
+    intro_fade_in: float = 0.0,
+    intro_fade_out: float = 0.0,
+    outro_fade_in: float = 0.0,
+    outro_fade_out: float = 0.0,
 ) -> Path:
     """Concatenate intro/outro with the rendered video.
 
@@ -275,6 +300,10 @@ def run_concat_pipeline(
         target: Encoding target parameters.
         cancelled: Threading event to signal cancellation.
         progress_callback: Optional callback for progress (0.0-1.0).
+        intro_fade_in: Intro fade-in duration in seconds.
+        intro_fade_out: Intro fade-out duration in seconds.
+        outro_fade_in: Outro fade-in duration in seconds.
+        outro_fade_out: Outro fade-out duration in seconds.
 
     Returns:
         Path to the concatenated output.
@@ -290,6 +319,8 @@ def run_concat_pipeline(
     keep_audio_flags: list[bool] = []
     has_audio_flags: list[bool] = []
     durations: list[float] = []
+    fade_in_list: list[float] = []
+    fade_out_list: list[float] = []
 
     if intro_path is not None:
         intro_info = probe_video_clip(intro_path)
@@ -297,13 +328,17 @@ def run_concat_pipeline(
         keep_audio_flags.append(intro_keep_audio)
         has_audio_flags.append(intro_info.has_audio)
         durations.append(intro_info.duration)
+        fade_in_list.append(intro_fade_in)
+        fade_out_list.append(intro_fade_out)
 
-    # Rendered video always keeps audio
+    # Rendered video always keeps audio, no fades
     rendered_info = probe_video_clip(rendered_video)
     segments.append(rendered_video)
     keep_audio_flags.append(True)
     has_audio_flags.append(rendered_info.has_audio)
     durations.append(rendered_info.duration)
+    fade_in_list.append(0.0)
+    fade_out_list.append(0.0)
 
     if outro_path is not None:
         outro_info = probe_video_clip(outro_path)
@@ -311,6 +346,8 @@ def run_concat_pipeline(
         keep_audio_flags.append(outro_keep_audio)
         has_audio_flags.append(outro_info.has_audio)
         durations.append(outro_info.duration)
+        fade_in_list.append(outro_fade_in)
+        fade_out_list.append(outro_fade_out)
 
     total_duration = sum(durations)
 
@@ -322,6 +359,9 @@ def run_concat_pipeline(
         cmd = build_concat_cmd(
             ffmpeg_bin, segments, keep_audio_flags, has_audio_flags,
             target, temp_output,
+            fade_in_durations=fade_in_list,
+            fade_out_durations=fade_out_list,
+            segment_durations=durations,
         )
         logger.debug("Concat command: %s", cmd)
 

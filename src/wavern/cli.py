@@ -131,6 +131,10 @@ def gui(ctx: click.Context, audio_file: Path | None = None, preset: str | None =
 )
 @click.option("--intro-keep-audio/--intro-no-audio", default=True, help="Keep intro audio")
 @click.option("--outro-keep-audio/--outro-no-audio", default=True, help="Keep outro audio")
+@click.option("--intro-fade-in", type=float, default=0.0, help="Intro fade-in duration in seconds")
+@click.option("--intro-fade-out", type=float, default=0.0, help="Intro fade-out duration in seconds")
+@click.option("--outro-fade-in", type=float, default=0.0, help="Outro fade-in duration in seconds")
+@click.option("--outro-fade-out", type=float, default=0.0, help="Outro fade-out duration in seconds")
 @click.pass_context
 def render(
     ctx: click.Context,
@@ -154,6 +158,10 @@ def render(
     outro: Path | None,
     intro_keep_audio: bool,
     outro_keep_audio: bool,
+    intro_fade_in: float,
+    intro_fade_out: float,
+    outro_fade_in: float,
+    outro_fade_out: float,
 ) -> None:
     """Render a visualization to video (headless, no GUI)."""
     from wavern.logging_setup import log_startup_banner, setup_logging
@@ -230,6 +238,10 @@ def render(
         outro_path=effective_outro,
         intro_keep_audio=intro_keep_audio,
         outro_keep_audio=outro_keep_audio,
+        intro_fade_in=intro_fade_in if effective_intro else 0.0,
+        intro_fade_out=intro_fade_out if effective_intro else 0.0,
+        outro_fade_in=outro_fade_in if effective_outro else 0.0,
+        outro_fade_out=outro_fade_out if effective_outro else 0.0,
     )
 
     click.echo(f"Rendering: {audio_file.name}")

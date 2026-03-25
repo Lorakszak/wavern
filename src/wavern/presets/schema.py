@@ -133,6 +133,10 @@ class ProjectSettings(BaseModel):
     outro_path: str = ""  # transient — not persisted in presets
     intro_keep_audio: bool = True
     outro_keep_audio: bool = True
+    intro_fade_in: float = 0.0
+    intro_fade_out: float = 0.0
+    outro_fade_in: float = 0.0
+    outro_fade_out: float = 0.0
 
 
 class VisualizationParams(BaseModel):

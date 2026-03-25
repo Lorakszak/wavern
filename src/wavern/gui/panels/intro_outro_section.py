@@ -6,6 +6,7 @@ from pathlib import Path
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QCheckBox,
+    QDoubleSpinBox,
     QFileDialog,
     QFormLayout,
     QHBoxLayout,
@@ -65,6 +66,14 @@ class IntroOutroSection(QWidget):
         self._intro_keep_audio.toggled.connect(self._on_changed)
         form.addRow("", self._intro_keep_audio)
 
+        self._intro_fade_in = self._make_fade_spin()
+        self._intro_fade_in.valueChanged.connect(self._on_changed)
+        form.addRow("Fade in:", self._intro_fade_in)
+
+        self._intro_fade_out = self._make_fade_spin()
+        self._intro_fade_out.valueChanged.connect(self._on_changed)
+        form.addRow("Fade out:", self._intro_fade_out)
+
         # Outro row
         outro_row = QHBoxLayout()
         self._outro_edit = QLineEdit()
@@ -88,7 +97,26 @@ class IntroOutroSection(QWidget):
         self._outro_keep_audio.toggled.connect(self._on_changed)
         form.addRow("", self._outro_keep_audio)
 
+        self._outro_fade_in = self._make_fade_spin()
+        self._outro_fade_in.valueChanged.connect(self._on_changed)
+        form.addRow("Fade in:", self._outro_fade_in)
+
+        self._outro_fade_out = self._make_fade_spin()
+        self._outro_fade_out.valueChanged.connect(self._on_changed)
+        form.addRow("Fade out:", self._outro_fade_out)
+
         layout.addLayout(form)
+
+    @staticmethod
+    def _make_fade_spin() -> QDoubleSpinBox:
+        """Create a fade-duration spinbox (0.0–30.0 s, step 0.1)."""
+        spin = QDoubleSpinBox()
+        spin.setRange(0.0, 30.0)
+        spin.setSingleStep(0.1)
+        spin.setDecimals(1)
+        spin.setSuffix(" s")
+        spin.setValue(0.0)
+        return spin
 
     def collect(self) -> dict:
         """Return current intro/outro settings as a dict."""
@@ -97,6 +125,10 @@ class IntroOutroSection(QWidget):
             "outro_path": self._outro_edit.text().strip(),
             "intro_keep_audio": self._intro_keep_audio.isChecked(),
             "outro_keep_audio": self._outro_keep_audio.isChecked(),
+            "intro_fade_in": self._intro_fade_in.value(),
+            "intro_fade_out": self._intro_fade_out.value(),
+            "outro_fade_in": self._outro_fade_in.value(),
+            "outro_fade_out": self._outro_fade_out.value(),
         }
 
     def reset(self) -> None:
@@ -105,9 +137,13 @@ class IntroOutroSection(QWidget):
         self._intro_edit.clear()
         self._intro_info.clear()
         self._intro_keep_audio.setChecked(True)
+        self._intro_fade_in.setValue(0.0)
+        self._intro_fade_out.setValue(0.0)
         self._outro_edit.clear()
         self._outro_info.clear()
         self._outro_keep_audio.setChecked(True)
+        self._outro_fade_in.setValue(0.0)
+        self._outro_fade_out.setValue(0.0)
         self._rebuilding = False
 
     def update_values(
@@ -116,6 +152,10 @@ class IntroOutroSection(QWidget):
         outro_path: str,
         intro_keep_audio: bool,
         outro_keep_audio: bool,
+        intro_fade_in: float = 0.0,
+        intro_fade_out: float = 0.0,
+        outro_fade_in: float = 0.0,
+        outro_fade_out: float = 0.0,
     ) -> None:
         """Sync widget state from external values (e.g. dual sidebar sync)."""
         self._rebuilding = True
@@ -125,6 +165,8 @@ class IntroOutroSection(QWidget):
         else:
             self._intro_info.clear()
         self._intro_keep_audio.setChecked(intro_keep_audio)
+        self._intro_fade_in.setValue(intro_fade_in)
+        self._intro_fade_out.setValue(intro_fade_out)
 
         self._outro_edit.setText(outro_path)
         if outro_path:
@@ -132,6 +174,8 @@ class IntroOutroSection(QWidget):
         else:
             self._outro_info.clear()
         self._outro_keep_audio.setChecked(outro_keep_audio)
+        self._outro_fade_in.setValue(outro_fade_in)
+        self._outro_fade_out.setValue(outro_fade_out)
         self._rebuilding = False
 
     # --- Internal callbacks ---
