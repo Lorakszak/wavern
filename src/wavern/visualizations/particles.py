@@ -70,12 +70,12 @@ class ParticlesVisualization(AbstractVisualization):
             "description": "Where particles originate: point, line, circle, edges, or random.",
         },
         "spawn_x": {
-            "type": "float", "default": 0.5, "min": 0.0, "max": 1.0,
+            "type": "float", "default": 0.5, "min": -0.25, "max": 1.25,
             "label": "Spawn X",
             "description": "Horizontal spawn position (0=left, 0.5=center, 1=right).",
         },
         "spawn_y": {
-            "type": "float", "default": 0.5, "min": 0.0, "max": 1.0,
+            "type": "float", "default": 0.5, "min": -0.25, "max": 1.25,
             "label": "Spawn Y",
             "description": "Vertical spawn position (0=bottom, 0.5=center, 1=top).",
         },
