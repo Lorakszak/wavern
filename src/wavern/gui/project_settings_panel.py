@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 )
 
 from wavern.gui.help_button import make_help_button
+from wavern.gui.panels.intro_outro_section import IntroOutroSection
 from wavern.gui.panels.quality_section import QualitySection
 from wavern.gui.panels.resolution_section import ResolutionSection
 from wavern.presets.schema import ProjectSettings
@@ -63,6 +64,11 @@ class ProjectSettingsPanel(QWidget):
         self._quality_section = QualitySection()
         self._quality_section.quality_changed.connect(self._on_setting_changed)
         layout.addWidget(self._quality_section)
+
+        # --- Intro / Outro ---
+        self._intro_outro_section = IntroOutroSection()
+        self._intro_outro_section.intro_outro_changed.connect(self._on_setting_changed)
+        layout.addWidget(self._intro_outro_section)
 
         # --- Output Directory ---
         out_form = QFormLayout()
@@ -127,6 +133,7 @@ class ProjectSettingsPanel(QWidget):
 
         self._resolution_section.reset(defaults)
         self._quality_section.reset(defaults)
+        self._intro_outro_section.reset()
 
         self._output_edit.setText(defaults.output_dir)
         self._filename_edit.setText(defaults.output_filename)
@@ -167,6 +174,7 @@ class ProjectSettingsPanel(QWidget):
         """Rebuild ProjectSettings from section widgets and emit signal."""
         res_data = self._resolution_section.collect()
         quality_data = self._quality_section.collect()
+        intro_outro_data = self._intro_outro_section.collect()
 
         self._settings = ProjectSettings(
             resolution=res_data["resolution"],
@@ -174,5 +182,6 @@ class ProjectSettingsPanel(QWidget):
             output_dir=self._output_edit.text().strip(),
             output_filename=self._filename_edit.text().strip(),
             **quality_data,
+            **intro_outro_data,
         )
         self.settings_changed.emit(self._settings)

@@ -21,8 +21,10 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSpinBox,
     QVBoxLayout,
+    QWidget,
 )
 
+from wavern.gui.collapsible_section import CollapsibleSection
 from wavern.core.codecs import (
     AUDIO_BITRATE_OPTIONS,
     ENCODER_SPEEDS,
@@ -179,6 +181,20 @@ class ExportDialog(QDialog):
         form.addRow("Audio Bitrate:", self._audio_bitrate_combo)
         self._audio_bitrate_label = form.labelForField(self._audio_bitrate_combo)
 
+        # Intro / Outro section
+        self._concat_section = self._build_concat_section()
+        form.addRow(self._concat_section)
+
+        # Pre-fill intro/outro from project settings
+        if ps.intro_path:
+            self._intro_edit.setText(ps.intro_path)
+            self._probe_and_show_clip_info(Path(ps.intro_path), self._intro_info_label)
+        self._intro_keep_audio.setChecked(ps.intro_keep_audio)
+        if ps.outro_path:
+            self._outro_edit.setText(ps.outro_path)
+            self._probe_and_show_clip_info(Path(ps.outro_path), self._outro_info_label)
+        self._outro_keep_audio.setChecked(ps.outro_keep_audio)
+
         # GIF settings
         self._gif_colors_spin = QSpinBox()
         self._gif_colors_spin.setRange(64, 256)
@@ -235,6 +251,88 @@ class ExportDialog(QDialog):
         else:
             self._sync_quality_details_from_preset()
         self._update_visibility()
+
+    def _build_concat_section(self) -> CollapsibleSection:
+        """Build the collapsible Intro / Outro section."""
+        section = CollapsibleSection("Intro / Outro", expanded=False)
+        content = QWidget()
+        content_layout = QFormLayout(content)
+        content_layout.setContentsMargins(8, 0, 0, 0)
+
+        video_filter = "Video files (*.mp4 *.webm *.mov *.avi *.mkv)"
+
+        # Intro row
+        intro_layout = QHBoxLayout()
+        self._intro_edit = QLineEdit()
+        self._intro_edit.setReadOnly(True)
+        self._intro_edit.setPlaceholderText("No intro video")
+        intro_layout.addWidget(self._intro_edit)
+        intro_browse = QPushButton("Browse")
+        intro_browse.clicked.connect(
+            lambda: self._browse_clip(self._intro_edit, self._intro_info_label, video_filter)
+        )
+        intro_layout.addWidget(intro_browse)
+        intro_clear = QPushButton("\u2715")
+        intro_clear.setFixedWidth(28)
+        intro_clear.clicked.connect(lambda: self._clear_clip(self._intro_edit, self._intro_info_label))
+        intro_layout.addWidget(intro_clear)
+        content_layout.addRow("Intro:", intro_layout)
+
+        self._intro_info_label = QLabel("")
+        content_layout.addRow("", self._intro_info_label)
+
+        self._intro_keep_audio = QCheckBox("Keep audio")
+        self._intro_keep_audio.setChecked(True)
+        content_layout.addRow("", self._intro_keep_audio)
+
+        # Outro row
+        outro_layout = QHBoxLayout()
+        self._outro_edit = QLineEdit()
+        self._outro_edit.setReadOnly(True)
+        self._outro_edit.setPlaceholderText("No outro video")
+        outro_layout.addWidget(self._outro_edit)
+        outro_browse = QPushButton("Browse")
+        outro_browse.clicked.connect(
+            lambda: self._browse_clip(self._outro_edit, self._outro_info_label, video_filter)
+        )
+        outro_layout.addWidget(outro_browse)
+        outro_clear = QPushButton("\u2715")
+        outro_clear.setFixedWidth(28)
+        outro_clear.clicked.connect(lambda: self._clear_clip(self._outro_edit, self._outro_info_label))
+        outro_layout.addWidget(outro_clear)
+        content_layout.addRow("Outro:", outro_layout)
+
+        self._outro_info_label = QLabel("")
+        content_layout.addRow("", self._outro_info_label)
+
+        self._outro_keep_audio = QCheckBox("Keep audio")
+        self._outro_keep_audio.setChecked(True)
+        content_layout.addRow("", self._outro_keep_audio)
+
+        section.set_content(content)
+        return section
+
+    def _browse_clip(self, edit: QLineEdit, info_label: QLabel, file_filter: str) -> None:
+        """Open file dialog to select a video clip."""
+        path, _ = QFileDialog.getOpenFileName(self, "Select Video", "", file_filter)
+        if path:
+            edit.setText(path)
+            self._probe_and_show_clip_info(Path(path), info_label)
+
+    def _clear_clip(self, edit: QLineEdit, info_label: QLabel) -> None:
+        """Clear a selected clip."""
+        edit.clear()
+        info_label.clear()
+
+    def _probe_and_show_clip_info(self, path: Path, info_label: QLabel) -> None:
+        """Probe a video clip and display its metadata."""
+        try:
+            from wavern.core.video_concat import probe_video_clip
+
+            info = probe_video_clip(path)
+            info_label.setText(f"{info.width}x{info.height} @ {info.fps:.1f}fps, {info.duration:.1f}s")
+        except ValueError as e:
+            info_label.setText(f"Error: {e}")
 
     def _populate_codec_combo(self, container: str) -> None:
         self._codec_combo.blockSignals(True)
@@ -347,6 +445,10 @@ class ExportDialog(QDialog):
         if self._audio_bitrate_label:
             self._audio_bitrate_label.setVisible(not is_gif)
 
+        # Intro / Outro: hide for gif and transparent export
+        is_transparent = self._preset.background.type == "none"
+        self._concat_section.setVisible(not is_gif and not is_transparent)
+
         # GIF settings
         self._gif_colors_spin.setVisible(is_gif)
         self._gif_dither_check.setVisible(is_gif)
@@ -401,6 +503,55 @@ class ExportDialog(QDialog):
                 self._rebuilding = False
                 break
 
+    def _check_clip_mismatches(
+        self, intro_path: Path | None, outro_path: Path | None,
+    ) -> bool:
+        """Check intro/outro for mismatches. Returns True to proceed, False to abort."""
+        from wavern.core.video_concat import detect_mismatches, probe_video_clip
+
+        target_res = (self._width_spin.value(), self._height_spin.value())
+        target_fps = self._fps_spin.value()
+        clips: list[tuple[str, object]] = []
+        try:
+            if intro_path:
+                clips.append(("intro", probe_video_clip(intro_path)))
+            if outro_path:
+                clips.append(("outro", probe_video_clip(outro_path)))
+        except ValueError as e:
+            QMessageBox.warning(self, "Clip Error", str(e))
+            return False
+
+        mismatches = detect_mismatches(
+            clips, target_res, target_fps,  # type: ignore[arg-type]
+        )
+        if not mismatches:
+            return True
+
+        lines = []
+        for mm in mismatches:
+            parts = []
+            if not mm.resolution_match:
+                parts.append(
+                    f"resolution {mm.clip_resolution[0]}x{mm.clip_resolution[1]}"
+                    f" \u2192 {mm.target_resolution[0]}x{mm.target_resolution[1]}"
+                )
+            if not mm.fps_match:
+                parts.append(f"fps {mm.clip_fps:.1f} \u2192 {mm.target_fps}")
+            lines.append(f"  {mm.clip_label}: {', '.join(parts)}")
+
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Clip Mismatch")
+        msg_box.setText(
+            "The following clips differ from render settings "
+            "and will be re-encoded:\n\n" + "\n".join(lines)
+        )
+        conform_btn = msg_box.addButton("Auto-conform", QMessageBox.ButtonRole.AcceptRole)
+        msg_box.addButton("Adjust Settings", QMessageBox.ButtonRole.RejectRole)
+        msg_box.addButton(QMessageBox.StandardButton.Cancel)
+        msg_box.setDefaultButton(conform_btn)
+        msg_box.exec()
+        return msg_box.clickedButton() == conform_btn
+
     def _on_browse(self) -> None:
         default_dir = Path(__file__).resolve().parents[3] / "video"
         default_dir.mkdir(exist_ok=True)
@@ -448,6 +599,21 @@ class ExportDialog(QDialog):
         prores_profile = prores_val if prores_val is not None else 3
         quality_preset = self._quality_combo.currentData() or "high"
 
+        # Collect intro/outro paths
+        intro_path: Path | None = None
+        outro_path: Path | None = None
+        intro_text = self._intro_edit.text().strip()
+        outro_text = self._outro_edit.text().strip()
+        if intro_text:
+            intro_path = Path(intro_text)
+        if outro_text:
+            outro_path = Path(outro_text)
+
+        # Mismatch warning
+        if intro_path or outro_path:
+            if not self._check_clip_mismatches(intro_path, outro_path):
+                return
+
         config = ExportConfig(
             output_path=Path(output_path),
             resolution=(self._width_spin.value(), self._height_spin.value()),
@@ -464,6 +630,10 @@ class ExportDialog(QDialog):
             gif_loop=self._gif_loop_spin.value(),
             gif_scale=self._gif_scale_spin.value() / 100.0,
             hw_accel=self._hw_accel_combo.currentData() or "auto",
+            intro_path=intro_path,
+            outro_path=outro_path,
+            intro_keep_audio=self._intro_keep_audio.isChecked(),
+            outro_keep_audio=self._outro_keep_audio.isChecked(),
         )
 
         self._export_btn.setEnabled(False)

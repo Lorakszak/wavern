@@ -129,6 +129,10 @@ class ProjectSettings(BaseModel):
     gif_loop: int = 0  # 0 = infinite
     gif_scale: float = 1.0
     hw_accel: str = "auto"  # "auto" | "off"
+    intro_path: str = ""  # transient — not persisted in presets
+    outro_path: str = ""  # transient — not persisted in presets
+    intro_keep_audio: bool = True
+    outro_keep_audio: bool = True
 
 
 class VisualizationParams(BaseModel):

@@ -26,3 +26,7 @@ class ExportConfig:
     gif_loop: int = 0
     gif_scale: float = 1.0
     hw_accel: str = "auto"  # "auto" | "off"
+    intro_path: Path | None = None
+    outro_path: Path | None = None
+    intro_keep_audio: bool = True
+    outro_keep_audio: bool = True

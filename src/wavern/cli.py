@@ -121,6 +121,16 @@ def gui(ctx: click.Context, audio_file: Path | None = None, preset: str | None =
     type=click.Choice(["auto", "off"]),
     help="Hardware acceleration: auto detects GPU encoders, off uses CPU (default: auto)",
 )
+@click.option(
+    "--intro", type=click.Path(exists=True, path_type=Path), default=None,
+    help="Intro video to prepend",
+)
+@click.option(
+    "--outro", type=click.Path(exists=True, path_type=Path), default=None,
+    help="Outro video to append",
+)
+@click.option("--intro-keep-audio/--intro-no-audio", default=True, help="Keep intro audio")
+@click.option("--outro-keep-audio/--outro-no-audio", default=True, help="Keep outro audio")
 @click.pass_context
 def render(
     ctx: click.Context,
@@ -140,6 +150,10 @@ def render(
     gif_loop: int,
     gif_scale: float,
     hw_accel: str,
+    intro: Path | None,
+    outro: Path | None,
+    intro_keep_audio: bool,
+    outro_keep_audio: bool,
 ) -> None:
     """Render a visualization to video (headless, no GUI)."""
     from wavern.logging_setup import log_startup_banner, setup_logging
@@ -187,6 +201,15 @@ def render(
     else:
         loaded_preset = manager.load(preset)
 
+    # Warn and skip intro/outro for GIF
+    effective_intro = intro
+    effective_outro = outro
+    if container == "gif":
+        if intro or outro:
+            click.echo("Warning: intro/outro not supported for GIF format, ignoring.", err=True)
+        effective_intro = None
+        effective_outro = None
+
     config = ExportConfig(
         output_path=output,
         resolution=res,
@@ -203,6 +226,10 @@ def render(
         gif_loop=gif_loop,
         gif_scale=gif_scale,
         hw_accel=hw_accel,
+        intro_path=effective_intro,
+        outro_path=effective_outro,
+        intro_keep_audio=intro_keep_audio,
+        outro_keep_audio=outro_keep_audio,
     )
 
     click.echo(f"Rendering: {audio_file.name}")
@@ -210,6 +237,33 @@ def render(
     click.echo(f"Output: {output} ({res[0]}x{res[1]}, {fps}fps, {codec})")
     click.echo(f"Quality: {quality_preset} (CRF {resolved_crf})")
     click.echo(f"HW Accel: {hw_accel}")
+
+    # Print and warn about intro/outro mismatches
+    if effective_intro or effective_outro:
+        from wavern.core.video_concat import detect_mismatches, probe_video_clip
+
+        clips: list[tuple[str, Any]] = []
+        if effective_intro:
+            click.echo(f"Intro: {effective_intro}")
+            clips.append(("intro", probe_video_clip(effective_intro)))
+        if effective_outro:
+            click.echo(f"Outro: {effective_outro}")
+            clips.append(("outro", probe_video_clip(effective_outro)))
+
+        mismatches = detect_mismatches(clips, res, fps)
+        for mm in mismatches:
+            parts = []
+            if not mm.resolution_match:
+                parts.append(
+                    f"resolution {mm.clip_resolution[0]}x{mm.clip_resolution[1]}"
+                    f" -> {mm.target_resolution[0]}x{mm.target_resolution[1]}"
+                )
+            if not mm.fps_match:
+                parts.append(f"fps {mm.clip_fps:.2f} -> {mm.target_fps}")
+            click.echo(
+                f"Warning: {mm.clip_label} will be re-encoded ({', '.join(parts)})",
+                err=True,
+            )
 
     def progress_callback(progress: float) -> None:
         bar_width = 40

@@ -270,6 +270,44 @@ class ExportPipeline:
             self._mux_audio(ffmpeg_bin, temp_video, self._audio_path,
                             self._config.output_path)
 
+            if self._config.intro_path or self._config.outro_path:
+                from wavern.core.video_concat import (
+                    ConcatTarget,
+                    resolve_audio_codec,
+                    run_concat_pipeline,
+                )
+
+                actual_audio_codec = resolve_audio_codec(
+                    self._config.container, self._config.audio_codec,
+                )
+                target = ConcatTarget(
+                    resolution=self._config.resolution,
+                    fps=self._config.fps,
+                    video_codec=self._config.video_codec,
+                    audio_codec=actual_audio_codec,
+                    audio_bitrate=self._config.audio_bitrate,
+                    pixel_format=self._config.pixel_format,
+                    container=self._config.container,
+                    crf=self._config.crf,
+                )
+
+                def concat_progress(p: float) -> None:
+                    if self._progress_callback:
+                        self._progress_callback(0.85 + p * 0.15)
+
+                run_concat_pipeline(
+                    ffmpeg_bin=ffmpeg_bin,
+                    rendered_video=self._config.output_path,
+                    output_path=self._config.output_path,
+                    intro_path=self._config.intro_path,
+                    outro_path=self._config.outro_path,
+                    intro_keep_audio=self._config.intro_keep_audio,
+                    outro_keep_audio=self._config.outro_keep_audio,
+                    target=target,
+                    cancelled=self._cancelled,
+                    progress_callback=concat_progress,
+                )
+
             if self._progress_callback:
                 self._progress_callback(1.0)
 
@@ -326,7 +364,9 @@ class ExportPipeline:
             if frame_idx % 100 == 0:
                 logger.debug("Rendered frame %d/%d", frame_idx, timeline.total_frames)
             if self._progress_callback and frame_idx % 10 == 0:
-                progress = (frame_idx + 1) / timeline.total_frames
+                has_concat = bool(self._config.intro_path or self._config.outro_path)
+                scale = 0.85 if has_concat else 1.0
+                progress = ((frame_idx + 1) / timeline.total_frames) * scale
                 self._progress_callback(progress)
 
     def _wait_for_process(self, proc: subprocess.Popen[bytes]) -> None:
@@ -349,13 +389,9 @@ class ExportPipeline:
         output_path: Path,
     ) -> None:
         """Combine rendered video with original audio using ffmpeg."""
-        audio_codec = self._config.audio_codec
-        container = self._config.container
+        from wavern.core.video_concat import resolve_audio_codec
 
-        if container == "webm":
-            audio_codec = "libopus"
-        elif container == "mov":
-            audio_codec = "aac"
+        audio_codec = resolve_audio_codec(self._config.container, self._config.audio_codec)
 
         cmd = [
             ffmpeg_bin,
