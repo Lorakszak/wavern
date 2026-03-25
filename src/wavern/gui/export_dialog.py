@@ -11,7 +11,6 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QDialogButtonBox,
-    QDoubleSpinBox,
     QFileDialog,
     QFormLayout,
     QHBoxLayout,
@@ -26,6 +25,7 @@ from PySide6.QtWidgets import (
 )
 
 from wavern.gui.collapsible_section import CollapsibleSection
+from wavern.gui.drag_spinbox import DragSpinBox
 from wavern.core.codecs import (
     AUDIO_BITRATE_OPTIONS,
     ENCODER_SPEEDS,
@@ -290,10 +290,10 @@ class ExportDialog(QDialog):
         self._intro_keep_audio.setChecked(True)
         content_layout.addRow("", self._intro_keep_audio)
 
-        self._intro_fade_in = self._make_fade_spin()
+        self._intro_fade_in = self._make_fade_drag()
         content_layout.addRow("Fade in:", self._intro_fade_in)
 
-        self._intro_fade_out = self._make_fade_spin()
+        self._intro_fade_out = self._make_fade_drag()
         content_layout.addRow("Fade out:", self._intro_fade_out)
 
         # Outro row
@@ -320,25 +320,25 @@ class ExportDialog(QDialog):
         self._outro_keep_audio.setChecked(True)
         content_layout.addRow("", self._outro_keep_audio)
 
-        self._outro_fade_in = self._make_fade_spin()
+        self._outro_fade_in = self._make_fade_drag()
         content_layout.addRow("Fade in:", self._outro_fade_in)
 
-        self._outro_fade_out = self._make_fade_spin()
+        self._outro_fade_out = self._make_fade_drag()
         content_layout.addRow("Fade out:", self._outro_fade_out)
 
         section.set_content(content)
         return section
 
     @staticmethod
-    def _make_fade_spin() -> QDoubleSpinBox:
-        """Create a fade-duration spinbox (0.0–30.0 s, step 0.1)."""
-        spin = QDoubleSpinBox()
-        spin.setRange(0.0, 30.0)
-        spin.setSingleStep(0.1)
-        spin.setDecimals(1)
-        spin.setSuffix(" s")
-        spin.setValue(0.0)
-        return spin
+    def _make_fade_drag() -> DragSpinBox:
+        """Create a fade-duration DragSpinBox (0.0–30.0 s, step 0.1)."""
+        return DragSpinBox(
+            minimum=0.0,
+            maximum=30.0,
+            step=0.1,
+            decimals=1,
+            default_value=0.0,
+        )
 
     def _browse_clip(self, edit: QLineEdit, info_label: QLabel, file_filter: str) -> None:
         """Open file dialog to select a video clip."""
