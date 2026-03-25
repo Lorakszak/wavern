@@ -21,4 +21,7 @@ uv.lock
 # Local files
 audio/
 video/
+logs/
+docs/superpowers/
+.superpowers/
 _git_commands.md
