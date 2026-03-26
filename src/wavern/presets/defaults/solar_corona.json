@@ -3,22 +3,6 @@
   "description": "256 bars on a tiny ring with maximum bar length and fast spin \u2014 explosive solar flare look",
   "author": "wavern",
   "version": 1,
-  "visualization": {
-    "visualization_type": "circular_spectrum",
-    "params": {
-      "bar_count": 256,
-      "bar_spacing": 0.05,
-      "inner_radius": 0.06,
-      "bar_length": 0.9,
-      "rotation_speed": 4.0,
-      "rotation_direction": "counterclockwise",
-      "gravity": 0.8,
-      "glow_intensity": 1.5,
-      "mirror_spectrum": false,
-      "frequency_limit": true,
-      "max_frequency": 6000
-    }
-  },
   "color_palette": [
     "#ff3300",
     "#ff6600",
@@ -26,7 +10,6 @@
     "#ffdd00",
     "#ffffff"
   ],
-  "blend_mode": "additive",
   "background": {
     "type": "solid",
     "color": "#0a0000"
@@ -34,5 +17,34 @@
   "fft_size": 4096,
   "smoothing": 0.75,
   "beat_sensitivity": 1.6,
-  "fps": 60
+  "fps": 60,
+  "layers": [
+    {
+      "visualization_type": "circular_spectrum",
+      "params": {
+        "bar_count": 256,
+        "bar_spacing": 0.05,
+        "inner_radius": 0.06,
+        "bar_length": 0.9,
+        "rotation_speed": 4.0,
+        "rotation_direction": "counterclockwise",
+        "gravity": 0.8,
+        "glow_intensity": 1.5,
+        "mirror_spectrum": false,
+        "frequency_limit": true,
+        "max_frequency": 6000
+      },
+      "blend_mode": "additive",
+      "opacity": 1.0,
+      "visible": true,
+      "name": "",
+      "colors": [
+        "#ff3300",
+        "#ff6600",
+        "#ffaa00",
+        "#ffdd00",
+        "#ffffff"
+      ]
+    }
+  ]
 }

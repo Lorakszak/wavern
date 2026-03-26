@@ -60,7 +60,7 @@ src/wavern/
     codecs.py, hwaccel.py
   visualizations/ — base ABC + image_mixin + 9 built-in types + registry
   presets/        — pydantic schema + manager + defaults/*.json
-  shaders/        — GLSL 3.3 core (.vert/.frag)
+  shaders/        — GLSL 3.3 core (.vert/.frag), including composite.vert/.frag for layer blending
   gui/            — PySide6 widgets
     main_window.py     — top-level orchestrator
     gl_widget.py, sidebar.py, transport_bar.py, preset_panel.py
@@ -70,6 +70,7 @@ src/wavern/
     favorites_store.py, theme_manager.py
     constants.py       — shared UI constants (quality presets, codec lists, resolutions)
     project_settings_panel.py — coordinator for ResolutionSection + QualitySection
+    layer_list_widget.py   — multi-layer management (visibility, reorder, blend, opacity)
     background_picker.py, collapsible_section.py, drag_spinbox.py
     no_scroll_combo.py, help_button.py, file_import_dialog.py
   gui/panels/     — decomposed settings panels
@@ -90,6 +91,7 @@ src/wavern/
 - **Visualization lifecycle**: `__init__(ctx, params)` → `initialize()` → `render()` per frame → `cleanup()`. GPU resources are created in `initialize()`, not `__init__`.
 - **FrameAnalysis dataclass** is the universal audio contract. All visualizations receive it — never pass raw audio to render methods.
 - **Preset** is a pydantic model. Built-in presets ship as JSON in `presets/defaults/`, user presets live at `~/.config/wavern/presets/`.
+- **Multi-layer compositing**: `Preset.layers` is a list of `VisualizationLayer` (1–7). Each layer has its own `visualization_type`, `params`, `colors`, `blend_mode`, and `opacity`. The renderer renders each layer to its own FBO, then a GLSL compositing shader (`composite.frag`) blends them with per-layer blend mode (Normal/Additive/Screen/Multiply) and opacity. Old single-viz presets are auto-migrated on load via `_migrate_preset_data()`.
 - **Config paths** are centralised in `config.py` — use `get_preset_directory()` and `get_favorites_path()` rather than inlining XDG logic.
 
 ### Critical Patterns
@@ -105,6 +107,8 @@ src/wavern/
 **Section widget pattern**: Complex panels are decomposed into `QWidget` section subclasses. Each section owns its UI, emits focused signals, and exposes `collect() -> dict` for the coordinator to read. See `gui/panels/CLAUDE.md`.
 
 **Renderer type change detection**: `renderer.update_params()` auto-detects when `visualization_type` changed and calls `set_preset()` internally. Callers don't need to distinguish param updates from type switches.
+
+**Theme-styled buttons**: Small control buttons (▲/▼/x for reordering and removing) use `setObjectName("ColorControlBtn")`. The layer visibility toggle uses `setObjectName("LayerEyeBtn")` with `setCheckable(True)` — the theme controls checked/unchecked colors via QSS `:checked` pseudo-state. Never hardcode button colors; all 5 themes define these object-name styles.
 
 **Transparent export**: Background type "none" exports with alpha via VP9/WebM (`yuva420p`). H.264/MP4 does not support alpha. VP9 requires `-b:v 0` for CRF mode + `-speed 4 -row-mt 1` for reasonable encode time.
 

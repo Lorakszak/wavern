@@ -11,6 +11,7 @@ class BlendMode(str, Enum):
 
     NORMAL = "normal"
     ADDITIVE = "additive"
+    SCREEN = "screen"
     MULTIPLY = "multiply"
 
 
@@ -146,6 +147,18 @@ class VisualizationParams(BaseModel):
     params: dict[str, Any] = Field(default_factory=dict)
 
 
+class VisualizationLayer(BaseModel):
+    """One visualization layer in the compositing stack."""
+
+    visualization_type: str
+    params: dict[str, Any] = Field(default_factory=dict)
+    blend_mode: BlendMode = BlendMode.NORMAL
+    opacity: float = Field(default=1.0, ge=0.0, le=1.0)
+    visible: bool = True
+    name: str = ""
+    colors: list[str] = Field(default=["#00FFAA", "#FF00AA", "#FFAA00"])
+
+
 class Preset(BaseModel):
     """Complete preset definition — the root model serialized to/from JSON."""
 
@@ -154,14 +167,12 @@ class Preset(BaseModel):
     author: str = Field(default="")
     version: int = Field(default=1)
 
-    visualization: VisualizationParams
+    layers: list[VisualizationLayer] = Field(min_length=1, max_length=7)
 
     color_palette: list[str] = Field(
         default=["#00FFAA", "#FF00AA", "#FFAA00"],
         description="Ordered list of hex colors the visualization cycles through",
     )
-    color_gradient: list[ColorStop] = Field(default_factory=list)
-    blend_mode: BlendMode = BlendMode.ADDITIVE
 
     background: BackgroundConfig = Field(default_factory=BackgroundConfig)
     overlay: OverlayConfig = Field(default_factory=OverlayConfig)

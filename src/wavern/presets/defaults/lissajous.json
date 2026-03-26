@@ -3,24 +3,10 @@
   "description": "Phase-portrait orbital figures driven by the audio waveform",
   "author": "wavern",
   "version": 1,
-  "visualization": {
-    "visualization_type": "lissajous",
-    "params": {
-      "waveform_smoothing": 8,
-      "sample_count": 256,
-      "delay_samples": 32,
-      "amplitude_scale": 1.0,
-      "symmetry": 2,
-      "mirror_x": false,
-      "spin_speed": 0.0,
-      "line_thickness": 2.5,
-      "glow_intensity": 0.6,
-      "tail_fade": 0.4,
-      "beat_reactive": true
-    }
-  },
-  "color_palette": ["#00E5FF", "#FF00CC"],
-  "blend_mode": "additive",
+  "color_palette": [
+    "#00E5FF",
+    "#FF00CC"
+  ],
   "background": {
     "type": "solid",
     "color": "#03000F"
@@ -52,5 +38,31 @@
   "fft_size": 2048,
   "smoothing": 0.1,
   "beat_sensitivity": 1.0,
-  "fps": 60
+  "fps": 60,
+  "layers": [
+    {
+      "visualization_type": "lissajous",
+      "params": {
+        "waveform_smoothing": 8,
+        "sample_count": 256,
+        "delay_samples": 32,
+        "amplitude_scale": 1.0,
+        "symmetry": 2,
+        "mirror_x": false,
+        "spin_speed": 0.0,
+        "line_thickness": 2.5,
+        "glow_intensity": 0.6,
+        "tail_fade": 0.4,
+        "beat_reactive": true
+      },
+      "blend_mode": "additive",
+      "opacity": 1.0,
+      "visible": true,
+      "name": "",
+      "colors": [
+        "#00E5FF",
+        "#FF00CC"
+      ]
+    }
+  ]
 }

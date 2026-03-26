@@ -183,12 +183,15 @@ class OverlaySection(QWidget):
         self._layout.addWidget(content)
         self._rebuilding = False
 
-    def update_values(self, overlay: VideoOverlayConfig) -> None:
+    def update_values(self, overlay: VideoOverlayConfig, preset: Preset | None = None) -> None:
         """Update overlay widgets in-place without rebuilding.
 
         Args:
             overlay: The current overlay configuration to reflect.
+            preset: If provided, update the internal preset reference.
         """
+        if preset is not None:
+            self._preset = preset
         if not hasattr(self, "_overlay_enabled"):
             return
         self._rebuilding = True

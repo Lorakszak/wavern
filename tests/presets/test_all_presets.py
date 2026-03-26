@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from wavern.presets.schema import Preset
+from wavern.presets.schema import Preset, VisualizationLayer
 from wavern.visualizations.registry import VisualizationRegistry
 
 # Ensure all built-in visualizations are registered
@@ -40,15 +40,16 @@ class TestPresetValidity:
 
     def test_visualization_type_registered(self, preset_path: Path) -> None:
         preset = Preset.model_validate_json(preset_path.read_text())
-        viz_type = preset.visualization.visualization_type
+        layer: VisualizationLayer = preset.layers[0]
+        viz_type = layer.visualization_type
         assert viz_type in _registry.list_names(), (
             f"{preset_path.name}: unknown visualization_type {viz_type!r}"
         )
 
     def test_params_within_schema_bounds(self, preset_path: Path) -> None:
         raw = json.loads(preset_path.read_text())
-        viz_type = raw["visualization"]["visualization_type"]
-        params = raw["visualization"].get("params", {})
+        viz_type = raw["layers"][0]["visualization_type"]
+        params = raw["layers"][0].get("params", {})
         schema = _registry.get(viz_type).PARAM_SCHEMA
 
         for key, value in params.items():

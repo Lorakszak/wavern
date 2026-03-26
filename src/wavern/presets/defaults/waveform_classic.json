@@ -3,17 +3,9 @@
   "description": "Clean waveform line with glow effect",
   "author": "wavern",
   "version": 1,
-  "visualization": {
-    "visualization_type": "waveform",
-    "params": {
-      "line_thickness": 2.5,
-      "filled": false,
-      "sample_count": 512,
-      "amplitude_scale": 1.5
-    }
-  },
-  "color_palette": ["#00FFAA"],
-  "blend_mode": "additive",
+  "color_palette": [
+    "#00FFAA"
+  ],
   "background": {
     "type": "solid",
     "color": "#050510"
@@ -45,5 +37,23 @@
   "fft_size": 2048,
   "smoothing": 0.2,
   "beat_sensitivity": 1.0,
-  "fps": 60
+  "fps": 60,
+  "layers": [
+    {
+      "visualization_type": "waveform",
+      "params": {
+        "line_thickness": 2.5,
+        "filled": false,
+        "sample_count": 512,
+        "amplitude_scale": 1.5
+      },
+      "blend_mode": "additive",
+      "opacity": 1.0,
+      "visible": true,
+      "name": "",
+      "colors": [
+        "#00FFAA"
+      ]
+    }
+  ]
 }

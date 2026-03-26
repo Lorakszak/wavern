@@ -168,6 +168,36 @@ class ProjectSettingsPanel(QWidget):
         """
         self._quality_section.set_audio_metadata(bitrate)
 
+    def update_values(self, settings: ProjectSettings) -> None:
+        """Sync widget state from external settings (dual sidebar sync).
+
+        Args:
+            settings: ProjectSettings to sync from.
+        """
+        if self._rebuilding:
+            return
+        self._rebuilding = True
+        self._resolution_section.update_values(settings)
+        self._quality_section.update_values(settings)
+        self._intro_outro_section.update_values(
+            intro_path=settings.intro_path,
+            outro_path=settings.outro_path,
+            intro_keep_audio=settings.intro_keep_audio,
+            outro_keep_audio=settings.outro_keep_audio,
+            intro_fade_in=settings.intro_fade_in,
+            intro_fade_out=settings.intro_fade_out,
+            outro_fade_in=settings.outro_fade_in,
+            outro_fade_out=settings.outro_fade_out,
+        )
+        self._output_edit.blockSignals(True)
+        self._filename_edit.blockSignals(True)
+        self._output_edit.setText(settings.output_dir)
+        self._filename_edit.setText(settings.output_filename)
+        self._output_edit.blockSignals(False)
+        self._filename_edit.blockSignals(False)
+        self._settings = settings
+        self._rebuilding = False
+
     # --- Settings assembly ---
 
     def _update_settings(self) -> None:

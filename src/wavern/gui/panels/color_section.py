@@ -16,7 +16,7 @@ from wavern.presets.schema import Preset
 
 
 class ColorSection(QWidget):
-    """Editable color palette widget with add/remove/reorder controls."""
+    """Editable color palette widget scoped to a single visualization layer."""
 
     colors_changed = Signal()
 
@@ -27,18 +27,20 @@ class ColorSection(QWidget):
         self._color_buttons: list[QPushButton] = []
         self._preset: Preset | None = None
         self._rebuilding = False
+        self._layer_index: int = 0
 
-    def build(self, preset: Preset) -> None:
-        """Clear and rebuild the color palette rows from the preset.
+    def build_for_layer(self, preset: Preset, layer_index: int) -> None:
+        """Build color section for a specific layer's colors.
 
         Args:
-            preset: The active preset whose color_palette to display and mutate.
+            preset: The active preset.
+            layer_index: Index into preset.layers for the target layer.
         """
-        self._rebuilding = True
+        self._layer_index = layer_index
         self._preset = preset
+        self._rebuilding = True
         self._color_buttons.clear()
 
-        # Remove all existing child widgets and sub-layouts.
         while self._layout.count():
             item = self._layout.takeAt(0)
             assert item is not None
@@ -50,30 +52,27 @@ class ColorSection(QWidget):
                 if sub is not None and isinstance(sub, (QVBoxLayout, QHBoxLayout)):
                     _clear_layout(sub)
 
-        for i, color_hex in enumerate(preset.color_palette):
+        palette = preset.layers[layer_index].colors
+        for i, color_hex in enumerate(palette):
             row = QHBoxLayout()
 
-            up_btn = QPushButton("\u25B2")
+            up_btn = QPushButton("\u25b2")
             up_btn.setObjectName("ColorControlBtn")
             up_btn.setFixedSize(24, 24)
             up_btn.setEnabled(i > 0)
             up_btn.clicked.connect(lambda _, idx=i: self._on_move_color_up(idx))
             row.addWidget(up_btn)
 
-            down_btn = QPushButton("\u25BC")
+            down_btn = QPushButton("\u25bc")
             down_btn.setObjectName("ColorControlBtn")
             down_btn.setFixedSize(24, 24)
-            down_btn.setEnabled(i < len(preset.color_palette) - 1)
-            down_btn.clicked.connect(
-                lambda _, idx=i: self._on_move_color_down(idx)
-            )
+            down_btn.setEnabled(i < len(palette) - 1)
+            down_btn.clicked.connect(lambda _, idx=i: self._on_move_color_down(idx))
             row.addWidget(down_btn)
 
             btn = QPushButton()
             btn.setFixedSize(30, 30)
-            btn.setStyleSheet(
-                f"background-color: {color_hex}; border: 1px solid #555;"
-            )
+            btn.setStyleSheet(f"background-color: {color_hex}; border: 1px solid #555;")
             btn.clicked.connect(lambda _, idx=i: self._on_color_clicked(idx))
             row.addWidget(btn)
 
@@ -83,13 +82,9 @@ class ColorSection(QWidget):
             remove_btn = QPushButton("x")
             remove_btn.setObjectName("ColorControlBtn")
             remove_btn.setFixedSize(24, 24)
-            remove_btn.clicked.connect(
-                lambda _, idx=i: self._on_remove_color(idx)
-            )
+            remove_btn.clicked.connect(lambda _, idx=i: self._on_remove_color(idx))
             row.addWidget(remove_btn)
 
-            # Wrap the row layout in a container widget so it can be managed
-            # by the top-level QVBoxLayout.
             row_widget = QWidget()
             row_widget.setLayout(row)
             self._layout.addWidget(row_widget)
@@ -101,29 +96,25 @@ class ColorSection(QWidget):
 
         self._rebuilding = False
 
-    def update_values(self, color_palette: list[str]) -> None:
-        """Update button stylesheets in-place without rebuilding.
-
-        Args:
-            color_palette: The current list of hex color strings.
-        """
-        for i, btn in enumerate(self._color_buttons):
-            if i < len(color_palette):
-                btn.setStyleSheet(
-                    f"background-color: {color_palette[i]};"
-                    " border: 1px solid #555;"
-                )
+    def _layer_colors(self) -> list[str] | None:
+        """Return the current layer's colors list for mutation."""
+        if self._preset is None:
+            return None
+        return self._preset.layers[self._layer_index].colors
 
     def _on_color_clicked(self, index: int) -> None:
         if self._preset is None:
             return
         from PySide6.QtGui import QColor
 
-        current = QColor(self._preset.color_palette[index])
+        palette = self._layer_colors()
+        if palette is None:
+            return
+        current = QColor(palette[index])
         color = QColorDialog.getColor(current, self, "Pick Color")
         if color.isValid():
             hex_color = color.name().upper()
-            self._preset.color_palette[index] = hex_color
+            palette[index] = hex_color
             self._color_buttons[index].setStyleSheet(
                 f"background-color: {hex_color}; border: 1px solid #555;"
             )
@@ -134,37 +125,41 @@ class ColorSection(QWidget):
             return
         color = QColorDialog.getColor(parent=self, title="Add Color")
         if color.isValid():
-            self._preset.color_palette.append(color.name().upper())
-            self.build(self._preset)
+            palette = self._layer_colors()
+            if palette is None:
+                return
+            palette.append(color.name().upper())
+            self.build_for_layer(self._preset, self._layer_index)
             self.colors_changed.emit()
 
     def _on_remove_color(self, index: int) -> None:
-        if self._preset is None or len(self._preset.color_palette) <= 1:
+        if self._preset is None:
             return
-        self._preset.color_palette.pop(index)
-        self.build(self._preset)
+        palette = self._layer_colors()
+        if palette is None or len(palette) <= 1:
+            return
+        palette.pop(index)
+        self.build_for_layer(self._preset, self._layer_index)
         self.colors_changed.emit()
 
     def _on_move_color_up(self, index: int) -> None:
         if self._preset is None or index <= 0:
             return
-        palette = self._preset.color_palette
-        palette[index], palette[index - 1] = (
-            palette[index - 1],
-            palette[index],
-        )
-        self.build(self._preset)
+        palette = self._layer_colors()
+        if palette is None:
+            return
+        palette[index], palette[index - 1] = palette[index - 1], palette[index]
+        self.build_for_layer(self._preset, self._layer_index)
         self.colors_changed.emit()
 
     def _on_move_color_down(self, index: int) -> None:
-        if self._preset is None or index >= len(self._preset.color_palette) - 1:
+        if self._preset is None:
             return
-        palette = self._preset.color_palette
-        palette[index], palette[index + 1] = (
-            palette[index + 1],
-            palette[index],
-        )
-        self.build(self._preset)
+        palette = self._layer_colors()
+        if palette is None or index >= len(palette) - 1:
+            return
+        palette[index], palette[index + 1] = palette[index + 1], palette[index]
+        self.build_for_layer(self._preset, self._layer_index)
         self.colors_changed.emit()
 
 

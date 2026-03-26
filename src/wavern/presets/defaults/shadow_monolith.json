@@ -3,29 +3,6 @@
   "description": "Static rectangular spectrum with heavy red-orange shadow, large inner size, and drifting background",
   "author": "wavern",
   "version": 1,
-  "visualization": {
-    "visualization_type": "rect_spectrum",
-    "params": {
-      "bar_count": 64,
-      "bar_spacing": 0.2,
-      "inner_size": 0.4,
-      "bar_length": 0.35,
-      "rotates": false,
-      "rotation_speed": 0.0,
-      "rotation_offset": 0.0,
-      "gravity": 0.92,
-      "glow_intensity": 0.5,
-      "continuous_colors": false,
-      "mirror_sides": true,
-      "shadow_enabled": true,
-      "shadow_color": "#ff3300",
-      "shadow_opacity": 0.9,
-      "shadow_offset_x": 0.008,
-      "shadow_offset_y": -0.012,
-      "shadow_size": 3.0,
-      "shadow_blur": 0.05
-    }
-  },
   "color_palette": [
     "#ff3300",
     "#ff6600",
@@ -33,7 +10,6 @@
     "#ffcc00",
     "#ffee88"
   ],
-  "blend_mode": "additive",
   "background": {
     "type": "solid",
     "color": "#080200",
@@ -47,5 +23,41 @@
   "fft_size": 4096,
   "smoothing": 0.9,
   "beat_sensitivity": 1.6,
-  "fps": 60
+  "fps": 60,
+  "layers": [
+    {
+      "visualization_type": "rect_spectrum",
+      "params": {
+        "bar_count": 64,
+        "bar_spacing": 0.2,
+        "inner_size": 0.4,
+        "bar_length": 0.35,
+        "rotates": false,
+        "rotation_speed": 0.0,
+        "rotation_offset": 0.0,
+        "gravity": 0.92,
+        "glow_intensity": 0.5,
+        "continuous_colors": false,
+        "mirror_sides": true,
+        "shadow_enabled": true,
+        "shadow_color": "#ff3300",
+        "shadow_opacity": 0.9,
+        "shadow_offset_x": 0.008,
+        "shadow_offset_y": -0.012,
+        "shadow_size": 3.0,
+        "shadow_blur": 0.05
+      },
+      "blend_mode": "additive",
+      "opacity": 1.0,
+      "visible": true,
+      "name": "",
+      "colors": [
+        "#ff3300",
+        "#ff6600",
+        "#ff9900",
+        "#ffcc00",
+        "#ffee88"
+      ]
+    }
+  ]
 }

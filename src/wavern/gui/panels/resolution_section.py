@@ -164,6 +164,51 @@ class ResolutionSection(QWidget):
         self._fps_spin.blockSignals(False)
         self._rebuilding = False
 
+    def update_values(self, settings: ProjectSettings) -> None:
+        """Sync widget state from external settings (dual sidebar sync).
+
+        Args:
+            settings: ProjectSettings to sync from.
+        """
+        self._rebuilding = True
+        w, h = settings.resolution
+
+        self._width_spin.blockSignals(True)
+        self._height_spin.blockSignals(True)
+        self._fps_spin.blockSignals(True)
+        self._fps_combo.blockSignals(True)
+        self._res_combo.blockSignals(True)
+
+        self._width_spin.setValue(w)
+        self._height_spin.setValue(h)
+        self._fps_spin.setValue(settings.fps)
+
+        # Sync FPS combo
+        match_idx = -1
+        for i in range(self._fps_combo.count()):
+            if self._fps_combo.itemData(i) == settings.fps:
+                match_idx = i
+                break
+        if match_idx >= 0:
+            self._fps_combo.setCurrentIndex(match_idx)
+        else:
+            custom_idx = self._fps_combo.findData(-1)
+            if custom_idx >= 0:
+                self._fps_combo.setCurrentIndex(custom_idx)
+
+        # Sync resolution combo
+        for i in range(self._res_combo.count()):
+            if self._res_combo.itemData(i) == (w, h):
+                self._res_combo.setCurrentIndex(i)
+                break
+
+        self._width_spin.blockSignals(False)
+        self._height_spin.blockSignals(False)
+        self._fps_spin.blockSignals(False)
+        self._fps_combo.blockSignals(False)
+        self._res_combo.blockSignals(False)
+        self._rebuilding = False
+
     # --- Internal callbacks ---
 
     def _populate_resolution_combo(self, aspect: str) -> None:

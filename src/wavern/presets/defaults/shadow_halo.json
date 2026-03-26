@@ -3,29 +3,6 @@
   "description": "Circular spectrum with colored pink shadow, slow clockwise rotation, and breathing background",
   "author": "wavern",
   "version": 1,
-  "visualization": {
-    "visualization_type": "circular_spectrum",
-    "params": {
-      "bar_count": 128,
-      "bar_spacing": 0.18,
-      "inner_radius": 0.2,
-      "bar_length": 0.35,
-      "rotation_speed": 0.5,
-      "rotation_direction": "clockwise",
-      "gravity": 0.9,
-      "glow_intensity": 0.6,
-      "mirror_spectrum": false,
-      "shadow_enabled": true,
-      "shadow_color": "#ff0066",
-      "shadow_opacity": 0.55,
-      "shadow_offset_x": 0.005,
-      "shadow_offset_y": -0.005,
-      "shadow_size": 2.8,
-      "shadow_blur": 0.04,
-      "frequency_limit": true,
-      "max_frequency": 12000
-    }
-  },
   "color_palette": [
     "#ff0088",
     "#ff44aa",
@@ -33,7 +10,6 @@
     "#ffaadd",
     "#ffffff"
   ],
-  "blend_mode": "additive",
   "background": {
     "type": "solid",
     "color": "#0a0008",
@@ -47,5 +23,41 @@
   "fft_size": 8192,
   "smoothing": 0.88,
   "beat_sensitivity": 1.5,
-  "fps": 60
+  "fps": 60,
+  "layers": [
+    {
+      "visualization_type": "circular_spectrum",
+      "params": {
+        "bar_count": 128,
+        "bar_spacing": 0.18,
+        "inner_radius": 0.2,
+        "bar_length": 0.35,
+        "rotation_speed": 0.5,
+        "rotation_direction": "clockwise",
+        "gravity": 0.9,
+        "glow_intensity": 0.6,
+        "mirror_spectrum": false,
+        "shadow_enabled": true,
+        "shadow_color": "#ff0066",
+        "shadow_opacity": 0.55,
+        "shadow_offset_x": 0.005,
+        "shadow_offset_y": -0.005,
+        "shadow_size": 2.8,
+        "shadow_blur": 0.04,
+        "frequency_limit": true,
+        "max_frequency": 12000
+      },
+      "blend_mode": "additive",
+      "opacity": 1.0,
+      "visible": true,
+      "name": "",
+      "colors": [
+        "#ff0088",
+        "#ff44aa",
+        "#ff88cc",
+        "#ffaadd",
+        "#ffffff"
+      ]
+    }
+  ]
 }

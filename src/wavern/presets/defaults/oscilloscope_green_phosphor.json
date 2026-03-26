@@ -3,38 +3,9 @@
   "description": "Classic monochrome green phosphor oscilloscope with graticule",
   "author": "wavern",
   "version": 1,
-  "visualization": {
-    "visualization_type": "oscilloscope",
-    "params": {
-      "display_mode": "line",
-      "line_thickness": 2.5,
-      "sample_count": 512,
-      "amplitude_scale": 1.5,
-      "wave_range": 0.35,
-      "trigger_mode": "rising",
-      "phosphor_glow": 1.0,
-      "glow_radius": 1.5,
-      "phosphor_persistence": 0.0,
-      "barrel_distortion": 0.15,
-      "scanline_intensity": 0.3,
-      "scanline_count": 400,
-      "chromatic_aberration": 0.3,
-      "vignette": 0.4,
-      "noise_intensity": 0.03,
-      "screen_flicker": 0.02,
-      "screen_tint": 0.05,
-      "graticule_enabled": true,
-      "graticule_intensity": 0.15,
-      "graticule_divisions": 10,
-      "bezel": false,
-      "offset_x": 0.0,
-      "offset_y": 0.0,
-      "scale": 1.0,
-      "rotation": 0.0
-    }
-  },
-  "color_palette": ["#33FF66"],
-  "blend_mode": "additive",
+  "color_palette": [
+    "#33FF66"
+  ],
   "background": {
     "type": "solid",
     "color": "#020a02"
@@ -42,5 +13,44 @@
   "fft_size": 2048,
   "smoothing": 0.2,
   "beat_sensitivity": 1.0,
-  "fps": 60
+  "fps": 60,
+  "layers": [
+    {
+      "visualization_type": "oscilloscope",
+      "params": {
+        "display_mode": "line",
+        "line_thickness": 2.5,
+        "sample_count": 512,
+        "amplitude_scale": 1.5,
+        "wave_range": 0.35,
+        "trigger_mode": "rising",
+        "phosphor_glow": 1.0,
+        "glow_radius": 1.5,
+        "phosphor_persistence": 0.0,
+        "barrel_distortion": 0.15,
+        "scanline_intensity": 0.3,
+        "scanline_count": 400,
+        "chromatic_aberration": 0.3,
+        "vignette": 0.4,
+        "noise_intensity": 0.03,
+        "screen_flicker": 0.02,
+        "screen_tint": 0.05,
+        "graticule_enabled": true,
+        "graticule_intensity": 0.15,
+        "graticule_divisions": 10,
+        "bezel": false,
+        "offset_x": 0.0,
+        "offset_y": 0.0,
+        "scale": 1.0,
+        "rotation": 0.0
+      },
+      "blend_mode": "additive",
+      "opacity": 1.0,
+      "visible": true,
+      "name": "",
+      "colors": [
+        "#33FF66"
+      ]
+    }
+  ]
 }

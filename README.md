@@ -72,6 +72,7 @@ Wavern is a local music visualizer for Linux. It renders GPU-accelerated audio v
 - **5 built-in themes** - Dark, Light, Nord, Dracula, Gruvbox — persists across sessions
 - **Color palettes** - multi-color gradients applied across visualizations
 - **36 built-in presets** - ranging from showcase demos to utility starting points; favorites, source filter, and item size toggle in the preset panel
+- **Multi-layer compositing** - stack up to 7 visualization layers, each with independent type, parameters, colors, blend mode (Normal/Additive/Screen/Multiply), and opacity; reorder, toggle visibility, and edit per-layer from the sidebar
 - **Video & image backgrounds** - with movement effects (drift, shake, wave, zoom_pulse, breathe), rotation, and mirror transforms
 - **Video overlay compositing** - layer a video above the visualization with alpha, additive, or screen blend modes
 - **Advanced audio analysis** - bass-weighted beat detection with adaptive threshold, dB magnitude normalization, amplitude envelope, and spectral flux

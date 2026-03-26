@@ -3,32 +3,12 @@
   "description": "Hexagonal rings with spiral twist and dreamy palette",
   "author": "wavern",
   "version": 1,
-  "visualization": {
-    "visualization_type": "tunnel",
-    "params": {
-      "ring_count": 24,
-      "direction": "inward",
-      "base_speed": 1.5,
-      "bass_drive": 0.6,
-      "beat_burst": 1.0,
-      "ring_thickness": 0.4,
-      "ring_gap": 0.5,
-      "spiral_twist": 3,
-      "perspective": 0.5,
-      "depth_fade": 0.6,
-      "color_cycle_speed": 2.0,
-      "color_spread": 2.0,
-      "glow_intensity": 0.8,
-      "pulse_intensity": 0.7,
-      "ring_shape": "hexagon",
-      "center_x": 0.0,
-      "center_y": 0.0,
-      "scale": 1.0,
-      "rotation": 0.0
-    }
-  },
-  "color_palette": ["#667eea", "#764ba2", "#f093fb", "#4facfe"],
-  "blend_mode": "additive",
+  "color_palette": [
+    "#667eea",
+    "#764ba2",
+    "#f093fb",
+    "#4facfe"
+  ],
   "background": {
     "type": "solid",
     "color": "#08060F"
@@ -60,5 +40,41 @@
   "fft_size": 2048,
   "smoothing": 0.4,
   "beat_sensitivity": 1.0,
-  "fps": 60
+  "fps": 60,
+  "layers": [
+    {
+      "visualization_type": "tunnel",
+      "params": {
+        "ring_count": 24,
+        "direction": "inward",
+        "base_speed": 1.5,
+        "bass_drive": 0.6,
+        "beat_burst": 1.0,
+        "ring_thickness": 0.4,
+        "ring_gap": 0.5,
+        "spiral_twist": 3,
+        "perspective": 0.5,
+        "depth_fade": 0.6,
+        "color_cycle_speed": 2.0,
+        "color_spread": 2.0,
+        "glow_intensity": 0.8,
+        "pulse_intensity": 0.7,
+        "ring_shape": "hexagon",
+        "center_x": 0.0,
+        "center_y": 0.0,
+        "scale": 1.0,
+        "rotation": 0.0
+      },
+      "blend_mode": "additive",
+      "opacity": 1.0,
+      "visible": true,
+      "name": "",
+      "colors": [
+        "#667eea",
+        "#764ba2",
+        "#f093fb",
+        "#4facfe"
+      ]
+    }
+  ]
 }

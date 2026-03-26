@@ -382,6 +382,79 @@ class QualitySection(QWidget):
         else:
             self._source_bitrate_label.setText("Source: —")
 
+    def update_values(self, settings: ProjectSettings) -> None:
+        """Sync widget state from external settings (dual sidebar sync).
+
+        Args:
+            settings: ProjectSettings to sync from.
+        """
+        self._rebuilding = True
+
+        self._format_combo.blockSignals(True)
+        idx = self._format_combo.findText(settings.container)
+        if idx >= 0:
+            self._format_combo.setCurrentIndex(idx)
+        self._format_combo.blockSignals(False)
+
+        self._populate_codec_combo(settings.container)
+        self._codec_combo.blockSignals(True)
+        idx = self._codec_combo.findData(settings.video_codec)
+        if idx >= 0:
+            self._codec_combo.setCurrentIndex(idx)
+        self._codec_combo.blockSignals(False)
+
+        self._hw_accel_combo.blockSignals(True)
+        idx = self._hw_accel_combo.findData(settings.hw_accel)
+        if idx >= 0:
+            self._hw_accel_combo.setCurrentIndex(idx)
+        self._hw_accel_combo.blockSignals(False)
+
+        self._quality_combo.blockSignals(True)
+        idx = self._quality_combo.findData(settings.quality_preset)
+        if idx >= 0:
+            self._quality_combo.setCurrentIndex(idx)
+        self._quality_combo.blockSignals(False)
+
+        self._crf_spin.blockSignals(True)
+        self._crf_spin.setValue(settings.crf)
+        self._crf_spin.blockSignals(False)
+
+        self._populate_speed_combo(settings.video_codec)
+        self._speed_combo.blockSignals(True)
+        idx = self._speed_combo.findData(settings.encoder_speed)
+        if idx >= 0:
+            self._speed_combo.setCurrentIndex(idx)
+        self._speed_combo.blockSignals(False)
+
+        self._prores_combo.blockSignals(True)
+        idx = self._prores_combo.findData(settings.prores_profile)
+        if idx >= 0:
+            self._prores_combo.setCurrentIndex(idx)
+        self._prores_combo.blockSignals(False)
+
+        self._audio_bitrate_combo.blockSignals(True)
+        self._audio_bitrate_combo.setCurrentText(settings.audio_bitrate)
+        self._audio_bitrate_combo.blockSignals(False)
+
+        self._gif_colors_spin.blockSignals(True)
+        self._gif_colors_spin.setValue(settings.gif_max_colors)
+        self._gif_colors_spin.blockSignals(False)
+
+        self._gif_dither_check.blockSignals(True)
+        self._gif_dither_check.setChecked(settings.gif_dither)
+        self._gif_dither_check.blockSignals(False)
+
+        self._gif_loop_spin.blockSignals(True)
+        self._gif_loop_spin.setValue(settings.gif_loop)
+        self._gif_loop_spin.blockSignals(False)
+
+        self._gif_scale_spin.blockSignals(True)
+        self._gif_scale_spin.setValue(settings.gif_scale)
+        self._gif_scale_spin.blockSignals(False)
+
+        self._update_visibility()
+        self._rebuilding = False
+
     # --- Internal helpers ---
 
     def _populate_codec_combo(self, container: str) -> None:

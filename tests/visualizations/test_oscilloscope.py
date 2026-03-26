@@ -88,11 +88,11 @@ class TestOscilloscopePresetContent:
         return json.loads((_PRESET_DIR / filename).read_text())
 
     def test_busted_crt_has_persistence(self) -> None:
-        params = self._load("oscilloscope_busted_crt.json")["visualization"].get("params", {})
+        params = self._load("oscilloscope_busted_crt.json")["layers"][0].get("params", {})
         assert params.get("phosphor_persistence", 0.0) > 0.0
 
     def test_busted_crt_dot_mode(self) -> None:
-        params = self._load("oscilloscope_busted_crt.json")["visualization"].get("params", {})
+        params = self._load("oscilloscope_busted_crt.json")["layers"][0].get("params", {})
         assert params.get("display_mode") == "dot"
 
     def test_all_presets_have_solid_background(self) -> None:

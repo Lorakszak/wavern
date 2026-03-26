@@ -3,38 +3,9 @@
   "description": "Battered amber CRT with heavy distortion, dot mode, noise, flicker, and persistence trail",
   "author": "wavern",
   "version": 1,
-  "visualization": {
-    "visualization_type": "oscilloscope",
-    "params": {
-      "display_mode": "dot",
-      "line_thickness": 3.5,
-      "sample_count": 256,
-      "amplitude_scale": 1.5,
-      "wave_range": 0.35,
-      "trigger_mode": "none",
-      "phosphor_glow": 1.2,
-      "glow_radius": 2.0,
-      "phosphor_persistence": 0.7,
-      "barrel_distortion": 0.4,
-      "scanline_intensity": 0.5,
-      "scanline_count": 300,
-      "chromatic_aberration": 2.5,
-      "vignette": 0.8,
-      "noise_intensity": 0.12,
-      "screen_flicker": 0.1,
-      "screen_tint": 0.08,
-      "graticule_enabled": false,
-      "graticule_intensity": 0.15,
-      "graticule_divisions": 10,
-      "bezel": true,
-      "offset_x": 0.0,
-      "offset_y": 0.0,
-      "scale": 1.0,
-      "rotation": 0.0
-    }
-  },
-  "color_palette": ["#FF8800"],
-  "blend_mode": "additive",
+  "color_palette": [
+    "#FF8800"
+  ],
   "background": {
     "type": "solid",
     "color": "#0A0500"
@@ -42,5 +13,44 @@
   "fft_size": 2048,
   "smoothing": 0.2,
   "beat_sensitivity": 1.0,
-  "fps": 60
+  "fps": 60,
+  "layers": [
+    {
+      "visualization_type": "oscilloscope",
+      "params": {
+        "display_mode": "dot",
+        "line_thickness": 3.5,
+        "sample_count": 256,
+        "amplitude_scale": 1.5,
+        "wave_range": 0.35,
+        "trigger_mode": "none",
+        "phosphor_glow": 1.2,
+        "glow_radius": 2.0,
+        "phosphor_persistence": 0.7,
+        "barrel_distortion": 0.4,
+        "scanline_intensity": 0.5,
+        "scanline_count": 300,
+        "chromatic_aberration": 2.5,
+        "vignette": 0.8,
+        "noise_intensity": 0.12,
+        "screen_flicker": 0.1,
+        "screen_tint": 0.08,
+        "graticule_enabled": false,
+        "graticule_intensity": 0.15,
+        "graticule_divisions": 10,
+        "bezel": true,
+        "offset_x": 0.0,
+        "offset_y": 0.0,
+        "scale": 1.0,
+        "rotation": 0.0
+      },
+      "blend_mode": "additive",
+      "opacity": 1.0,
+      "visible": true,
+      "name": "",
+      "colors": [
+        "#FF8800"
+      ]
+    }
+  ]
 }

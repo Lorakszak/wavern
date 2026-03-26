@@ -5,11 +5,43 @@ import logging
 import re
 from importlib import resources
 from pathlib import Path
+from typing import Any
 
 from wavern.config import get_preset_directory
 from wavern.presets.schema import Preset
 
 logger = logging.getLogger(__name__)
+
+
+def _migrate_preset_data(raw_data: dict[str, Any]) -> dict[str, Any]:
+    """Migrate old single-viz format to multi-layer format."""
+    default_palette = ["#00FFAA", "#FF00AA", "#FFAA00"]
+    palette = raw_data.get("color_palette", default_palette)
+
+    if "visualization" in raw_data and "layers" not in raw_data:
+        viz = raw_data.pop("visualization")
+        old_blend = raw_data.pop("blend_mode", "normal")
+        raw_data.pop("color_gradient", None)
+        raw_data["layers"] = [
+            {
+                "visualization_type": viz["visualization_type"],
+                "params": viz.get("params", {}),
+                "blend_mode": old_blend,
+                "opacity": 1.0,
+                "visible": True,
+                "name": "",
+                "colors": palette,
+            }
+        ]
+
+    # Migrate color_override → colors on existing multi-layer presets
+    if "layers" in raw_data:
+        for layer in raw_data["layers"]:
+            if "colors" not in layer:
+                override = layer.pop("color_override", None)
+                layer["colors"] = override if override else palette
+
+    return raw_data
 
 
 class PresetError(Exception):
@@ -85,7 +117,9 @@ class PresetManager:
         for entry in self.list_presets():
             try:
                 raw = json.loads(Path(entry["path"]).read_text(encoding="utf-8"))
-                viz_type = raw.get("visualization", {}).get("visualization_type", "")
+                raw = _migrate_preset_data(raw)
+                layers = raw.get("layers", [])
+                viz_type = layers[0]["visualization_type"] if layers else ""
             except Exception:
                 viz_type = ""
             result.append({**entry, "visualization_type": viz_type})
@@ -102,6 +136,7 @@ class PresetManager:
             try:
                 data = json.loads(f.read_text(encoding="utf-8"))
                 if data.get("name") == name:
+                    data = _migrate_preset_data(data)
                     return Preset.model_validate(data)
             except Exception:
                 logger.warning("Failed to load user preset %s: %s", f, exc_info=True)
@@ -114,6 +149,7 @@ class PresetManager:
                 try:
                     data = json.loads(f.read_text(encoding="utf-8"))
                     if data.get("name") == name:
+                        data = _migrate_preset_data(data)
                         return Preset.model_validate(data)
                 except Exception:
                     logger.warning("Failed to load built-in preset %s", f, exc_info=True)
@@ -125,6 +161,7 @@ class PresetManager:
         """Load a preset from an arbitrary file path."""
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
+            data = _migrate_preset_data(data)
             return Preset.model_validate(data)
         except (json.JSONDecodeError, Exception) as e:
             raise PresetError(f"Failed to load preset from {path}: {e}") from e

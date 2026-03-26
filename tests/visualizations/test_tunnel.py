@@ -26,24 +26,24 @@ def _register() -> None:
 class TestTunnelWarpPreset:
     def test_is_inward(self) -> None:
         raw = json.loads((_DEFAULTS_DIR / "tunnel_warp.json").read_text())
-        assert raw["visualization"]["params"]["direction"] == "inward"
+        assert raw["layers"][0]["params"]["direction"] == "inward"
 
 
 class TestTunnelVortexPreset:
     def test_has_spiral_twist(self) -> None:
         raw = json.loads((_DEFAULTS_DIR / "tunnel_vortex.json").read_text())
-        assert raw["visualization"]["params"]["spiral_twist"] != 0.0
+        assert raw["layers"][0]["params"]["spiral_twist"] != 0.0
 
     def test_is_hexagon(self) -> None:
         raw = json.loads((_DEFAULTS_DIR / "tunnel_vortex.json").read_text())
-        assert raw["visualization"]["params"]["ring_shape"] == "hexagon"
+        assert raw["layers"][0]["params"]["ring_shape"] == "hexagon"
 
 
 class TestTunnelEmergencePreset:
     def test_is_outward(self) -> None:
         raw = json.loads((_DEFAULTS_DIR / "tunnel_emergence.json").read_text())
-        assert raw["visualization"]["params"]["direction"] == "outward"
+        assert raw["layers"][0]["params"]["direction"] == "outward"
 
     def test_is_octagon(self) -> None:
         raw = json.loads((_DEFAULTS_DIR / "tunnel_emergence.json").read_text())
-        assert raw["visualization"]["params"]["ring_shape"] == "octagon"
+        assert raw["layers"][0]["params"]["ring_shape"] == "octagon"

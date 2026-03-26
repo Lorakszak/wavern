@@ -1,31 +1,14 @@
 {
   "name": "Spectrogram",
-  "description": "Scrolling inferno heatmap — frequency over time",
+  "description": "Scrolling inferno heatmap \u2014 frequency over time",
   "author": "wavern",
   "version": 1,
-  "visualization": {
-    "visualization_type": "spectrogram",
-    "params": {
-      "scroll_direction": "left",
-      "scroll_speed": 1.0,
-      "frequency_scale": "logarithmic",
-      "frequency_limit": false,
-      "min_frequency": 20,
-      "max_frequency": 16000,
-      "color_map": "inferno",
-      "brightness": 1.0,
-      "contrast": 1.2,
-      "saturation": 1.0,
-      "history_length": 256,
-      "blur": 0.0,
-      "bar_separation": false,
-      "offset_x": 0.0,
-      "offset_y": 0.0,
-      "scale": 1.0
-    }
-  },
-  "color_palette": ["#000000", "#FF4400", "#FFAA00", "#FFFFFF"],
-  "blend_mode": "normal",
+  "color_palette": [
+    "#000000",
+    "#FF4400",
+    "#FFAA00",
+    "#FFFFFF"
+  ],
   "background": {
     "type": "solid",
     "color": "#000000"
@@ -57,5 +40,38 @@
   "fft_size": 4096,
   "smoothing": 0.2,
   "beat_sensitivity": 1.5,
-  "fps": 60
+  "fps": 60,
+  "layers": [
+    {
+      "visualization_type": "spectrogram",
+      "params": {
+        "scroll_direction": "left",
+        "scroll_speed": 1.0,
+        "frequency_scale": "logarithmic",
+        "frequency_limit": false,
+        "min_frequency": 20,
+        "max_frequency": 16000,
+        "color_map": "inferno",
+        "brightness": 1.0,
+        "contrast": 1.2,
+        "saturation": 1.0,
+        "history_length": 256,
+        "blur": 0.0,
+        "bar_separation": false,
+        "offset_x": 0.0,
+        "offset_y": 0.0,
+        "scale": 1.0
+      },
+      "blend_mode": "normal",
+      "opacity": 1.0,
+      "visible": true,
+      "name": "",
+      "colors": [
+        "#000000",
+        "#FF4400",
+        "#FFAA00",
+        "#FFFFFF"
+      ]
+    }
+  ]
 }

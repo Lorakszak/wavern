@@ -3,36 +3,12 @@
   "description": "Circular spectrum with slow rotation",
   "author": "wavern",
   "version": 1,
-  "visualization": {
-    "visualization_type": "circular_spectrum",
-    "params": {
-      "bar_count": 64,
-      "bar_spacing": 0.25,
-      "inner_radius": 0.2,
-      "bar_length": 0.3,
-      "rotation_speed": 0.3,
-      "gravity": 0.88,
-      "mirror_spectrum": false,
-      "mirror_half": "left",
-      "bar_roundness": 0.0,
-      "shadow_enabled": false,
-      "shadow_color": "#000000",
-      "shadow_opacity": 0.4,
-      "shadow_offset_x": 0.005,
-      "shadow_offset_y": -0.005,
-      "shadow_size": 1.0,
-      "shadow_blur": 0.005,
-      "inner_image_path": "",
-      "inner_image_padding": 0.0,
-      "inner_image_beat_bounce": false,
-      "inner_image_bounce_strength": 0.15,
-      "inner_image_bounce_zoom": false,
-      "shape_beat_bounce": false,
-      "shape_bounce_strength": 0.15
-    }
-  },
-  "color_palette": ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4"],
-  "blend_mode": "additive",
+  "color_palette": [
+    "#FF6B6B",
+    "#4ECDC4",
+    "#45B7D1",
+    "#96CEB4"
+  ],
   "background": {
     "type": "solid",
     "color": "#080810"
@@ -64,5 +40,45 @@
   "fft_size": 4096,
   "smoothing": 0.4,
   "beat_sensitivity": 1.5,
-  "fps": 60
+  "fps": 60,
+  "layers": [
+    {
+      "visualization_type": "circular_spectrum",
+      "params": {
+        "bar_count": 64,
+        "bar_spacing": 0.25,
+        "inner_radius": 0.2,
+        "bar_length": 0.3,
+        "rotation_speed": 0.3,
+        "gravity": 0.88,
+        "mirror_spectrum": false,
+        "mirror_half": "left",
+        "bar_roundness": 0.0,
+        "shadow_enabled": false,
+        "shadow_color": "#000000",
+        "shadow_opacity": 0.4,
+        "shadow_offset_x": 0.005,
+        "shadow_offset_y": -0.005,
+        "shadow_size": 1.0,
+        "shadow_blur": 0.005,
+        "inner_image_path": "",
+        "inner_image_padding": 0.0,
+        "inner_image_beat_bounce": false,
+        "inner_image_bounce_strength": 0.15,
+        "inner_image_bounce_zoom": false,
+        "shape_beat_bounce": false,
+        "shape_bounce_strength": 0.15
+      },
+      "blend_mode": "additive",
+      "opacity": 1.0,
+      "visible": true,
+      "name": "",
+      "colors": [
+        "#FF6B6B",
+        "#4ECDC4",
+        "#45B7D1",
+        "#96CEB4"
+      ]
+    }
+  ]
 }

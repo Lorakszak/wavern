@@ -3,24 +3,12 @@
   "description": "[Beta] Thick filled waveform with heavy glow and beat-reactive zoom pulse background",
   "author": "wavern",
   "version": 1,
-  "visualization": {
-    "visualization_type": "waveform",
-    "params": {
-      "line_thickness": 20.0,
-      "filled": true,
-      "sample_count": 512,
-      "amplitude_scale": 2.0,
-      "glow_intensity": 2.0,
-      "wave_range": 0.75
-    }
-  },
   "color_palette": [
     "#00ffaa",
     "#00ff55",
     "#33ffcc",
     "#00ddff"
   ],
-  "blend_mode": "additive",
   "background": {
     "type": "solid",
     "color": "#000a0d",
@@ -34,5 +22,28 @@
   "fft_size": 4096,
   "smoothing": 0.8,
   "beat_sensitivity": 2.0,
-  "fps": 60
+  "fps": 60,
+  "layers": [
+    {
+      "visualization_type": "waveform",
+      "params": {
+        "line_thickness": 20.0,
+        "filled": true,
+        "sample_count": 512,
+        "amplitude_scale": 2.0,
+        "glow_intensity": 2.0,
+        "wave_range": 0.75
+      },
+      "blend_mode": "additive",
+      "opacity": 1.0,
+      "visible": true,
+      "name": "",
+      "colors": [
+        "#00ffaa",
+        "#00ff55",
+        "#33ffcc",
+        "#00ddff"
+      ]
+    }
+  ]
 }

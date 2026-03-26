@@ -3,24 +3,6 @@
   "description": "Static rectangular spectrum with continuous colors, beat bounce, and 45-degree offset",
   "author": "wavern",
   "version": 1,
-  "visualization": {
-    "visualization_type": "rect_spectrum",
-    "params": {
-      "bar_count": 128,
-      "bar_spacing": 0.15,
-      "inner_size": 0.2,
-      "bar_length": 0.45,
-      "rotates": false,
-      "rotation_speed": 0.0,
-      "gravity": 0.9,
-      "glow_intensity": 1.0,
-      "rotation_offset": 45.0,
-      "continuous_colors": true,
-      "mirror_sides": true,
-      "shape_beat_bounce": true,
-      "shape_bounce_strength": 0.25
-    }
-  },
   "color_palette": [
     "#ff0066",
     "#ff00ff",
@@ -28,7 +10,6 @@
     "#0066ff",
     "#00ffcc"
   ],
-  "blend_mode": "additive",
   "background": {
     "type": "solid",
     "color": "#05000a",
@@ -42,5 +23,36 @@
   "fft_size": 4096,
   "smoothing": 0.85,
   "beat_sensitivity": 1.8,
-  "fps": 60
+  "fps": 60,
+  "layers": [
+    {
+      "visualization_type": "rect_spectrum",
+      "params": {
+        "bar_count": 128,
+        "bar_spacing": 0.15,
+        "inner_size": 0.2,
+        "bar_length": 0.45,
+        "rotates": false,
+        "rotation_speed": 0.0,
+        "gravity": 0.9,
+        "glow_intensity": 1.0,
+        "rotation_offset": 45.0,
+        "continuous_colors": true,
+        "mirror_sides": true,
+        "shape_beat_bounce": true,
+        "shape_bounce_strength": 0.25
+      },
+      "blend_mode": "additive",
+      "opacity": 1.0,
+      "visible": true,
+      "name": "",
+      "colors": [
+        "#ff0066",
+        "#ff00ff",
+        "#6600ff",
+        "#0066ff",
+        "#00ffcc"
+      ]
+    }
+  ]
 }

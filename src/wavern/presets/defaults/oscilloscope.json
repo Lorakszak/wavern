@@ -3,21 +3,9 @@
   "description": "[Beta] Thin monochrome green waveform with no smoothing \u2014 retro CRT oscilloscope look",
   "author": "wavern",
   "version": 1,
-  "visualization": {
-    "visualization_type": "waveform",
-    "params": {
-      "line_thickness": 0.8,
-      "filled": false,
-      "sample_count": 2048,
-      "amplitude_scale": 1.2,
-      "glow_intensity": 0.8,
-      "wave_range": 0.35
-    }
-  },
   "color_palette": [
     "#00ff00"
   ],
-  "blend_mode": "additive",
   "background": {
     "type": "solid",
     "color": "#000800"
@@ -25,5 +13,25 @@
   "fft_size": 4096,
   "smoothing": 0.0,
   "beat_sensitivity": 0.5,
-  "fps": 60
+  "fps": 60,
+  "layers": [
+    {
+      "visualization_type": "waveform",
+      "params": {
+        "line_thickness": 0.8,
+        "filled": false,
+        "sample_count": 2048,
+        "amplitude_scale": 1.2,
+        "glow_intensity": 0.8,
+        "wave_range": 0.35
+      },
+      "blend_mode": "additive",
+      "opacity": 1.0,
+      "visible": true,
+      "name": "",
+      "colors": [
+        "#00ff00"
+      ]
+    }
+  ]
 }

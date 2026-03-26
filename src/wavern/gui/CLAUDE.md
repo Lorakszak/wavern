@@ -19,6 +19,7 @@ PySide6 GUI layer. Everything here may import Qt. Never import from `gui/` in `c
 | `favorites_store.py` | Persist favorited preset names to `~/.config/wavern/favorites.json` |
 | `theme_manager.py` | Load and switch QSS themes |
 | `constants.py` | Shared UI constants (quality presets, ProRes profiles, resolutions, FPS) |
+| `layer_list_widget.py` | Multi-layer management: visibility, reorder, blend, opacity per layer |
 | `background_picker.py` | Reusable color/image/video picker widget |
 | `collapsible_section.py` | Animated collapsible container widget |
 | `drag_spinbox.py` | Spinbox with click-drag value editing |
@@ -40,6 +41,16 @@ across dual sidebars when syncing left↔right.
 `MainWindow` maintains two `Sidebar` instances (left + right). Both display the same
 preset. When one panel emits `params_changed`, `MainWindow` calls `update_values(preset)`
 on the matching panel in the other sidebar to keep them in sync.
+
+## Layer List Widget
+`LayerListWidget` manages the multi-layer compositing stack (max 7 layers).
+Each row has: visibility toggle, name, blend mode, opacity, move ▲/▼, delete.
+
+- Buttons use `setObjectName("ColorControlBtn")` (▲/▼/x) and `"LayerEyeBtn"` (visibility)
+  so the active QSS theme controls their appearance. Never hardcode button colors.
+- Clicking anywhere on a row selects it (event filter on all child widgets).
+- The selected layer determines which visualization/color settings are shown.
+- `layer_order_changed(from_idx, to_idx)` signal notifies `VisualPanel` of reorders.
 
 ## Section Widget Pattern
 Complex panels are decomposed into `QWidget` section subclasses:

@@ -3,32 +3,6 @@
   "description": "Height-colored bars with deep purple shadows, high opacity, and a drifting gradient background",
   "author": "wavern",
   "version": 1,
-  "visualization": {
-    "visualization_type": "spectrum_bars",
-    "params": {
-      "bar_count": 128,
-      "bar_spacing": 0.15,
-      "mirror": false,
-      "min_bar_height": 0.005,
-      "max_bar_height": 0.9,
-      "frequency_scale": "logarithmic",
-      "gravity": 0.9,
-      "color_mode": "height",
-      "height_reference": "universal",
-      "intensity": 1.2,
-      "offset_x": 0.0,
-      "offset_y": -0.1,
-      "shadow_enabled": true,
-      "shadow_color": "#2200aa",
-      "shadow_opacity": 0.8,
-      "shadow_offset_x": 0.006,
-      "shadow_offset_y": -0.01,
-      "shadow_size": 2.5,
-      "shadow_blur": 0.04,
-      "frequency_limit": true,
-      "max_frequency": 10000
-    }
-  },
   "color_palette": [
     "#6600ff",
     "#aa00ff",
@@ -36,7 +10,6 @@
     "#ff0066",
     "#ff4400"
   ],
-  "blend_mode": "additive",
   "background": {
     "type": "gradient",
     "gradient_stops": [
@@ -63,5 +36,44 @@
   "fft_size": 8192,
   "smoothing": 0.85,
   "beat_sensitivity": 1.4,
-  "fps": 60
+  "fps": 60,
+  "layers": [
+    {
+      "visualization_type": "spectrum_bars",
+      "params": {
+        "bar_count": 128,
+        "bar_spacing": 0.15,
+        "mirror": false,
+        "min_bar_height": 0.005,
+        "max_bar_height": 0.9,
+        "frequency_scale": "logarithmic",
+        "gravity": 0.9,
+        "color_mode": "height",
+        "height_reference": "universal",
+        "intensity": 1.2,
+        "offset_x": 0.0,
+        "offset_y": -0.1,
+        "shadow_enabled": true,
+        "shadow_color": "#2200aa",
+        "shadow_opacity": 0.8,
+        "shadow_offset_x": 0.006,
+        "shadow_offset_y": -0.01,
+        "shadow_size": 2.5,
+        "shadow_blur": 0.04,
+        "frequency_limit": true,
+        "max_frequency": 10000
+      },
+      "blend_mode": "additive",
+      "opacity": 1.0,
+      "visible": true,
+      "name": "",
+      "colors": [
+        "#6600ff",
+        "#aa00ff",
+        "#ff00cc",
+        "#ff0066",
+        "#ff4400"
+      ]
+    }
+  ]
 }

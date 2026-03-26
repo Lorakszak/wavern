@@ -3,36 +3,13 @@
   "description": "[Beta] Tiny glowing particles spawning randomly with heavy turbulence and slow drift",
   "author": "wavern",
   "version": 1,
-  "visualization": {
-    "visualization_type": "particles",
-    "params": {
-      "max_particles": 3000,
-      "particle_size": 6.0,
-      "spawn_rate": 2.0,
-      "lifetime": 10.0,
-      "spread": 0.2,
-      "spawn_mode": "random",
-      "spawn_x": 0.5,
-      "spawn_y": 0.5,
-      "spawn_radius": 0.3,
-      "gravity_x": 0.0,
-      "gravity_y": 0.02,
-      "speed_min": 0.01,
-      "speed_max": 0.1,
-      "drag": 0.5,
-      "turbulence": 0.8,
-      "radial_force": 0.0,
-      "vortex": 0.0,
-      "size_reactivity": 0.6,
-      "speed_reactivity": 0.2,
-      "color_shift_reactivity": 0.5,
-      "size_over_life": "pulse",
-      "fade_curve": "ease_out",
-      "color_over_life": true
-    }
-  },
-  "color_palette": ["#FFEE44", "#FFCC00", "#88FF44", "#44FF88", "#FFAA22"],
-  "blend_mode": "additive",
+  "color_palette": [
+    "#FFEE44",
+    "#FFCC00",
+    "#88FF44",
+    "#44FF88",
+    "#FFAA22"
+  ],
   "background": {
     "type": "solid",
     "color": "#040804"
@@ -64,5 +41,46 @@
   "fft_size": 4096,
   "smoothing": 0.7,
   "beat_sensitivity": 1.2,
-  "fps": 60
+  "fps": 60,
+  "layers": [
+    {
+      "visualization_type": "particles",
+      "params": {
+        "max_particles": 3000,
+        "particle_size": 6.0,
+        "spawn_rate": 2.0,
+        "lifetime": 10.0,
+        "spread": 0.2,
+        "spawn_mode": "random",
+        "spawn_x": 0.5,
+        "spawn_y": 0.5,
+        "spawn_radius": 0.3,
+        "gravity_x": 0.0,
+        "gravity_y": 0.02,
+        "speed_min": 0.01,
+        "speed_max": 0.1,
+        "drag": 0.5,
+        "turbulence": 0.8,
+        "radial_force": 0.0,
+        "vortex": 0.0,
+        "size_reactivity": 0.6,
+        "speed_reactivity": 0.2,
+        "color_shift_reactivity": 0.5,
+        "size_over_life": "pulse",
+        "fade_curve": "ease_out",
+        "color_over_life": true
+      },
+      "blend_mode": "additive",
+      "opacity": 1.0,
+      "visible": true,
+      "name": "",
+      "colors": [
+        "#FFEE44",
+        "#FFCC00",
+        "#88FF44",
+        "#44FF88",
+        "#FFAA22"
+      ]
+    }
+  ]
 }

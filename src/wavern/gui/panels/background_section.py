@@ -92,8 +92,10 @@ class BackgroundSection(QWidget):
         self._layout.addWidget(bg_content)
         self._rebuilding = False
 
-    def update_values(self, bg: BackgroundConfig) -> None:
+    def update_values(self, bg: BackgroundConfig, preset: Preset | None = None) -> None:
         """Update widget values in-place without rebuilding."""
+        if preset is not None:
+            self._preset = preset
         self._rebuilding = True
         if bg.type == "solid" and hasattr(self, "_bg_color_btn"):
             self._bg_color_btn.setStyleSheet(

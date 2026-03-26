@@ -3,30 +3,6 @@
   "description": "Dense neon cityscape with 256 height-colored bars, shadows, and a drifting gradient background",
   "author": "wavern",
   "version": 1,
-  "visualization": {
-    "visualization_type": "spectrum_bars",
-    "params": {
-      "bar_count": 256,
-      "bar_spacing": 0.1,
-      "mirror": false,
-      "min_bar_height": 0.005,
-      "max_bar_height": 0.95,
-      "frequency_scale": "logarithmic",
-      "gravity": 0.92,
-      "color_mode": "height",
-      "height_reference": "universal",
-      "intensity": 1.4,
-      "shadow_enabled": true,
-      "shadow_color": "#1a0033",
-      "shadow_opacity": 0.6,
-      "shadow_offset_x": 0.003,
-      "shadow_offset_y": -0.008,
-      "shadow_size": 1.2,
-      "shadow_blur": 0.01,
-      "frequency_limit": true,
-      "max_frequency": 8000
-    }
-  },
   "color_palette": [
     "#ff00ff",
     "#00ffff",
@@ -34,7 +10,6 @@
     "#6600ff",
     "#00ff99"
   ],
-  "blend_mode": "additive",
   "background": {
     "type": "gradient",
     "gradient_stops": [
@@ -61,5 +36,42 @@
   "fft_size": 8192,
   "smoothing": 0.85,
   "beat_sensitivity": 1.5,
-  "fps": 60
+  "fps": 60,
+  "layers": [
+    {
+      "visualization_type": "spectrum_bars",
+      "params": {
+        "bar_count": 256,
+        "bar_spacing": 0.1,
+        "mirror": false,
+        "min_bar_height": 0.005,
+        "max_bar_height": 0.95,
+        "frequency_scale": "logarithmic",
+        "gravity": 0.92,
+        "color_mode": "height",
+        "height_reference": "universal",
+        "intensity": 1.4,
+        "shadow_enabled": true,
+        "shadow_color": "#1a0033",
+        "shadow_opacity": 0.6,
+        "shadow_offset_x": 0.003,
+        "shadow_offset_y": -0.008,
+        "shadow_size": 1.2,
+        "shadow_blur": 0.01,
+        "frequency_limit": true,
+        "max_frequency": 8000
+      },
+      "blend_mode": "additive",
+      "opacity": 1.0,
+      "visible": true,
+      "name": "",
+      "colors": [
+        "#ff00ff",
+        "#00ffff",
+        "#ff0066",
+        "#6600ff",
+        "#00ff99"
+      ]
+    }
+  ]
 }

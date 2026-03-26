@@ -41,5 +41,5 @@ class TestPresetDefaults:
 
     def test_spectrum_bars_preset(self) -> None:
         data = json.loads((PRESETS_DIR / "spectrum_bars.json").read_text())
-        params = data["visualization"]["params"]
+        params = data["layers"][0]["params"]
         assert params["height_reference"] == "per_bar"

@@ -3,31 +3,12 @@
   "description": "Vibrant neon bar spectrum with mirroring",
   "author": "wavern",
   "version": 1,
-  "visualization": {
-    "visualization_type": "spectrum_bars",
-    "params": {
-      "bar_count": 64,
-      "bar_spacing": 0.25,
-      "mirror": true,
-      "min_bar_height": 0.01,
-      "max_bar_height": 0.95,
-      "frequency_scale": "logarithmic",
-      "gravity": 0.85,
-      "mirror_spectrum": false,
-      "mirror_half": "left",
-      "bar_roundness": 0.0,
-      "shadow_enabled": false,
-      "shadow_color": "#000000",
-      "shadow_opacity": 0.4,
-      "shadow_offset_x": 0.005,
-      "shadow_offset_y": -0.005,
-      "shadow_size": 1.0,
-      "shadow_blur": 0.005,
-      "height_reference": "per_bar"
-    }
-  },
-  "color_palette": ["#00FFAA", "#FF00AA", "#FFAA00", "#00AAFF"],
-  "blend_mode": "additive",
+  "color_palette": [
+    "#00FFAA",
+    "#FF00AA",
+    "#FFAA00",
+    "#00AAFF"
+  ],
   "background": {
     "type": "solid",
     "color": "#0A0A0F"
@@ -59,5 +40,40 @@
   "fft_size": 4096,
   "smoothing": 0.35,
   "beat_sensitivity": 1.2,
-  "fps": 60
+  "fps": 60,
+  "layers": [
+    {
+      "visualization_type": "spectrum_bars",
+      "params": {
+        "bar_count": 64,
+        "bar_spacing": 0.25,
+        "mirror": true,
+        "min_bar_height": 0.01,
+        "max_bar_height": 0.95,
+        "frequency_scale": "logarithmic",
+        "gravity": 0.85,
+        "mirror_spectrum": false,
+        "mirror_half": "left",
+        "bar_roundness": 0.0,
+        "shadow_enabled": false,
+        "shadow_color": "#000000",
+        "shadow_opacity": 0.4,
+        "shadow_offset_x": 0.005,
+        "shadow_offset_y": -0.005,
+        "shadow_size": 1.0,
+        "shadow_blur": 0.005,
+        "height_reference": "per_bar"
+      },
+      "blend_mode": "additive",
+      "opacity": 1.0,
+      "visible": true,
+      "name": "",
+      "colors": [
+        "#00FFAA",
+        "#FF00AA",
+        "#FFAA00",
+        "#00AAFF"
+      ]
+    }
+  ]
 }

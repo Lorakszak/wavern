@@ -6,7 +6,6 @@ from pathlib import Path
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QCheckBox,
-    QDoubleSpinBox,
     QFileDialog,
     QFormLayout,
     QHBoxLayout,
@@ -16,6 +15,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from wavern.gui.drag_spinbox import DragSpinBox
 
 logger = logging.getLogger(__name__)
 
@@ -108,15 +109,9 @@ class IntroOutroSection(QWidget):
         layout.addLayout(form)
 
     @staticmethod
-    def _make_fade_spin() -> QDoubleSpinBox:
+    def _make_fade_spin() -> DragSpinBox:
         """Create a fade-duration spinbox (0.0–30.0 s, step 0.1)."""
-        spin = QDoubleSpinBox()
-        spin.setRange(0.0, 30.0)
-        spin.setSingleStep(0.1)
-        spin.setDecimals(1)
-        spin.setSuffix(" s")
-        spin.setValue(0.0)
-        return spin
+        return DragSpinBox(minimum=0.0, maximum=30.0, step=0.1, decimals=1)
 
     def collect(self) -> dict:
         """Return current intro/outro settings as a dict."""

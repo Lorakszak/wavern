@@ -20,7 +20,7 @@ from wavern.presets.schema import (
     OverlayBlendMode,
     Preset,
     VideoOverlayConfig,
-    VisualizationParams,
+    VisualizationLayer,
 )
 
 
@@ -28,9 +28,7 @@ class TestPresetSchema:
     def test_minimal_preset(self):
         preset = Preset(
             name="Test",
-            visualization=VisualizationParams(
-                visualization_type="spectrum_bars",
-            ),
+            layers=[VisualizationLayer(visualization_type="spectrum_bars")],
         )
         assert preset.name == "Test"
         assert preset.fps == 60
@@ -41,45 +39,49 @@ class TestPresetSchema:
             name="Full Test",
             description="A complete preset",
             author="tester",
-            visualization=VisualizationParams(
-                visualization_type="waveform",
-                params={"line_thickness": 3.0},
-            ),
+            layers=[
+                VisualizationLayer(
+                    visualization_type="waveform",
+                    params={"line_thickness": 3.0},
+                    blend_mode=BlendMode.ADDITIVE,
+                ),
+            ],
             color_palette=["#FF0000", "#00FF00"],
-            blend_mode=BlendMode.ADDITIVE,
             background=BackgroundConfig(type="solid", color="#111111"),
             fft_size=4096,
             smoothing=0.5,
             fps=30,
         )
         assert preset.author == "tester"
-        assert preset.visualization.params["line_thickness"] == 3.0
+        assert preset.layers[0].params["line_thickness"] == 3.0
 
     def test_json_roundtrip(self):
         preset = Preset(
             name="Roundtrip",
-            visualization=VisualizationParams(
-                visualization_type="particles",
-                params={"max_particles": 5000},
-            ),
+            layers=[
+                VisualizationLayer(
+                    visualization_type="particles",
+                    params={"max_particles": 5000},
+                ),
+            ],
         )
         json_str = preset.model_dump_json()
         loaded = Preset.model_validate_json(json_str)
         assert loaded.name == "Roundtrip"
-        assert loaded.visualization.params["max_particles"] == 5000
+        assert loaded.layers[0].params["max_particles"] == 5000
 
     def test_invalid_name_empty(self):
         with pytest.raises(ValidationError):
             Preset(
                 name="",
-                visualization=VisualizationParams(visualization_type="waveform"),
+                layers=[VisualizationLayer(visualization_type="waveform")],
             )
 
     def test_invalid_fft_size(self):
         with pytest.raises(ValidationError):
             Preset(
                 name="Bad FFT",
-                visualization=VisualizationParams(visualization_type="waveform"),
+                layers=[VisualizationLayer(visualization_type="waveform")],
                 fft_size=100,  # below minimum 256
             )
 
@@ -110,7 +112,7 @@ class TestPresetSchema:
     def test_preset_has_video_overlay(self):
         preset = Preset(
             name="Overlay Test",
-            visualization=VisualizationParams(visualization_type="waveform"),
+            layers=[VisualizationLayer(visualization_type="waveform")],
             video_overlay=VideoOverlayConfig(
                 enabled=True,
                 video_path="/tmp/particles.webm",
@@ -124,7 +126,7 @@ class TestPresetSchema:
     def test_preset_roundtrip_with_new_fields(self):
         preset = Preset(
             name="Full",
-            visualization=VisualizationParams(visualization_type="spectrum_bars"),
+            layers=[VisualizationLayer(visualization_type="spectrum_bars")],
             background=BackgroundConfig(
                 type="video",
                 video_path="/tmp/bg.mp4",

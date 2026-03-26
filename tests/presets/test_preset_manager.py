@@ -13,7 +13,7 @@ Does NOT test: built-in preset files or the Preset pydantic schema (see test_pre
 import pytest
 
 from wavern.presets.manager import PresetError, PresetManager
-from wavern.presets.schema import Preset, VisualizationParams
+from wavern.presets.schema import Preset, VisualizationLayer
 
 
 @pytest.fixture
@@ -32,10 +32,10 @@ def manager(tmp_preset_dir):
 def sample_preset():
     return Preset(
         name="Test Preset",
-        visualization=VisualizationParams(
+        layers=[VisualizationLayer(
             visualization_type="spectrum_bars",
             params={"bar_count": 32},
-        ),
+        )],
     )
 
 
@@ -46,7 +46,7 @@ class TestPresetManager:
 
         loaded = manager.load("Test Preset")
         assert loaded.name == "Test Preset"
-        assert loaded.visualization.params["bar_count"] == 32
+        assert loaded.layers[0].params["bar_count"] == 32
 
     def test_list_presets(self, manager, sample_preset):
         manager.save(sample_preset)

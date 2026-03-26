@@ -3,31 +3,6 @@
   "description": "Beat-bouncing rectangular spectrum with counterclockwise rotation, blue shadows, and continuous colors",
   "author": "wavern",
   "version": 1,
-  "visualization": {
-    "visualization_type": "rect_spectrum",
-    "params": {
-      "bar_count": 96,
-      "bar_spacing": 0.15,
-      "inner_size": 0.25,
-      "bar_length": 0.4,
-      "rotates": true,
-      "rotation_speed": 2.0,
-      "rotation_direction": "counterclockwise",
-      "gravity": 0.88,
-      "glow_intensity": 0.8,
-      "continuous_colors": true,
-      "mirror_sides": true,
-      "shape_beat_bounce": true,
-      "shape_bounce_strength": 0.6,
-      "shadow_enabled": true,
-      "shadow_color": "#0044ff",
-      "shadow_opacity": 0.5,
-      "shadow_offset_x": 0.004,
-      "shadow_offset_y": -0.004,
-      "shadow_size": 2.0,
-      "shadow_blur": 0.02
-    }
-  },
   "color_palette": [
     "#0044ff",
     "#0088ff",
@@ -35,7 +10,6 @@
     "#00ffcc",
     "#00ff66"
   ],
-  "blend_mode": "additive",
   "background": {
     "type": "solid",
     "color": "#000508",
@@ -49,5 +23,43 @@
   "fft_size": 4096,
   "smoothing": 0.85,
   "beat_sensitivity": 2.0,
-  "fps": 60
+  "fps": 60,
+  "layers": [
+    {
+      "visualization_type": "rect_spectrum",
+      "params": {
+        "bar_count": 96,
+        "bar_spacing": 0.15,
+        "inner_size": 0.25,
+        "bar_length": 0.4,
+        "rotates": true,
+        "rotation_speed": 2.0,
+        "rotation_direction": "counterclockwise",
+        "gravity": 0.88,
+        "glow_intensity": 0.8,
+        "continuous_colors": true,
+        "mirror_sides": true,
+        "shape_beat_bounce": true,
+        "shape_bounce_strength": 0.6,
+        "shadow_enabled": true,
+        "shadow_color": "#0044ff",
+        "shadow_opacity": 0.5,
+        "shadow_offset_x": 0.004,
+        "shadow_offset_y": -0.004,
+        "shadow_size": 2.0,
+        "shadow_blur": 0.02
+      },
+      "blend_mode": "additive",
+      "opacity": 1.0,
+      "visible": true,
+      "name": "",
+      "colors": [
+        "#0044ff",
+        "#0088ff",
+        "#00ccff",
+        "#00ffcc",
+        "#00ff66"
+      ]
+    }
+  ]
 }

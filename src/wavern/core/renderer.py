@@ -2,6 +2,7 @@
 
 import logging
 import math
+import struct
 
 import moderngl
 import numpy as np
@@ -14,10 +15,13 @@ from wavern.core.video_source import VideoSource
 from wavern.presets.schema import (
     BackgroundConfig,
     BackgroundMovement,
+    BlendMode,
     ColorStop,
     OverlayBlendMode,
     Preset,
     VideoOverlayConfig,
+    VisualizationLayer,
+    VisualizationParams,
 )
 from wavern.shaders import load_shader
 from wavern.utils.color import hex_to_rgb, hex_to_rgba
@@ -84,7 +88,13 @@ class Renderer:
 
     def __init__(self, ctx: moderngl.Context) -> None:
         self.ctx = ctx
-        self._visualization: AbstractVisualization | None = None
+        self._layers: list[tuple[VisualizationLayer, AbstractVisualization | None]] = []
+        self._layer_fbos: list[moderngl.Framebuffer] = []
+        self._layer_textures: list[moderngl.Texture] = []
+        self._composite_prog: moderngl.Program | None = None
+        self._composite_vao: moderngl.VertexArray | None = None
+        self._composite_vbo: moderngl.Buffer | None = None
+        self._layer_fbo_resolution: tuple[int, int] | None = None
         self._preset: Preset | None = None
         self._offscreen_fbo: moderngl.Framebuffer | None = None
         self._offscreen_texture: moderngl.Texture | None = None
@@ -269,11 +279,62 @@ class Renderer:
 
         self._bg_vao.render(moderngl.TRIANGLE_STRIP)
 
+    def _ensure_layer_fbos(self, resolution: tuple[int, int]) -> None:
+        """Create or resize layer FBOs to match resolution."""
+        if (
+            self._layer_fbo_resolution == resolution
+            and len(self._layer_fbos) == len(self._layers)
+        ):
+            return
+        self._release_layer_fbos()
+        for _ in self._layers:
+            tex = self.ctx.texture(resolution, 4)
+            tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
+            layer_fbo = self.ctx.framebuffer(color_attachments=[tex])
+            self._layer_textures.append(tex)
+            self._layer_fbos.append(layer_fbo)
+        self._layer_fbo_resolution = resolution
+        logger.debug("Created %d layer FBOs at %dx%d", len(self._layer_fbos), *resolution)
+
+    def _release_layer_fbos(self) -> None:
+        """Release all layer FBOs and textures."""
+        for layer_fbo in self._layer_fbos:
+            layer_fbo.release()
+        for tex in self._layer_textures:
+            tex.release()
+        self._layer_fbos.clear()
+        self._layer_textures.clear()
+        self._layer_fbo_resolution = None
+
+    def _ensure_composite_shader(self) -> None:
+        """Lazily create the compositing shader and fullscreen quad."""
+        if self._composite_prog is not None:
+            return
+        vert_src = load_shader("composite.vert")
+        frag_src = load_shader("composite.frag")
+        self._composite_prog = self.ctx.program(
+            vertex_shader=vert_src,
+            fragment_shader=frag_src,
+        )
+        vertices = np.array([
+            -1.0, -1.0, 0.0, 0.0,
+             1.0, -1.0, 1.0, 0.0,
+            -1.0,  1.0, 0.0, 1.0,
+             1.0,  1.0, 1.0, 1.0,
+        ], dtype="f4")
+        self._composite_vbo = self.ctx.buffer(vertices.tobytes())
+        self._composite_vao = self.ctx.vertex_array(
+            self._composite_prog,
+            [(self._composite_vbo, "2f 2f", "in_position", "in_uv")],
+        )
+
     def set_preset(self, preset: Preset) -> None:
-        """Load a visualization from the registry and initialize it."""
-        if self._visualization is not None:
-            self._visualization.cleanup()
-            self._visualization = None
+        """Load visualization layers from the registry and initialize them."""
+        # Clean up old layers
+        for _, viz in self._layers:
+            if viz is not None:
+                viz.cleanup()
+        self._layers.clear()
 
         self._preset = preset
 
@@ -304,52 +365,42 @@ class Renderer:
         assert self._text_overlay is not None
         self._text_overlay.update_config(preset.overlay)
 
-        # Prepare color data for the visualization
-        colors_rgb = [hex_to_rgb(c) for c in preset.color_palette]
-        preset.visualization.params["_colors"] = colors_rgb
-        if colors_rgb:
-            preset.visualization.params["_primary_color"] = colors_rgb[0]
-
-        # Instantiate visualization
+        # Instantiate visualization layers
         registry = VisualizationRegistry()
-        viz_class = registry.get(preset.visualization.visualization_type)
-        try:
-            self._visualization = viz_class(self.ctx, preset.visualization)
-            self._visualization.initialize()
-            logger.info(
-                "Loaded visualization: %s (%s)",
-                viz_class.DISPLAY_NAME,
-                viz_class.NAME,
+        for layer_cfg in preset.layers:
+            colors = layer_cfg.colors
+            colors_rgb = [hex_to_rgb(c) for c in colors]
+
+            viz_params = VisualizationParams(
+                visualization_type=layer_cfg.visualization_type,
+                params=dict(layer_cfg.params),
             )
-        except Exception as e:
-            logger.error("Failed to initialize visualization %s: %s", viz_class.NAME, e)
-            self._visualization = None
+            viz_params.params["_colors"] = colors_rgb
+            if colors_rgb:
+                viz_params.params["_primary_color"] = colors_rgb[0]
+
+            try:
+                viz_class = registry.get(layer_cfg.visualization_type)
+                viz = viz_class(self.ctx, viz_params)
+                viz.initialize()
+                self._layers.append((layer_cfg, viz))
+                logger.info("Loaded layer: %s (%s)", viz_class.DISPLAY_NAME, viz_class.NAME)
+            except Exception as e:
+                logger.warning("Skipping layer '%s': %s", layer_cfg.visualization_type, e)
+                self._layers.append((layer_cfg, None))
 
     def update_params(self, preset: Preset) -> None:
-        """Update the current visualization's parameters without recreating it.
-
-        If the visualization type changed, does a full reload via set_preset().
-        """
-        # Detect visualization type change → full reload needed
-        current_type = (
-            self._visualization.NAME
-            if self._visualization is not None
-            else None
-        )
-        if current_type != preset.visualization.visualization_type:
-            logger.debug(
-                "Visualization type changed: %s -> %s",
-                current_type, preset.visualization.visualization_type,
-            )
+        """Update parameters without recreating unless layer structure changed."""
+        # Detect structural change → full reload
+        if len(preset.layers) != len(self._layers):
             self.set_preset(preset)
             return
+        for i, (old_cfg, _) in enumerate(self._layers):
+            if old_cfg.visualization_type != preset.layers[i].visualization_type:
+                self.set_preset(preset)
+                return
 
         self._preset = preset
-
-        colors_rgb = [hex_to_rgb(c) for c in preset.color_palette]
-        preset.visualization.params["_colors"] = colors_rgb
-        if colors_rgb:
-            preset.visualization.params["_primary_color"] = colors_rgb[0]
 
         bg = preset.background
         if bg.type == "solid":
@@ -373,8 +424,25 @@ class Renderer:
         assert self._text_overlay is not None
         self._text_overlay.update_config(preset.overlay)
 
-        if self._visualization is not None:
-            self._visualization.update_params(preset.visualization)
+        # Update each layer's params
+        for i, (_, viz) in enumerate(self._layers):
+            layer_cfg = preset.layers[i]
+            colors = layer_cfg.colors
+            colors_rgb = [hex_to_rgb(c) for c in colors]
+
+            viz_params = VisualizationParams(
+                visualization_type=layer_cfg.visualization_type,
+                params=dict(layer_cfg.params),
+            )
+            viz_params.params["_colors"] = colors_rgb
+            if colors_rgb:
+                viz_params.params["_primary_color"] = colors_rgb[0]
+
+            if viz is not None:
+                viz.update_params(viz_params)
+
+            # Update stored layer config
+            self._layers[i] = (layer_cfg, viz)
 
     def set_duration(self, total_seconds: float) -> None:
         """Set total audio duration for countdown overlay."""
@@ -419,21 +487,72 @@ class Renderer:
         if self._bg_texture is not None and not skip_bg:
             self._render_bg_quad(fbo, frame)
 
-        # Enable blending so visualization transparent pixels don't overwrite
-        # the background. All visualization shaders output alpha=0 for empty
-        # areas, which requires blending to composite correctly.
-        self.ctx.enable(moderngl.BLEND)
-        self.ctx.blend_func = (
-            moderngl.SRC_ALPHA,
-            moderngl.ONE_MINUS_SRC_ALPHA,
-        )
+        # Multi-layer rendering: each layer to its own FBO, then composite
+        self._ensure_layer_fbos(resolution)
+        self._ensure_composite_shader()
 
-        # Render visualization
-        if self._visualization is not None:
+        # Disable blending for individual layer renders — each layer renders
+        # to its own transparent FBO. Blending on would corrupt alpha.
+        self.ctx.disable(moderngl.BLEND)
+
+        visible_layer_indices: list[int] = []
+        for i, (layer_cfg, viz) in enumerate(self._layers):
+            if not layer_cfg.visible or viz is None:
+                continue
+
+            self._layer_fbos[i].use()
+            self.ctx.clear(0.0, 0.0, 0.0, 0.0)
+            self.ctx.viewport = (0, 0, resolution[0], resolution[1])
+
             try:
-                self._visualization.render(frame, fbo, resolution)
+                viz.render(frame, self._layer_fbos[i], resolution)
             except Exception as e:
-                logger.error("Visualization render error: %s", e)
+                logger.error("Layer %d render error: %s", i, e)
+                continue
+
+            visible_layer_indices.append(i)
+
+        # Re-enable blending for compositing pass (alpha-over onto background)
+        self.ctx.enable(moderngl.BLEND)
+        self.ctx.blend_func = (moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA)
+
+        # Compositing pass — blend all layers onto final FBO
+        if visible_layer_indices and self._composite_prog is not None and self._composite_vao is not None:
+            fbo.use()
+            self.ctx.viewport = (0, 0, resolution[0], resolution[1])
+
+            blend_mode_map = {
+                BlendMode.NORMAL: 0,
+                BlendMode.ADDITIVE: 1,
+                BlendMode.SCREEN: 2,
+                BlendMode.MULTIPLY: 3,
+            }
+
+            # Bind layer textures to sequential texture units
+            for i in range(len(self._layers)):
+                self._layer_textures[i].use(location=i)
+
+            # Upload uniform arrays as packed data
+            n = len(self._layers)
+            sampler_values = list(range(7))
+            opacities = [self._layers[i][0].opacity if i < n else 0.0 for i in range(7)]
+            blend_modes = [
+                blend_mode_map.get(self._layers[i][0].blend_mode, 0) if i < n else 0
+                for i in range(7)
+            ]
+            visible = [
+                (1 if self._layers[i][0].visible and self._layers[i][1] is not None else 0)
+                if i < n else 0
+                for i in range(7)
+            ]
+
+            self._composite_prog["u_layer_count"].value = n  # type: ignore[reportAttributeAccessIssue]
+            self._composite_prog["u_layers"].write(struct.pack("7i", *sampler_values))  # type: ignore[reportAttributeAccessIssue]
+            self._composite_prog["u_opacities"].write(struct.pack("7f", *opacities))  # type: ignore[reportAttributeAccessIssue]
+            self._composite_prog["u_blend_modes"].write(struct.pack("7i", *blend_modes))  # type: ignore[reportAttributeAccessIssue]
+            self._composite_prog["u_visible"].write(struct.pack("7i", *visible))  # type: ignore[reportAttributeAccessIssue]
+
+            self._composite_vao.render(moderngl.TRIANGLE_STRIP)
 
         # Render video overlay on top of visualization
         skip_overlay = preview and self.skip_overlay_preview
@@ -596,9 +715,20 @@ class Renderer:
         if self._text_overlay is not None:
             self._text_overlay.cleanup()
             self._text_overlay = None
-        if self._visualization is not None:
-            self._visualization.cleanup()
-            self._visualization = None
+        for _, viz in self._layers:
+            if viz is not None:
+                viz.cleanup()
+        self._layers.clear()
+        self._release_layer_fbos()
+        if self._composite_vao is not None:
+            self._composite_vao.release()
+            self._composite_vao = None
+        if self._composite_vbo is not None:
+            self._composite_vbo.release()
+            self._composite_vbo = None
+        if self._composite_prog is not None:
+            self._composite_prog.release()
+            self._composite_prog = None
         if self._offscreen_fbo is not None:
             self._offscreen_fbo.release()
             self._offscreen_fbo = None

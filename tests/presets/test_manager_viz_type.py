@@ -11,7 +11,7 @@ Does NOT test: full pydantic Preset validation, built-in preset loading
 import pytest
 
 from wavern.presets.manager import PresetManager
-from wavern.presets.schema import Preset, VisualizationParams
+from wavern.presets.schema import Preset, VisualizationLayer
 
 
 @pytest.fixture
@@ -28,10 +28,10 @@ def manager(tmp_preset_dir):
 def spectrum_preset():
     return Preset(
         name="My Spectrum",
-        visualization=VisualizationParams(
+        layers=[VisualizationLayer(
             visualization_type="spectrum_bars",
             params={},
-        ),
+        )],
     )
 
 
@@ -39,10 +39,10 @@ def spectrum_preset():
 def waveform_preset():
     return Preset(
         name="My Waveform",
-        visualization=VisualizationParams(
+        layers=[VisualizationLayer(
             visualization_type="waveform",
             params={},
-        ),
+        )],
     )
 
 

@@ -6,12 +6,16 @@ WHAT THIS TESTS:
 - Reset All clears memory for the current type and sets params to empty (schema defaults)
 - Two VisualPanel instances sharing the same memory dict see each other's saved params
 Does NOT test: OpenGL rendering, preset file I/O, or sidebar layout
+
+Notes:
+- _viz_memory keys are tuple[int, str] (layer_index, viz_type), e.g. (0, "waveform")
+- _viz_memory type: dict[tuple[int, str], dict[str, Any]]
 """
 
 import pytest
 
 from wavern.gui.panels.visual_panel import VisualPanel
-from wavern.presets.schema import Preset, VisualizationParams
+from wavern.presets.schema import Preset, VisualizationLayer
 from wavern.visualizations.registry import VisualizationRegistry
 
 
@@ -26,10 +30,10 @@ def _get_two_viz_types() -> tuple[str, str]:
 def _make_preset(viz_type: str, params: dict | None = None) -> Preset:
     return Preset(
         name="test_preset",
-        visualization=VisualizationParams(
+        layers=[VisualizationLayer(
             visualization_type=viz_type,
             params=params or {},
-        ),
+        )],
     )
 
 
@@ -51,7 +55,7 @@ class TestVizMemory:
         param_name = next(iter(schema_a))
         schema_entry = schema_a[param_name]
         test_val = schema_entry.get("max", schema_entry.get("default", 1))
-        panel._preset.visualization.params[param_name] = test_val
+        panel._preset.layers[0].params[param_name] = test_val
 
         # Switch to type_b — should save type_a params
         idx_b = -1
@@ -62,8 +66,8 @@ class TestVizMemory:
         assert idx_b >= 0
         panel._viz_combo.setCurrentIndex(idx_b)
 
-        assert type_a in panel._viz_memory
-        assert panel._viz_memory[type_a][param_name] == test_val
+        assert (0, type_a) in panel._viz_memory
+        assert panel._viz_memory[(0, type_a)][param_name] == test_val
 
     def test_params_restored_on_switch_back(self) -> None:
         """Switching back to a previously used viz type restores its params."""
@@ -79,7 +83,7 @@ class TestVizMemory:
         param_name = next(iter(schema_a))
         schema_entry = schema_a[param_name]
         test_val = schema_entry.get("max", schema_entry.get("default", 1))
-        panel._preset.visualization.params[param_name] = test_val
+        panel._preset.layers[0].params[param_name] = test_val
 
         # Switch A -> B -> A
         idx_b = -1
@@ -96,7 +100,7 @@ class TestVizMemory:
                 break
         panel._viz_combo.setCurrentIndex(idx_a)
 
-        assert panel._preset.visualization.params.get(param_name) == test_val
+        assert panel._preset.layers[0].params.get(param_name) == test_val
 
     def test_reset_all_clears_memory_and_uses_defaults(self) -> None:
         """Reset All clears memory for current type and rebuilds with defaults."""
@@ -112,15 +116,15 @@ class TestVizMemory:
         param_name = next(iter(schema_a))
 
         # Set a non-default value
-        panel._preset.visualization.params[param_name] = "SENTINEL"
-        panel._viz_memory[type_a] = dict(panel._preset.visualization.params)
+        panel._preset.layers[0].params[param_name] = "SENTINEL"
+        panel._viz_memory[(0, type_a)] = dict(panel._preset.layers[0].params)
 
         # Reset
         panel._on_reset_all_params()
 
-        assert type_a not in panel._viz_memory
+        assert (0, type_a) not in panel._viz_memory
         # Params should be empty (schema defaults applied during widget build)
-        assert panel._preset.visualization.params == {}
+        assert panel._preset.layers[0].params == {}
 
     def test_shared_memory_dict(self) -> None:
         """Two VisualPanel instances sharing a memory dict see each other's saves."""
@@ -137,7 +141,7 @@ class TestVizMemory:
             pytest.skip("type_a has no params")
 
         param_name = next(iter(schema_a))
-        panel1._preset.visualization.params[param_name] = 999
+        panel1._preset.layers[0].params[param_name] = 999
 
         # Switch panel1 to type_b — saves type_a params to shared dict
         idx_b = -1
@@ -149,8 +153,8 @@ class TestVizMemory:
 
         # panel2 should see the same memory
         assert panel2._viz_memory is shared
-        assert type_a in panel2._viz_memory
-        assert panel2._viz_memory[type_a][param_name] == 999
+        assert (0, type_a) in panel2._viz_memory
+        assert panel2._viz_memory[(0, type_a)][param_name] == 999
 
     def test_empty_memory_uses_schema_defaults(self) -> None:
         """When no memory exists for a viz type, params dict is empty (defaults from schema)."""
@@ -169,4 +173,4 @@ class TestVizMemory:
         # Params should have been populated from widget defaults during build
         # (build_param_widgets reads current_val from params dict, falling back to schema default)
         # The restored dict was empty, so widgets used schema defaults and wrote them via signals
-        assert panel._preset.visualization.visualization_type == type_b
+        assert panel._preset.layers[0].visualization_type == type_b

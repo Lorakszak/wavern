@@ -211,6 +211,22 @@ QPushButton#ColorControlBtn {
     font-size: 14px;
 }
 
+/* ── Layer eye button ── */
+QPushButton#LayerEyeBtn {
+    padding: 0;
+    font-size: 14px;
+    background: #333;
+    color: #aaa;
+    border: 1px solid #555;
+    border-radius: 4px;
+}
+
+QPushButton#LayerEyeBtn:checked {
+    background: #0078d4;
+    color: #fff;
+    border-color: #0078d4;
+}
+
 /* ── Reset button ── */
 QPushButton#ResetButton {
     border-radius: 10px;

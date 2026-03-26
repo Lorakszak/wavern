@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 
 from wavern.core.export import compute_fade_factor
-from wavern.presets.schema import Preset, VisualizationParams
+from wavern.presets.schema import Preset, VisualizationLayer
 
 
 class TestComputeFadeFactor:
@@ -117,7 +117,7 @@ class TestPresetFadeFields:
     def test_defaults(self) -> None:
         preset = Preset(
             name="Test",
-            visualization=VisualizationParams(visualization_type="spectrum_bars"),
+            layers=[VisualizationLayer(visualization_type="spectrum_bars")],
         )
         assert preset.fade_in == 0.0
         assert preset.fade_out == 0.0
@@ -125,7 +125,7 @@ class TestPresetFadeFields:
     def test_custom_values(self) -> None:
         preset = Preset(
             name="Test",
-            visualization=VisualizationParams(visualization_type="spectrum_bars"),
+            layers=[VisualizationLayer(visualization_type="spectrum_bars")],
             fade_in=2.5,
             fade_out=3.0,
         )
@@ -135,7 +135,7 @@ class TestPresetFadeFields:
     def test_json_roundtrip(self) -> None:
         preset = Preset(
             name="Fade Test",
-            visualization=VisualizationParams(visualization_type="spectrum_bars"),
+            layers=[VisualizationLayer(visualization_type="spectrum_bars")],
             fade_in=1.5,
             fade_out=2.0,
         )
@@ -148,7 +148,7 @@ class TestPresetFadeFields:
         with pytest.raises(Exception):  # pydantic ValidationError
             Preset(
                 name="Bad",
-                visualization=VisualizationParams(visualization_type="spectrum_bars"),
+                layers=[VisualizationLayer(visualization_type="spectrum_bars")],
                 fade_in=-1.0,
             )
 
@@ -156,6 +156,6 @@ class TestPresetFadeFields:
         with pytest.raises(Exception):  # pydantic ValidationError
             Preset(
                 name="Bad",
-                visualization=VisualizationParams(visualization_type="spectrum_bars"),
+                layers=[VisualizationLayer(visualization_type="spectrum_bars")],
                 fade_out=31.0,
             )

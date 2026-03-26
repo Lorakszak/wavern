@@ -34,17 +34,19 @@ from wavern.gui.sidebar import SidebarWidget
 from wavern.gui.theme_manager import ThemeManager
 from wavern.gui.transport_bar import TransportBar
 from wavern.presets.manager import PresetManager
-from wavern.presets.schema import BackgroundConfig, Preset, VisualizationParams
+from wavern.presets.schema import BackgroundConfig, Preset, VisualizationLayer
 
 logger = logging.getLogger(__name__)
 
 # Default preset to load on startup
 DEFAULT_PRESET = Preset(
     name="Default",
-    visualization=VisualizationParams(
-        visualization_type="spectrum_bars",
-        params={"bar_count": 64, "mirror": True},
-    ),
+    layers=[
+        VisualizationLayer(
+            visualization_type="spectrum_bars",
+            params={"bar_count": 64, "mirror": True},
+        ),
+    ],
     color_palette=["#00FFAA", "#FF00AA", "#FFAA00"],
     background=BackgroundConfig(type="solid", color="#0A0A0F"),
 )
@@ -82,7 +84,7 @@ class MainWindow(QMainWindow):
         self._right_panels: dict[str, Any] = {}
 
         # Shared viz memory between both sidebars' VisualPanels
-        self._viz_memory: dict[str, dict[str, Any]] = {}
+        self._viz_memory: dict[tuple[int, str], dict[str, Any]] = {}
 
         self._menu_actions = build_menu_bar(
             self,
@@ -380,6 +382,7 @@ class MainWindow(QMainWindow):
             panel.preset_selected.connect(self._on_preset_selected)
 
         for panel in self._all_export_panels():
+            panel.settings_changed.connect(self._on_export_settings_changed)
             panel.export_requested.connect(self._on_export_video)
 
         self._transport.play_clicked.connect(self._on_play)
@@ -427,7 +430,8 @@ class MainWindow(QMainWindow):
 
     def _apply_preset(self, preset: Preset) -> None:
         """Apply a preset to all components across both sidebars."""
-        logger.info("Applying preset: %s (%s)", preset.name, preset.visualization.visualization_type)
+        layer_types = ", ".join(layer.visualization_type for layer in preset.layers)
+        logger.info("Applying preset: %s (%s)", preset.name, layer_types)
         self._gl_widget.set_preset(preset)
 
         for panel in self._all_visual_panels():
@@ -514,10 +518,24 @@ class MainWindow(QMainWindow):
             self._gl_widget.render_single_frame()
 
     def _on_preview_flags_changed(self, skip_bg: bool, skip_overlay: bool) -> None:
-        """Update renderer preview-skip flags from visual panel toggles."""
+        """Update renderer preview-skip flags and sync checkboxes across sidebars."""
         self._gl_widget.set_preview_flags(skip_bg, skip_overlay)
+
+        # Sync the disable-preview checkboxes in the other sidebar
+        sender = self.sender()
+        for panel in self._all_visual_panels():
+            if panel is not sender:
+                panel.sync_preview_flags(skip_bg, skip_overlay)
+
         if not self._player.is_playing:
             self._gl_widget.render_single_frame()
+
+    def _on_export_settings_changed(self, settings: object) -> None:
+        """Sync export settings across sidebars."""
+        sender = self.sender()
+        for panel in self._all_export_panels():
+            if panel is not sender:
+                panel.update_values(settings)  # type: ignore[arg-type]
 
     def _sync_format_to_background(self, bg_type: str) -> None:
         """Restrict format options when background is transparent."""

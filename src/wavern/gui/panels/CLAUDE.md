@@ -6,7 +6,7 @@ Settings panels displayed inside the sidebar. Each panel targets one concern of 
 ## Panel Inventory
 | File | Responsibility |
 |---|---|
-| `visual_panel.py` | Coordinator: visualization type + colors + background + overlay |
+| `visual_panel.py` | Coordinator: layer list + per-layer viz type/colors + background + overlay |
 | `param_section.py` | Viz type combo + dynamic per-viz parameter widgets |
 | `color_section.py` | Color palette editor (add/remove/reorder swatches) |
 | `background_section.py` | Background type, solid/gradient/image/video, transform, movement |
