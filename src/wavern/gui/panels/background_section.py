@@ -1,7 +1,8 @@
 """Background settings section — type, solid/gradient/image/video, transform, movement."""
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
+from typing import cast
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
@@ -16,14 +17,15 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from typing import cast
-
 from wavern.gui.background_picker import open_background_image
 from wavern.gui.drag_spinbox import DragSpinBox
 from wavern.gui.help_button import make_help_button
 from wavern.gui.no_scroll_combo import NoScrollComboBox
 from wavern.presets.schema import (
+    AudioReactiveConfig,
     BackgroundConfig,
+    BackgroundEffect,
+    BackgroundEffects,
     BackgroundMovement,
     ColorStop,
     Preset,
@@ -110,8 +112,7 @@ class BackgroundSection(QWidget):
                 if i < len(bg.gradient_stops):
                     stop = bg.gradient_stops[i]
                     stop_widgets["color_btn"].setStyleSheet(
-                        f"background-color: {stop.color};"
-                        " border: 1px solid #555;"
+                        f"background-color: {stop.color}; border: 1px solid #555;"
                     )
                     pos_spin = cast(DragSpinBox, stop_widgets["pos_spin"])
                     pos_spin.blockSignals(True)
@@ -135,6 +136,13 @@ class BackgroundSection(QWidget):
             if idx >= 0:
                 self._mv_type_combo.setCurrentIndex(idx)
             self._mv_type_combo.blockSignals(False)
+            # Manually sync movement-dependent visibility
+            is_drift = bg.movement.type == "drift"
+            self._mv_angle.setVisible(is_drift)
+            self._mv_angle_label.setVisible(is_drift)
+            show_clamp = bg.movement.type not in ("none", "drift")
+            self._mv_clamp_label.setVisible(show_clamp)
+            self._mv_clamp_wrapper.setVisible(show_clamp)
             self._mv_speed.blockSignals(True)
             self._mv_speed.setValue(bg.movement.speed)
             self._mv_speed.blockSignals(False)
@@ -147,6 +155,69 @@ class BackgroundSection(QWidget):
             self._mv_clamp.blockSignals(True)
             self._mv_clamp.setChecked(bg.movement.clamp_to_frame)
             self._mv_clamp.blockSignals(False)
+        if hasattr(self, "_mv_audio_cb"):
+            self._mv_audio_cb.blockSignals(True)
+            self._mv_audio_cb.setChecked(bg.movement.audio.enabled)
+            self._mv_audio_cb.blockSignals(False)
+            # Manually sync audio controls visibility
+            self._mv_audio_source_label.setVisible(bg.movement.audio.enabled)
+            self._mv_audio_source.setVisible(bg.movement.audio.enabled)
+            self._mv_audio_sens_wrapper.setVisible(bg.movement.audio.enabled)
+            self._mv_audio_source.blockSignals(True)
+            idx = self._mv_audio_source.findData(bg.movement.audio.source)
+            if idx >= 0:
+                self._mv_audio_source.setCurrentIndex(idx)
+            self._mv_audio_source.blockSignals(False)
+            self._mv_audio_sensitivity.blockSignals(True)
+            self._mv_audio_sensitivity.setValue(bg.movement.audio.sensitivity)
+            self._mv_audio_sensitivity.blockSignals(False)
+        # Sync effects controls
+        for attr_name in (
+            "blur",
+            "hue_shift",
+            "saturation",
+            "brightness",
+            "pixelate",
+            "posterize",
+            "invert",
+        ):
+            enable_cb = getattr(self, f"_fx_{attr_name}_enable", None)
+            if enable_cb is None:
+                continue
+            effect = getattr(bg.effects, attr_name)
+            enable_cb.blockSignals(True)
+            enable_cb.setChecked(effect.enabled)
+            enable_cb.blockSignals(False)
+            # Manually sync sub-container visibility (blockSignals suppresses toggled)
+            sub = getattr(self, f"_fx_{attr_name}_sub", None)
+            if sub is not None:
+                sub.setVisible(effect.enabled)
+            intensity_spin = getattr(self, f"_fx_{attr_name}_intensity")
+            intensity_spin.blockSignals(True)
+            intensity_spin.setValue(effect.intensity)
+            intensity_spin.blockSignals(False)
+            audio_cb = getattr(self, f"_fx_{attr_name}_audio_cb")
+            audio_cb.blockSignals(True)
+            audio_cb.setChecked(effect.audio.enabled)
+            audio_cb.blockSignals(False)
+            # Manually sync audio controls visibility
+            audio_source_label = getattr(self, f"_fx_{attr_name}_audio_source_label", None)
+            if audio_source_label is not None:
+                audio_source_label.setVisible(effect.audio.enabled)
+            audio_source = getattr(self, f"_fx_{attr_name}_audio_source")
+            audio_source.blockSignals(True)
+            audio_source.setVisible(effect.audio.enabled)
+            idx = audio_source.findData(effect.audio.source)
+            if idx >= 0:
+                audio_source.setCurrentIndex(idx)
+            audio_source.blockSignals(False)
+            audio_sensitivity = getattr(self, f"_fx_{attr_name}_audio_sensitivity")
+            audio_sensitivity.blockSignals(True)
+            audio_sensitivity.setValue(effect.audio.sensitivity)
+            audio_sensitivity.blockSignals(False)
+            audio_sens_wrapper = getattr(self, f"_fx_{attr_name}_audio_sens_wrapper", None)
+            if audio_sens_wrapper is not None:
+                audio_sens_wrapper.setVisible(effect.audio.enabled)
         self._rebuilding = False
 
     # -- Internal: rebuild type-specific widgets --
@@ -157,12 +228,62 @@ class BackgroundSection(QWidget):
         # attributes survive pointing at C++ objects destroyed by deleteLater(),
         # causing RuntimeError in update_values() when hasattr() passes.
         for _attr in (
-            "_bg_color_btn", "_bg_image_label", "_bg_video_label",
-            "_gradient_stop_widgets", "_bg_disable_preview",
-            "_bg_rotation", "_bg_mirror_x", "_bg_mirror_y",
-            "_mv_type_combo", "_mv_speed", "_mv_intensity",
-            "_mv_angle", "_mv_angle_label",
-            "_mv_clamp", "_mv_clamp_wrapper", "_mv_clamp_label",
+            "_bg_color_btn",
+            "_bg_image_label",
+            "_bg_video_label",
+            "_gradient_stop_widgets",
+            "_bg_disable_preview",
+            "_bg_rotation",
+            "_bg_mirror_x",
+            "_bg_mirror_y",
+            "_mv_type_combo",
+            "_mv_speed",
+            "_mv_intensity",
+            "_mv_angle",
+            "_mv_angle_label",
+            "_mv_clamp",
+            "_mv_clamp_wrapper",
+            "_mv_clamp_label",
+            "_mv_audio_cb",
+            "_mv_audio_source",
+            "_mv_audio_sensitivity",
+            "_mv_audio_source_label",
+            "_mv_audio_sens_wrapper",
+            "_fx_blur_enable",
+            "_fx_blur_intensity",
+            "_fx_blur_audio_cb",
+            "_fx_blur_audio_source",
+            "_fx_blur_audio_sensitivity",
+            "_fx_hue_shift_enable",
+            "_fx_hue_shift_intensity",
+            "_fx_hue_shift_audio_cb",
+            "_fx_hue_shift_audio_source",
+            "_fx_hue_shift_audio_sensitivity",
+            "_fx_saturation_enable",
+            "_fx_saturation_intensity",
+            "_fx_saturation_audio_cb",
+            "_fx_saturation_audio_source",
+            "_fx_saturation_audio_sensitivity",
+            "_fx_brightness_enable",
+            "_fx_brightness_intensity",
+            "_fx_brightness_audio_cb",
+            "_fx_brightness_audio_source",
+            "_fx_brightness_audio_sensitivity",
+            "_fx_pixelate_enable",
+            "_fx_pixelate_intensity",
+            "_fx_pixelate_audio_cb",
+            "_fx_pixelate_audio_source",
+            "_fx_pixelate_audio_sensitivity",
+            "_fx_posterize_enable",
+            "_fx_posterize_intensity",
+            "_fx_posterize_audio_cb",
+            "_fx_posterize_audio_source",
+            "_fx_posterize_audio_sensitivity",
+            "_fx_invert_enable",
+            "_fx_invert_intensity",
+            "_fx_invert_audio_cb",
+            "_fx_invert_audio_source",
+            "_fx_invert_audio_sensitivity",
         ):
             if hasattr(self, _attr):
                 delattr(self, _attr)
@@ -196,11 +317,13 @@ class BackgroundSection(QWidget):
             row.addWidget(self._bg_color_btn)
             row.addStretch()
             layout.addLayout(row)
+            self._build_effects_controls(layout, bg.effects)
+
+        elif bg.type == "none":
+            self._build_effects_controls(layout, bg.effects)
 
         elif bg.type == "image":
-            self._bg_image_label = QLabel(
-                bg.image_path or "No image selected"
-            )
+            self._bg_image_label = QLabel(bg.image_path or "No image selected")
             self._bg_image_label.setWordWrap(True)
             pick_btn = QPushButton("Browse...")
             pick_btn.clicked.connect(self._on_bg_image_pick)
@@ -211,11 +334,10 @@ class BackgroundSection(QWidget):
             self._build_bg_disable_preview(layout)
             self._build_transform_controls(layout, bg)
             self._build_movement_controls(layout, bg.movement)
+            self._build_effects_controls(layout, bg.effects)
 
         elif bg.type == "video":
-            self._bg_video_label = QLabel(
-                bg.video_path or "No video selected"
-            )
+            self._bg_video_label = QLabel(bg.video_path or "No video selected")
             self._bg_video_label.setWordWrap(True)
             pick_btn = QPushButton("Browse...")
             pick_btn.clicked.connect(self._on_bg_video_pick)
@@ -229,6 +351,7 @@ class BackgroundSection(QWidget):
             if bg.video_path:
                 try:
                     from wavern.core.video_source import VideoSource
+
                     fps = VideoSource.probe_fps(bg.video_path)
                     fps_text = f"Video FPS: {fps:.1f}"
                 except Exception:
@@ -259,6 +382,7 @@ class BackgroundSection(QWidget):
             self._build_bg_disable_preview(layout)
             self._build_transform_controls(layout, bg)
             self._build_movement_controls(layout, bg.movement)
+            self._build_effects_controls(layout, bg.effects)
 
         elif bg.type == "gradient":
             self._gradient_stop_widgets: list[dict[str, QWidget]] = []
@@ -270,6 +394,7 @@ class BackgroundSection(QWidget):
             self._build_bg_disable_preview(layout)
             self._build_transform_controls(layout, bg)
             self._build_movement_controls(layout, bg.movement)
+            self._build_effects_controls(layout, bg.effects)
 
     # -- Disable-preview checkbox --
 
@@ -279,9 +404,7 @@ class BackgroundSection(QWidget):
         form.setContentsMargins(0, 4, 0, 0)
         self._bg_disable_preview = QCheckBox()
         self._bg_disable_preview.setChecked(False)
-        self._bg_disable_preview.toggled.connect(
-            self._on_preview_flags_changed
-        )
+        self._bg_disable_preview.toggled.connect(self._on_preview_flags_changed)
         wrapped = self._wrap_with_buttons(
             self._bg_disable_preview,
             description=(
@@ -290,9 +413,7 @@ class BackgroundSection(QWidget):
                 "final export.\n"
                 "Useful to save resources during editing."
             ),
-            default_callback=(
-                lambda: self._bg_disable_preview.setChecked(False)
-            ),
+            default_callback=(lambda: self._bg_disable_preview.setChecked(False)),
             default_label="off",
         )
         form.addRow("Disable Preview:", wrapped)
@@ -300,49 +421,42 @@ class BackgroundSection(QWidget):
 
     def _on_preview_flags_changed(self) -> None:
         """Emit updated preview-skip flag when the checkbox toggles."""
-        skip_bg = (
-            hasattr(self, "_bg_disable_preview")
-            and self._bg_disable_preview.isChecked()
-        )
+        skip_bg = hasattr(self, "_bg_disable_preview") and self._bg_disable_preview.isChecked()
         self.preview_flags_changed.emit(skip_bg)
 
     # -- Gradient helpers --
 
     def _add_gradient_stop_row(
-        self, layout: QVBoxLayout, index: int, stop: ColorStop,
+        self,
+        layout: QVBoxLayout,
+        index: int,
+        stop: ColorStop,
     ) -> None:
         row = QHBoxLayout()
 
         color_btn = QPushButton()
         color_btn.setFixedSize(30, 30)
-        color_btn.setStyleSheet(
-            f"background-color: {stop.color}; border: 1px solid #555;"
-        )
-        color_btn.clicked.connect(
-            lambda _, idx=index: self._on_gradient_color_clicked(idx)
-        )
+        color_btn.setStyleSheet(f"background-color: {stop.color}; border: 1px solid #555;")
+        color_btn.clicked.connect(lambda _, idx=index: self._on_gradient_color_clicked(idx))
         row.addWidget(color_btn)
 
         pos_spin = DragSpinBox(
-            minimum=0.0, maximum=1.0, step=0.05, decimals=2,
+            minimum=0.0,
+            maximum=1.0,
+            step=0.05,
+            decimals=2,
         )
         pos_spin.setValue(stop.position)
-        pos_spin.valueChanged.connect(
-            lambda v, idx=index: self._on_gradient_pos_changed(idx, v)
-        )
+        pos_spin.valueChanged.connect(lambda v, idx=index: self._on_gradient_pos_changed(idx, v))
         row.addWidget(pos_spin)
 
         remove_btn = QPushButton("x")
         remove_btn.setFixedSize(24, 24)
-        remove_btn.clicked.connect(
-            lambda _, idx=index: self._on_remove_gradient_stop(idx)
-        )
+        remove_btn.clicked.connect(lambda _, idx=index: self._on_remove_gradient_stop(idx))
         row.addWidget(remove_btn)
 
         layout.addLayout(row)
-        self._gradient_stop_widgets.append(
-            {"color_btn": color_btn, "pos_spin": pos_spin}
-        )
+        self._gradient_stop_widgets.append({"color_btn": color_btn, "pos_spin": pos_spin})
 
     # -- Widget helpers --
 
@@ -362,14 +476,10 @@ class BackgroundSection(QWidget):
         row.setSpacing(2)
         row.addWidget(widget, stretch=1)
         if default_callback is not None:
-            reset_btn = QPushButton("\u21BA")
+            reset_btn = QPushButton("\u21ba")
             reset_btn.setObjectName("ResetButton")
             reset_btn.setFixedSize(20, 20)
-            tip = (
-                f"Reset to default ({default_label})"
-                if default_label
-                else "Reset to default"
-            )
+            tip = f"Reset to default ({default_label})" if default_label else "Reset to default"
             reset_btn.setToolTip(tip)
             reset_btn.clicked.connect(default_callback)
             row.addWidget(reset_btn)
@@ -377,34 +487,111 @@ class BackgroundSection(QWidget):
             row.addWidget(make_help_button(description))
         return container
 
+    def _build_audio_reactive_controls(
+        self,
+        form: QFormLayout,
+        audio: AudioReactiveConfig,
+        prefix: str,
+        on_changed: Callable[[], None],
+    ) -> tuple[QCheckBox, NoScrollComboBox, DragSpinBox, QLabel, QWidget]:
+        """Build audio-reactive controls: checkbox, source combo, sensitivity.
+
+        Args:
+            form: Layout to add rows to.
+            audio: Current audio reactive config.
+            prefix: Attribute prefix for storing widget references.
+            on_changed: Callback when any value changes.
+
+        Returns:
+            (reactive_cb, source_combo, sensitivity_spin, source_label, sensitivity_wrapper)
+        """
+        reactive_cb = QCheckBox()
+        reactive_cb.setChecked(audio.enabled)
+        reactive_cb.toggled.connect(on_changed)
+        wrapped_reactive = self._wrap_with_buttons(
+            reactive_cb,
+            description=(
+                "When enabled, the effect intensity is modulated\n"
+                "by the selected audio signal in real time."
+            ),
+            default_callback=lambda: reactive_cb.setChecked(False),
+            default_label="off",
+        )
+        form.addRow("Audio Reactive:", wrapped_reactive)
+
+        source_combo = NoScrollComboBox()
+        source_combo.blockSignals(True)
+        for source in ("amplitude", "bass", "beat", "mid", "treble"):
+            source_combo.addItem(source, source)
+        idx = source_combo.findData(audio.source)
+        if idx >= 0:
+            source_combo.setCurrentIndex(idx)
+        source_combo.blockSignals(False)
+        source_combo.currentIndexChanged.connect(on_changed)
+        source_label = QLabel("Audio Source:")
+        form.addRow(source_label, source_combo)
+
+        sensitivity_spin = DragSpinBox(
+            minimum=0.1,
+            maximum=5.0,
+            step=0.1,
+            decimals=1,
+            description="Multiplier for the audio signal strength.",
+            default_value=1.0,
+        )
+        sensitivity_spin.setValue(audio.sensitivity)
+        sensitivity_spin.valueChanged.connect(on_changed)
+        sens_wrapper = self._wrap_with_buttons(
+            sensitivity_spin,
+            description="Multiplier for the audio signal strength.",
+            default_callback=lambda: sensitivity_spin.setValue(1.0),
+            default_label="1.0",
+        )
+        sens_label = QLabel("Sensitivity:")
+        form.addRow(sens_label, sens_wrapper)
+
+        # Show/hide source and sensitivity based on reactive checkbox
+        source_label.setVisible(audio.enabled)
+        source_combo.setVisible(audio.enabled)
+        sens_label.setVisible(audio.enabled)
+        sens_wrapper.setVisible(audio.enabled)
+
+        def _toggle_audio_visibility(checked: bool) -> None:
+            source_label.setVisible(checked)
+            source_combo.setVisible(checked)
+            sens_label.setVisible(checked)
+            sens_wrapper.setVisible(checked)
+
+        reactive_cb.toggled.connect(_toggle_audio_visibility)
+
+        return reactive_cb, source_combo, sensitivity_spin, source_label, sens_wrapper
+
     # -- Transform controls --
 
     def _build_transform_controls(
-        self, layout: QVBoxLayout, bg: BackgroundConfig,
+        self,
+        layout: QVBoxLayout,
+        bg: BackgroundConfig,
     ) -> None:
         """Append rotation and mirror controls to the given layout."""
         form = QFormLayout()
         form.setContentsMargins(0, 8, 0, 0)
 
         self._bg_rotation = DragSpinBox(
-            minimum=0.0, maximum=360.0, step=1.0, decimals=0,
-            description=(
-                "Rotates the background by the specified "
-                "angle in degrees."
-            ),
+            minimum=0.0,
+            maximum=360.0,
+            step=1.0,
+            decimals=0,
+            description=("Rotates the background by the specified angle in degrees."),
             default_value=0.0,
         )
         self._bg_rotation.setValue(bg.rotation)
-        self._bg_rotation.valueChanged.connect(
-            self._on_bg_transform_changed
-        )
+        self._bg_rotation.valueChanged.connect(self._on_bg_transform_changed)
         form.addRow("Rotation:", self._bg_rotation)
 
         self._bg_mirror_x = QCheckBox()
         self._bg_mirror_x.setChecked(bg.mirror_x)
-        self._bg_mirror_x.toggled.connect(
-            self._on_bg_transform_changed
-        )
+        self._bg_mirror_x.toggled.connect(self._on_bg_transform_changed)
         wrapped_mx = self._wrap_with_buttons(
             self._bg_mirror_x,
             description="Flips the background horizontally.",
@@ -415,9 +602,7 @@ class BackgroundSection(QWidget):
 
         self._bg_mirror_y = QCheckBox()
         self._bg_mirror_y.setChecked(bg.mirror_y)
-        self._bg_mirror_y.toggled.connect(
-            self._on_bg_transform_changed
-        )
+        self._bg_mirror_y.toggled.connect(self._on_bg_transform_changed)
         wrapped_my = self._wrap_with_buttons(
             self._bg_mirror_y,
             description="Flips the background vertically.",
@@ -439,7 +624,9 @@ class BackgroundSection(QWidget):
     # -- Movement controls --
 
     def _build_movement_controls(
-        self, layout: QVBoxLayout, movement: BackgroundMovement,
+        self,
+        layout: QVBoxLayout,
+        movement: BackgroundMovement,
     ) -> None:
         """Append background movement widgets to the given layout."""
         form = QFormLayout()
@@ -457,28 +644,32 @@ class BackgroundSection(QWidget):
         self._mv_type_combo = NoScrollComboBox()
         self._mv_type_combo.blockSignals(True)
         for mv_type in [
-            "none", "drift", "shake", "wave", "zoom_pulse", "breathe",
+            "none",
+            "drift",
+            "shake",
+            "wave",
+            "zoom_pulse",
+            "breathe",
         ]:
             self._mv_type_combo.addItem(mv_type, mv_type)
         idx = self._mv_type_combo.findData(movement.type)
         if idx >= 0:
             self._mv_type_combo.setCurrentIndex(idx)
         self._mv_type_combo.blockSignals(False)
-        self._mv_type_combo.currentIndexChanged.connect(
-            self._on_movement_changed
-        )
+        self._mv_type_combo.currentIndexChanged.connect(self._on_movement_changed)
         wrapped_mv = self._wrap_with_buttons(
             self._mv_type_combo,
             description=mv_type_desc,
-            default_callback=(
-                lambda: self._mv_type_combo.setCurrentIndex(0)
-            ),
+            default_callback=(lambda: self._mv_type_combo.setCurrentIndex(0)),
             default_label="none",
         )
         form.addRow("Movement:", wrapped_mv)
 
         self._mv_speed = DragSpinBox(
-            minimum=0.0, maximum=10.0, step=0.1, decimals=1,
+            minimum=0.0,
+            maximum=10.0,
+            step=0.1,
+            decimals=1,
             description="Controls the rate of the animation effect.",
             default_value=1.0,
         )
@@ -487,23 +678,23 @@ class BackgroundSection(QWidget):
         form.addRow("Speed:", self._mv_speed)
 
         self._mv_intensity = DragSpinBox(
-            minimum=0.0, maximum=2.0, step=0.05, decimals=2,
-            description=(
-                "Controls the magnitude of the animation effect."
-            ),
+            minimum=0.0,
+            maximum=2.0,
+            step=0.05,
+            decimals=2,
+            description=("Controls the magnitude of the animation effect."),
             default_value=0.5,
         )
         self._mv_intensity.setValue(movement.intensity)
-        self._mv_intensity.valueChanged.connect(
-            self._on_movement_changed
-        )
+        self._mv_intensity.valueChanged.connect(self._on_movement_changed)
         form.addRow("Intensity:", self._mv_intensity)
 
         self._mv_angle = DragSpinBox(
-            minimum=0.0, maximum=360.0, step=1.0, decimals=0,
-            description=(
-                "Direction angle for the drift effect, in degrees."
-            ),
+            minimum=0.0,
+            maximum=360.0,
+            step=1.0,
+            decimals=0,
+            description=("Direction angle for the drift effect, in degrees."),
             default_value=0.0,
         )
         self._mv_angle.setValue(movement.angle)
@@ -530,11 +721,25 @@ class BackgroundSection(QWidget):
         self._mv_clamp_label = QLabel("Clamp:")
         form.addRow(self._mv_clamp_label, self._mv_clamp_wrapper)
 
+        # Audio reactive controls for movement
+        (
+            self._mv_audio_cb,
+            self._mv_audio_source,
+            self._mv_audio_sensitivity,
+            self._mv_audio_source_label,
+            self._mv_audio_sens_wrapper,
+        ) = self._build_audio_reactive_controls(
+            form,
+            movement.audio,
+            "mv",
+            self._on_movement_changed,
+        )
+
         # Only show angle for drift; hide clamp for none/drift
         is_drift = movement.type == "drift"
         self._mv_angle.setVisible(is_drift)
         self._mv_angle_label.setVisible(is_drift)
-        show_clamp = movement.type not in ("none", "drift", "shake")
+        show_clamp = movement.type not in ("none", "drift")
         self._mv_clamp_label.setVisible(show_clamp)
         self._mv_clamp_wrapper.setVisible(show_clamp)
 
@@ -544,21 +749,159 @@ class BackgroundSection(QWidget):
         if self._preset is None or self._rebuilding:
             return
         mv_type = self._mv_type_combo.currentData()
+        audio = AudioReactiveConfig(
+            enabled=self._mv_audio_cb.isChecked(),
+            source=self._mv_audio_source.currentData() or "amplitude",
+            sensitivity=self._mv_audio_sensitivity.value(),
+        )
         self._preset.background.movement = BackgroundMovement(
             type=mv_type,
             speed=self._mv_speed.value(),
             intensity=self._mv_intensity.value(),
             angle=self._mv_angle.value(),
             clamp_to_frame=self._mv_clamp.isChecked(),
+            audio=audio,
         )
         # Toggle angle visibility (drift only)
         is_drift = mv_type == "drift"
         self._mv_angle.setVisible(is_drift)
         self._mv_angle_label.setVisible(is_drift)
-        # Toggle clamp visibility (not applicable to none/drift/shake)
-        show_clamp = mv_type not in ("none", "drift", "shake")
+        # Toggle clamp visibility (not applicable to none/drift)
+        show_clamp = mv_type not in ("none", "drift")
         self._mv_clamp_label.setVisible(show_clamp)
         self._mv_clamp_wrapper.setVisible(show_clamp)
+        self.background_changed.emit()
+
+    # -- Effects controls --
+
+    def _build_effects_controls(
+        self,
+        layout: QVBoxLayout,
+        effects: BackgroundEffects,
+    ) -> None:
+        """Append background effects widgets to the given layout."""
+        header = QLabel("Effects")
+        header.setStyleSheet("font-weight: bold; margin-top: 8px;")
+        layout.addWidget(header)
+
+        effect_items: list[tuple[str, str, BackgroundEffect]] = [
+            ("blur", "Blur", effects.blur),
+            ("hue_shift", "Hue Shift", effects.hue_shift),
+            ("saturation", "Saturation", effects.saturation),
+            ("brightness", "Brightness", effects.brightness),
+            ("pixelate", "Pixelate", effects.pixelate),
+            ("posterize", "Posterize", effects.posterize),
+            ("invert", "Invert", effects.invert),
+        ]
+
+        for attr_name, display_name, effect in effect_items:
+            self._build_single_effect(layout, attr_name, display_name, effect)
+
+    def _build_single_effect(
+        self,
+        layout: QVBoxLayout,
+        attr_name: str,
+        display_name: str,
+        effect: BackgroundEffect,
+    ) -> None:
+        """Build controls for a single effect."""
+        form = QFormLayout()
+        form.setContentsMargins(0, 4, 0, 0)
+
+        # Enable checkbox — always visible
+        enable_cb = QCheckBox(display_name)
+        enable_cb.setChecked(effect.enabled)
+        enable_cb.toggled.connect(self._on_effects_changed)
+        form.addRow(enable_cb)
+
+        # Sub-controls container — shown/hidden by enable checkbox
+        sub_container = QWidget()
+        sub_layout = QFormLayout(sub_container)
+        sub_layout.setContentsMargins(12, 0, 0, 0)
+
+        # Intensity
+        intensity_spin = DragSpinBox(
+            minimum=0.0,
+            maximum=1.0,
+            step=0.05,
+            decimals=2,
+            description=f"Controls the strength of the {display_name.lower()} effect.",
+            default_value=0.5,
+        )
+        intensity_spin.setValue(effect.intensity)
+        intensity_spin.valueChanged.connect(self._on_effects_changed)
+        sub_layout.addRow("Intensity:", intensity_spin)
+
+        # Audio reactive controls (added to sub_layout)
+        (
+            audio_cb,
+            audio_source,
+            audio_sensitivity,
+            audio_source_label,
+            audio_sens_wrapper,
+        ) = self._build_audio_reactive_controls(
+            sub_layout,
+            effect.audio,
+            f"fx_{attr_name}",
+            self._on_effects_changed,
+        )
+
+        sub_container.setVisible(effect.enabled)
+        enable_cb.toggled.connect(sub_container.setVisible)
+
+        form.addRow(sub_container)
+        layout.addLayout(form)
+
+        # Store references for update_values and _on_effects_changed
+        setattr(self, f"_fx_{attr_name}_enable", enable_cb)
+        setattr(self, f"_fx_{attr_name}_intensity", intensity_spin)
+        setattr(self, f"_fx_{attr_name}_sub", sub_container)
+        setattr(self, f"_fx_{attr_name}_audio_cb", audio_cb)
+        setattr(self, f"_fx_{attr_name}_audio_source", audio_source)
+        setattr(self, f"_fx_{attr_name}_audio_sensitivity", audio_sensitivity)
+        setattr(self, f"_fx_{attr_name}_audio_source_label", audio_source_label)
+        setattr(self, f"_fx_{attr_name}_audio_sens_wrapper", audio_sens_wrapper)
+
+    def _on_effects_changed(self) -> None:
+        """Collect effect widget values into the preset and emit signal."""
+        if self._preset is None or self._rebuilding:
+            return
+
+        for attr_name in (
+            "blur",
+            "hue_shift",
+            "saturation",
+            "brightness",
+            "pixelate",
+            "posterize",
+            "invert",
+        ):
+            enable_cb = getattr(self, f"_fx_{attr_name}_enable", None)
+            intensity_spin = getattr(self, f"_fx_{attr_name}_intensity", None)
+            audio_cb = getattr(self, f"_fx_{attr_name}_audio_cb", None)
+            audio_source = getattr(self, f"_fx_{attr_name}_audio_source", None)
+            audio_sensitivity = getattr(self, f"_fx_{attr_name}_audio_sensitivity", None)
+
+            if (
+                enable_cb is None
+                or intensity_spin is None
+                or audio_cb is None
+                or audio_source is None
+                or audio_sensitivity is None
+            ):
+                continue
+
+            effect = BackgroundEffect(
+                enabled=enable_cb.isChecked(),
+                intensity=intensity_spin.value(),
+                audio=AudioReactiveConfig(
+                    enabled=audio_cb.isChecked(),
+                    source=audio_source.currentData() or "amplitude",
+                    sensitivity=audio_sensitivity.value(),
+                ),
+            )
+            setattr(self._preset.background.effects, attr_name, effect)
+
         self.background_changed.emit()
 
     # -- Event handlers --
@@ -584,7 +927,9 @@ class BackgroundSection(QWidget):
             return
         default_dir = str(Path.home())
         path, _ = QFileDialog.getOpenFileName(
-            self, "Select Background Video", default_dir,
+            self,
+            "Select Background Video",
+            default_dir,
             "Video Files (*.mp4 *.webm *.mkv *.avi *.mov)",
         )
         if path:
@@ -594,14 +939,11 @@ class BackgroundSection(QWidget):
             if hasattr(self, "_bg_video_fps_label"):
                 try:
                     from wavern.core.video_source import VideoSource
+
                     fps = VideoSource.probe_fps(path)
-                    self._bg_video_fps_label.setText(
-                        f"Video FPS: {fps:.1f}"
-                    )
+                    self._bg_video_fps_label.setText(f"Video FPS: {fps:.1f}")
                 except Exception:
-                    self._bg_video_fps_label.setText(
-                        "Video FPS: unknown"
-                    )
+                    self._bg_video_fps_label.setText("Video FPS: unknown")
             self.background_changed.emit()
 
     def _on_bg_color_clicked(self) -> None:
@@ -610,15 +952,12 @@ class BackgroundSection(QWidget):
         from PySide6.QtGui import QColor
 
         current = QColor(self._preset.background.color)
-        color = QColorDialog.getColor(
-            current, self, "Background Color"
-        )
+        color = QColorDialog.getColor(current, self, "Background Color")
         if color.isValid():
             hex_color = color.name().upper()
             self._preset.background.color = hex_color
             self._bg_color_btn.setStyleSheet(
-                f"background-color: {hex_color};"
-                " border: 1px solid #555;"
+                f"background-color: {hex_color}; border: 1px solid #555;"
             )
             self.background_changed.emit()
 
@@ -631,20 +970,19 @@ class BackgroundSection(QWidget):
         if index >= len(stops):
             return
         current = QColor(stops[index].color)
-        color = QColorDialog.getColor(
-            current, self, "Gradient Stop Color"
-        )
+        color = QColorDialog.getColor(current, self, "Gradient Stop Color")
         if color.isValid():
             hex_color = color.name().upper()
             stops[index].color = hex_color
             self._gradient_stop_widgets[index]["color_btn"].setStyleSheet(
-                f"background-color: {hex_color};"
-                " border: 1px solid #555;"
+                f"background-color: {hex_color}; border: 1px solid #555;"
             )
             self.background_changed.emit()
 
     def _on_gradient_pos_changed(
-        self, index: int, value: float,
+        self,
+        index: int,
+        value: float,
     ) -> None:
         if self._preset is None or self._rebuilding:
             return
@@ -656,9 +994,7 @@ class BackgroundSection(QWidget):
     def _on_add_gradient_stop(self) -> None:
         if self._preset is None:
             return
-        self._preset.background.gradient_stops.append(
-            ColorStop(position=0.5, color="#808080")
-        )
+        self._preset.background.gradient_stops.append(ColorStop(position=0.5, color="#808080"))
         self._rebuild_bg_type_widgets(self._preset.background)
         self.background_changed.emit()
 

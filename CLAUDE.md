@@ -93,6 +93,9 @@ src/wavern/
 - **Preset** is a pydantic model. Built-in presets ship as JSON in `presets/defaults/`, user presets live at `~/.config/wavern/presets/`.
 - **Multi-layer compositing**: `Preset.layers` is a list of `VisualizationLayer` (1–7). Each layer has its own `visualization_type`, `params`, `colors`, `blend_mode`, and `opacity`. The renderer renders each layer to its own FBO, then a GLSL compositing shader (`composite.frag`) blends them with per-layer blend mode (Normal/Additive/Screen/Multiply) and opacity. Old single-viz presets are auto-migrated on load via `_migrate_preset_data()`.
 - **Config paths** are centralised in `config.py` — use `get_preset_directory()` and `get_favorites_path()` rather than inlining XDG logic.
+- **Background effects work on all background types**: solid, none, gradient, image, and video. For solid/none (no texture), the renderer uses `_apply_bg_effects_standalone()` which copies the cleared FBO to an intermediate and runs the effects shader on it.
+- **Background effects** (7): blur, hue_shift, saturation, brightness, pixelate, posterize, invert. Applied via `bg_effects.frag` in a fixed order: pixelate → blur → hue_shift → saturation → brightness → posterize → invert.
+- **Global effects** (7): vignette, chromatic_aberration, glitch, film_grain, bloom, scanlines, color_shift. Applied via `global_effects.frag` in a fixed order: glitch → chromatic → bloom → color_shift → scanlines → grain → vignette. Can be applied before or after overlays via `apply_stage`.
 
 ### Critical Patterns
 

@@ -3,6 +3,7 @@
 import logging
 import math
 import struct
+from collections.abc import Callable
 
 import moderngl
 import numpy as np
@@ -13,10 +14,14 @@ from wavern.core.audio_analyzer import FrameAnalysis
 from wavern.core.text_overlay import TextOverlay
 from wavern.core.video_source import VideoSource
 from wavern.presets.schema import (
+    AudioReactiveConfig,
     BackgroundConfig,
+    BackgroundEffect,
+    BackgroundEffects,
     BackgroundMovement,
     BlendMode,
     ColorStop,
+    GlobalEffects,
     OverlayBlendMode,
     Preset,
     VideoOverlayConfig,
@@ -73,6 +78,71 @@ def _gradient_to_rgba(stops: list[ColorStop], width: int = 256) -> NDArray[np.ui
     return result
 
 
+AUDIO_SOURCE_MAP: dict[str, Callable[[FrameAnalysis], float]] = {
+    "amplitude": lambda f: f.amplitude_envelope,
+    "bass": lambda f: f.band_envelopes.get("bass", 0.0),
+    "beat": lambda f: f.beat_intensity,
+    "mid": lambda f: f.band_envelopes.get("mid", 0.0),
+    "treble": lambda f: f.band_envelopes.get("brilliance", 0.0),
+}
+
+
+def _resolve_effect_intensity(effect: BackgroundEffect, frame: FrameAnalysis) -> float:
+    """Compute final effect intensity, optionally modulated by audio."""
+    base = effect.intensity
+    if effect.audio.enabled:
+        audio_val = AUDIO_SOURCE_MAP[effect.audio.source](frame)
+        return min(max(base * audio_val * effect.audio.sensitivity, 0.0), 1.0)
+    return base
+
+
+def _resolve_movement_intensity(movement: BackgroundMovement, frame: FrameAnalysis) -> float:
+    """Compute final movement intensity, optionally modulated by audio."""
+    base = movement.intensity
+    if movement.audio.enabled:
+        audio_val = AUDIO_SOURCE_MAP[movement.audio.source](frame)
+        return min(max(base * audio_val * movement.audio.sensitivity, 0.0), 2.0)
+    return base
+
+
+def _any_bg_effect_enabled(effects: BackgroundEffects) -> bool:
+    """Return True if any background effect is enabled."""
+    return (
+        effects.blur.enabled
+        or effects.hue_shift.enabled
+        or effects.saturation.enabled
+        or effects.brightness.enabled
+        or effects.pixelate.enabled
+        or effects.posterize.enabled
+        or effects.invert.enabled
+    )
+
+
+def _resolve_global_effect_intensity(
+    intensity: float,
+    audio: AudioReactiveConfig,
+    frame: FrameAnalysis,
+) -> float:
+    """Compute final intensity for a global effect, optionally modulated by audio."""
+    if audio.enabled:
+        audio_val = AUDIO_SOURCE_MAP[audio.source](frame)
+        return min(max(intensity * audio_val * audio.sensitivity, 0.0), 1.0)
+    return intensity
+
+
+def _any_global_effect_enabled(effects: GlobalEffects) -> bool:
+    """Return True if any global effect is enabled."""
+    return (
+        effects.vignette.enabled
+        or effects.chromatic_aberration.enabled
+        or effects.glitch.enabled
+        or effects.film_grain.enabled
+        or effects.bloom.enabled
+        or effects.scanlines.enabled
+        or effects.color_shift.enabled
+    )
+
+
 class Renderer:
     """Orchestrates the per-frame rendering pipeline.
 
@@ -82,8 +152,12 @@ class Renderer:
 
     # Movement type name → integer mapping for the shader uniform
     _MOVEMENT_TYPE_MAP: dict[str, int] = {
-        "none": 0, "drift": 1, "shake": 2,
-        "wave": 3, "zoom_pulse": 4, "breathe": 5,
+        "none": 0,
+        "drift": 1,
+        "shake": 2,
+        "wave": 3,
+        "zoom_pulse": 4,
+        "breathe": 5,
     }
 
     def __init__(self, ctx: moderngl.Context) -> None:
@@ -111,6 +185,22 @@ class Renderer:
         self._video_source: VideoSource | None = None
         self._bg_video_path: str | None = None
 
+        # Background effects pass (created lazily)
+        self._bg_effects_fbo: moderngl.Framebuffer | None = None
+        self._bg_effects_texture: moderngl.Texture | None = None
+        self._bg_effects_prog: moderngl.Program | None = None
+        self._bg_effects_vao: moderngl.VertexArray | None = None
+        self._bg_effects_vbo: moderngl.Buffer | None = None
+        self._bg_effects_resolution: tuple[int, int] | None = None
+
+        # Global effects pass (created lazily)
+        self._global_effects_fbo: moderngl.Framebuffer | None = None
+        self._global_effects_texture: moderngl.Texture | None = None
+        self._global_effects_prog: moderngl.Program | None = None
+        self._global_effects_vao: moderngl.VertexArray | None = None
+        self._global_effects_vbo: moderngl.Buffer | None = None
+        self._global_effects_resolution: tuple[int, int] | None = None
+
         # Video overlay resources
         self._overlay_video_source: VideoSource | None = None
         self._overlay_texture: moderngl.Texture | None = None
@@ -134,18 +224,28 @@ class Renderer:
 
         vert_src = load_shader("common.vert")
         frag_src = load_shader("background.frag")
-        self._bg_program = self.ctx.program(
-            vertex_shader=vert_src, fragment_shader=frag_src
-        )
+        self._bg_program = self.ctx.program(vertex_shader=vert_src, fragment_shader=frag_src)
 
         # Fullscreen quad: two triangles, positions + texcoords
         vertices = np.array(
             [
                 # x,    y,   u,   v
-                -1.0, -1.0, 0.0, 0.0,
-                 1.0, -1.0, 1.0, 0.0,
-                -1.0,  1.0, 0.0, 1.0,
-                 1.0,  1.0, 1.0, 1.0,
+                -1.0,
+                -1.0,
+                0.0,
+                0.0,
+                1.0,
+                -1.0,
+                1.0,
+                0.0,
+                -1.0,
+                1.0,
+                0.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
             ],
             dtype="f4",
         )
@@ -154,6 +254,123 @@ class Renderer:
             self._bg_program,
             [(self._bg_vbo, "2f 2f", "in_position", "in_texcoord")],
         )
+
+    def _ensure_bg_effects_pass(self) -> None:
+        """Lazily create the effects shader program and fullscreen quad."""
+        if self._bg_effects_prog is not None:
+            return
+
+        vert_src = load_shader("common.vert")
+        frag_src = load_shader("bg_effects.frag")
+        self._bg_effects_prog = self.ctx.program(vertex_shader=vert_src, fragment_shader=frag_src)
+
+        vertices = np.array(
+            [
+                -1.0,
+                -1.0,
+                0.0,
+                0.0,
+                1.0,
+                -1.0,
+                1.0,
+                0.0,
+                -1.0,
+                1.0,
+                0.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+            ],
+            dtype="f4",
+        )
+        self._bg_effects_vbo = self.ctx.buffer(vertices.tobytes())
+        self._bg_effects_vao = self.ctx.vertex_array(
+            self._bg_effects_prog,
+            [(self._bg_effects_vbo, "2f 2f", "in_position", "in_texcoord")],
+        )
+
+    def _ensure_bg_effects_fbo(self, resolution: tuple[int, int]) -> None:
+        """Create or resize the intermediate FBO for the effects pass."""
+        if self._bg_effects_resolution == resolution and self._bg_effects_fbo is not None:
+            return
+        self._release_bg_effects_fbo()
+        self._bg_effects_texture = self.ctx.texture(resolution, 4)
+        self._bg_effects_texture.filter = (moderngl.LINEAR, moderngl.LINEAR)
+        self._bg_effects_fbo = self.ctx.framebuffer(color_attachments=[self._bg_effects_texture])
+        self._bg_effects_resolution = resolution
+
+    def _release_bg_effects_fbo(self) -> None:
+        """Release the effects intermediate FBO."""
+        if self._bg_effects_fbo is not None:
+            self._bg_effects_fbo.release()
+            self._bg_effects_fbo = None
+        if self._bg_effects_texture is not None:
+            self._bg_effects_texture.release()
+            self._bg_effects_texture = None
+        self._bg_effects_resolution = None
+
+    def _ensure_global_effects_pass(self) -> None:
+        """Lazily create the global effects shader program and fullscreen quad."""
+        if self._global_effects_prog is not None:
+            return
+
+        vert_src = load_shader("common.vert")
+        frag_src = load_shader("global_effects.frag")
+        self._global_effects_prog = self.ctx.program(
+            vertex_shader=vert_src,
+            fragment_shader=frag_src,
+        )
+
+        vertices = np.array(
+            [
+                -1.0,
+                -1.0,
+                0.0,
+                0.0,
+                1.0,
+                -1.0,
+                1.0,
+                0.0,
+                -1.0,
+                1.0,
+                0.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+            ],
+            dtype="f4",
+        )
+        self._global_effects_vbo = self.ctx.buffer(vertices.tobytes())
+        self._global_effects_vao = self.ctx.vertex_array(
+            self._global_effects_prog,
+            [(self._global_effects_vbo, "2f 2f", "in_position", "in_texcoord")],
+        )
+
+    def _ensure_global_effects_fbo(self, resolution: tuple[int, int]) -> None:
+        """Create or resize the intermediate FBO for the global effects pass."""
+        if self._global_effects_resolution == resolution and self._global_effects_fbo is not None:
+            return
+        self._release_global_effects_fbo()
+        self._global_effects_texture = self.ctx.texture(resolution, 4)
+        self._global_effects_texture.filter = (moderngl.LINEAR, moderngl.LINEAR)
+        self._global_effects_fbo = self.ctx.framebuffer(
+            color_attachments=[self._global_effects_texture],
+        )
+        self._global_effects_resolution = resolution
+
+    def _release_global_effects_fbo(self) -> None:
+        """Release the global effects intermediate FBO."""
+        if self._global_effects_fbo is not None:
+            self._global_effects_fbo.release()
+            self._global_effects_fbo = None
+        if self._global_effects_texture is not None:
+            self._global_effects_texture.release()
+            self._global_effects_texture = None
+        self._global_effects_resolution = None
 
     def _release_bg_texture(self) -> None:
         """Release the current background texture if any."""
@@ -173,7 +390,9 @@ class Renderer:
         """Create or update the background texture based on config."""
         logger.debug(
             "Updating bg texture: type=%s, image_path=%s, video_path=%s",
-            bg.type, bg.image_path, bg.video_path,
+            bg.type,
+            bg.image_path,
+            bg.video_path,
         )
         if bg.type == "gradient":
             self._release_bg_texture()
@@ -194,7 +413,8 @@ class Renderer:
                     self._bg_image_path = bg.image_path
                     logger.debug(
                         "Loaded bg image: %s, texture size=%s",
-                        bg.image_path, self._bg_texture.size,
+                        bg.image_path,
+                        self._bg_texture.size,
                     )
                 except Exception as e:
                     logger.error("Failed to load background image %s: %s", bg.image_path, e)
@@ -226,27 +446,180 @@ class Renderer:
             self._release_bg_texture()
             self._close_video_source()
 
-    def _set_bg_movement_uniforms(self, movement: BackgroundMovement, timestamp: float) -> None:
+    def _set_bg_movement_uniforms(self, movement: BackgroundMovement, frame: FrameAnalysis) -> None:
         """Upload movement uniforms to the background shader program."""
         prog = self._bg_program
         if prog is None:
             return
         mv_type = self._MOVEMENT_TYPE_MAP.get(movement.type, 0)
+        intensity = _resolve_movement_intensity(movement, frame)
         if "u_time" in prog:
-            prog["u_time"].value = timestamp  # type: ignore[reportAttributeAccessIssue]
+            prog["u_time"].value = frame.timestamp  # type: ignore[reportAttributeAccessIssue]
         if "u_movement_type" in prog:
             prog["u_movement_type"].value = mv_type  # type: ignore[reportAttributeAccessIssue]
         if "u_movement_speed" in prog:
             prog["u_movement_speed"].value = movement.speed  # type: ignore[reportAttributeAccessIssue]
         if "u_movement_intensity" in prog:
-            prog["u_movement_intensity"].value = movement.intensity  # type: ignore[reportAttributeAccessIssue]
+            prog["u_movement_intensity"].value = intensity  # type: ignore[reportAttributeAccessIssue]
         if "u_movement_angle" in prog:
             prog["u_movement_angle"].value = math.radians(movement.angle)  # type: ignore[reportAttributeAccessIssue]
         if "u_clamp_to_frame" in prog:
             prog["u_clamp_to_frame"].value = int(movement.clamp_to_frame)  # type: ignore[reportAttributeAccessIssue]
 
+    def _set_bg_effects_uniforms(
+        self,
+        effects: BackgroundEffects,
+        frame: FrameAnalysis,
+        resolution: tuple[int, int],
+    ) -> None:
+        """Upload effects uniforms to the bg_effects shader."""
+        prog = self._bg_effects_prog
+        if prog is None:
+            return
+
+        if "u_resolution" in prog:
+            prog["u_resolution"].value = (float(resolution[0]), float(resolution[1]))  # type: ignore[reportAttributeAccessIssue]
+
+        for name, effect in [
+            ("blur", effects.blur),
+            ("hue_shift", effects.hue_shift),
+            ("saturation", effects.saturation),
+            ("brightness", effects.brightness),
+            ("pixelate", effects.pixelate),
+            ("posterize", effects.posterize),
+            ("invert", effects.invert),
+        ]:
+            intensity = _resolve_effect_intensity(effect, frame)
+            enabled_key = f"u_{name}_enabled"
+            intensity_key = f"u_{name}_intensity"
+            if enabled_key in prog:
+                prog[enabled_key].value = int(effect.enabled)  # type: ignore[reportAttributeAccessIssue]
+            if intensity_key in prog:
+                prog[intensity_key].value = intensity  # type: ignore[reportAttributeAccessIssue]
+
+    def _set_global_effects_uniforms(
+        self,
+        effects: GlobalEffects,
+        frame: FrameAnalysis,
+        resolution: tuple[int, int],
+    ) -> None:
+        """Upload global effects uniforms to the shader."""
+        prog = self._global_effects_prog
+        if prog is None:
+            return
+
+        if "u_resolution" in prog:
+            prog["u_resolution"].value = (float(resolution[0]), float(resolution[1]))  # type: ignore[reportAttributeAccessIssue]
+        if "u_time" in prog:
+            prog["u_time"].value = frame.timestamp  # type: ignore[reportAttributeAccessIssue]
+
+        # Vignette
+        v = effects.vignette
+        v_intensity = _resolve_global_effect_intensity(v.intensity, v.audio, frame)
+        if "u_vignette_enabled" in prog:
+            prog["u_vignette_enabled"].value = int(v.enabled)  # type: ignore[reportAttributeAccessIssue]
+        if "u_vignette_intensity" in prog:
+            prog["u_vignette_intensity"].value = v_intensity  # type: ignore[reportAttributeAccessIssue]
+        shape_map = {"circular": 0, "rectangular": 1, "diamond": 2}
+        if "u_vignette_shape" in prog:
+            prog["u_vignette_shape"].value = shape_map.get(v.shape, 0)  # type: ignore[reportAttributeAccessIssue]
+
+        # Chromatic aberration
+        ca = effects.chromatic_aberration
+        ca_intensity = _resolve_global_effect_intensity(ca.intensity, ca.audio, frame)
+        if "u_chromatic_enabled" in prog:
+            prog["u_chromatic_enabled"].value = int(ca.enabled)  # type: ignore[reportAttributeAccessIssue]
+        if "u_chromatic_intensity" in prog:
+            prog["u_chromatic_intensity"].value = ca_intensity  # type: ignore[reportAttributeAccessIssue]
+        if "u_chromatic_direction" in prog:
+            prog["u_chromatic_direction"].value = 1 if ca.direction == "linear" else 0  # type: ignore[reportAttributeAccessIssue]
+        if "u_chromatic_angle" in prog:
+            prog["u_chromatic_angle"].value = math.radians(ca.angle)  # type: ignore[reportAttributeAccessIssue]
+
+        # Glitch
+        g = effects.glitch
+        g_intensity = _resolve_global_effect_intensity(g.intensity, g.audio, frame)
+        if "u_glitch_enabled" in prog:
+            prog["u_glitch_enabled"].value = int(g.enabled)  # type: ignore[reportAttributeAccessIssue]
+        if "u_glitch_intensity" in prog:
+            prog["u_glitch_intensity"].value = g_intensity  # type: ignore[reportAttributeAccessIssue]
+        type_map = {"scanline": 0, "block": 1, "digital": 2}
+        if "u_glitch_type" in prog:
+            prog["u_glitch_type"].value = type_map.get(g.type, 0)  # type: ignore[reportAttributeAccessIssue]
+
+        # Film grain
+        fg = effects.film_grain
+        fg_intensity = _resolve_global_effect_intensity(fg.intensity, fg.audio, frame)
+        if "u_grain_enabled" in prog:
+            prog["u_grain_enabled"].value = int(fg.enabled)  # type: ignore[reportAttributeAccessIssue]
+        if "u_grain_intensity" in prog:
+            prog["u_grain_intensity"].value = fg_intensity  # type: ignore[reportAttributeAccessIssue]
+
+        # Bloom
+        bl = effects.bloom
+        bl_intensity = _resolve_global_effect_intensity(bl.intensity, bl.audio, frame)
+        if "u_bloom_enabled" in prog:
+            prog["u_bloom_enabled"].value = int(bl.enabled)  # type: ignore[reportAttributeAccessIssue]
+        if "u_bloom_intensity" in prog:
+            prog["u_bloom_intensity"].value = bl_intensity  # type: ignore[reportAttributeAccessIssue]
+        if "u_bloom_threshold" in prog:
+            prog["u_bloom_threshold"].value = bl.threshold  # type: ignore[reportAttributeAccessIssue]
+
+        # Scanlines
+        sl = effects.scanlines
+        sl_intensity = _resolve_global_effect_intensity(sl.intensity, sl.audio, frame)
+        if "u_scanline_enabled" in prog:
+            prog["u_scanline_enabled"].value = int(sl.enabled)  # type: ignore[reportAttributeAccessIssue]
+        if "u_scanline_intensity" in prog:
+            prog["u_scanline_intensity"].value = sl_intensity  # type: ignore[reportAttributeAccessIssue]
+        if "u_scanline_density" in prog:
+            prog["u_scanline_density"].value = sl.density  # type: ignore[reportAttributeAccessIssue]
+
+        # Color shift
+        cs = effects.color_shift
+        cs_intensity = _resolve_global_effect_intensity(cs.intensity, cs.audio, frame)
+        if "u_color_shift_enabled" in prog:
+            prog["u_color_shift_enabled"].value = int(cs.enabled)  # type: ignore[reportAttributeAccessIssue]
+        if "u_color_shift_intensity" in prog:
+            prog["u_color_shift_intensity"].value = cs_intensity  # type: ignore[reportAttributeAccessIssue]
+
+    def _apply_global_effects(
+        self,
+        fbo: moderngl.Framebuffer,
+        frame: FrameAnalysis,
+        resolution: tuple[int, int],
+    ) -> None:
+        """Run the global effects pass: copy fbo to intermediate, apply effects, write back."""
+        assert self._preset is not None
+        self._ensure_global_effects_pass()
+        self._ensure_global_effects_fbo(resolution)
+        assert self._global_effects_fbo is not None
+        assert self._global_effects_texture is not None
+        assert self._global_effects_prog is not None
+        assert self._global_effects_vao is not None
+
+        # Copy current fbo content to intermediate
+        self.ctx.copy_framebuffer(dst=self._global_effects_fbo, src=fbo)
+
+        # Render effects pass back to main fbo
+        fbo.use()
+        self.ctx.viewport = (0, 0, resolution[0], resolution[1])
+        self.ctx.clear(0.0, 0.0, 0.0, 0.0)
+
+        self._global_effects_texture.use(location=0)
+        if "u_scene" in self._global_effects_prog:
+            self._global_effects_prog["u_scene"].value = 0  # type: ignore[reportAttributeAccessIssue]
+
+        self._set_global_effects_uniforms(
+            self._preset.global_effects,
+            frame,
+            resolution,
+        )
+
+        self._global_effects_vao.render(moderngl.TRIANGLE_STRIP)
+
     def _render_bg_quad(self, fbo: moderngl.Framebuffer, frame: FrameAnalysis) -> None:
-        """Render the background texture as a fullscreen quad."""
+        """Render the background texture as a fullscreen quad, with optional effects pass."""
         if self._bg_texture is None or self._bg_vao is None:
             return
 
@@ -255,16 +628,35 @@ class Renderer:
             frame_data = self._video_source.get_frame(frame.timestamp)
             self._bg_texture.write(frame_data.tobytes())
 
+        # Check if any effects are enabled
+        has_effects = self._preset is not None and _any_bg_effect_enabled(
+            self._preset.background.effects
+        )
+
+        # Determine render target for the background pass
+        if has_effects:
+            assert self._preset is not None
+            resolution = (fbo.width, fbo.height)
+            self._ensure_bg_effects_pass()
+            self._ensure_bg_effects_fbo(resolution)
+            assert self._bg_effects_fbo is not None
+            bg_target = self._bg_effects_fbo
+        else:
+            bg_target = fbo
+
+        # --- Pass 1: Render background (UV transform + movement) ---
+        bg_target.use()
+        self.ctx.viewport = (0, 0, bg_target.width, bg_target.height)
+        if has_effects:
+            self.ctx.clear(0.0, 0.0, 0.0, 0.0)
+
         self._bg_texture.use(location=0)
         self._bg_program["u_background"].value = 0  # type: ignore[reportAttributeAccessIssue]
 
-        # Set transform and movement uniforms
         if self._preset is not None:
             bg = self._preset.background
-            movement = bg.movement
-            self._set_bg_movement_uniforms(movement, frame.timestamp)
+            self._set_bg_movement_uniforms(bg.movement, frame)
 
-            # Transform uniforms (rotation, mirror)
             if "u_rotation" in self._bg_program:  # type: ignore[reportOperatorIssue]
                 self._bg_program["u_rotation"].value = math.radians(bg.rotation)  # type: ignore[reportAttributeAccessIssue]
             if "u_mirror_x" in self._bg_program:  # type: ignore[reportOperatorIssue]
@@ -272,19 +664,66 @@ class Renderer:
             if "u_mirror_y" in self._bg_program:  # type: ignore[reportOperatorIssue]
                 self._bg_program["u_mirror_y"].value = int(bg.mirror_y)  # type: ignore[reportAttributeAccessIssue]
 
-            # Enable texture repeat for drift (when not clamped)
-            if movement.type == "drift" and self._bg_texture is not None:
+            if bg.movement.type == "drift" and self._bg_texture is not None:
                 self._bg_texture.repeat_x = True
                 self._bg_texture.repeat_y = True
 
         self._bg_vao.render(moderngl.TRIANGLE_STRIP)
 
+        # --- Pass 2: Apply effects (if any enabled) ---
+        if has_effects:
+            assert self._preset is not None
+            assert self._bg_effects_texture is not None
+            assert self._bg_effects_prog is not None
+            assert self._bg_effects_vao is not None
+
+            fbo.use()
+            self.ctx.viewport = (0, 0, fbo.width, fbo.height)
+
+            self._bg_effects_texture.use(location=0)
+            self._bg_effects_prog["u_background"].value = 0  # type: ignore[reportAttributeAccessIssue]
+
+            resolution = (fbo.width, fbo.height)
+            self._set_bg_effects_uniforms(self._preset.background.effects, frame, resolution)
+
+            self._bg_effects_vao.render(moderngl.TRIANGLE_STRIP)
+
+    def _apply_bg_effects_standalone(
+        self,
+        fbo: moderngl.Framebuffer,
+        frame: FrameAnalysis,
+        resolution: tuple[int, int],
+    ) -> None:
+        """Apply background effects to a solid/none background (no texture).
+
+        Copies the already-cleared FBO content to the effects intermediate,
+        then runs the bg_effects shader back to the main FBO.
+        """
+        assert self._preset is not None
+        self._ensure_bg_effects_pass()
+        self._ensure_bg_effects_fbo(resolution)
+        assert self._bg_effects_fbo is not None
+        assert self._bg_effects_texture is not None
+        assert self._bg_effects_prog is not None
+        assert self._bg_effects_vao is not None
+
+        # Copy current fbo (solid color clear) to intermediate
+        self.ctx.copy_framebuffer(dst=self._bg_effects_fbo, src=fbo)
+
+        # Render effects pass back to main fbo
+        fbo.use()
+        self.ctx.viewport = (0, 0, resolution[0], resolution[1])
+
+        self._bg_effects_texture.use(location=0)
+        self._bg_effects_prog["u_background"].value = 0  # type: ignore[reportAttributeAccessIssue]
+
+        self._set_bg_effects_uniforms(self._preset.background.effects, frame, resolution)
+
+        self._bg_effects_vao.render(moderngl.TRIANGLE_STRIP)
+
     def _ensure_layer_fbos(self, resolution: tuple[int, int]) -> None:
         """Create or resize layer FBOs to match resolution."""
-        if (
-            self._layer_fbo_resolution == resolution
-            and len(self._layer_fbos) == len(self._layers)
-        ):
+        if self._layer_fbo_resolution == resolution and len(self._layer_fbos) == len(self._layers):
             return
         self._release_layer_fbos()
         for _ in self._layers:
@@ -316,12 +755,27 @@ class Renderer:
             vertex_shader=vert_src,
             fragment_shader=frag_src,
         )
-        vertices = np.array([
-            -1.0, -1.0, 0.0, 0.0,
-             1.0, -1.0, 1.0, 0.0,
-            -1.0,  1.0, 0.0, 1.0,
-             1.0,  1.0, 1.0, 1.0,
-        ], dtype="f4")
+        vertices = np.array(
+            [
+                -1.0,
+                -1.0,
+                0.0,
+                0.0,
+                1.0,
+                -1.0,
+                1.0,
+                0.0,
+                -1.0,
+                1.0,
+                0.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+            ],
+            dtype="f4",
+        )
         self._composite_vbo = self.ctx.buffer(vertices.tobytes())
         self._composite_vao = self.ctx.vertex_array(
             self._composite_prog,
@@ -486,6 +940,15 @@ class Renderer:
         skip_bg = preview and self.skip_bg_preview
         if self._bg_texture is not None and not skip_bg:
             self._render_bg_quad(fbo, frame)
+        elif (
+            self._preset is not None
+            and self._bg_texture is None
+            and not skip_bg
+            and _any_bg_effect_enabled(self._preset.background.effects)
+        ):
+            # Solid/none backgrounds have no texture but can still use effects.
+            # Copy the cleared FBO to the intermediate, apply effects, write back.
+            self._apply_bg_effects_standalone(fbo, frame, resolution)
 
         # Multi-layer rendering: each layer to its own FBO, then composite
         self._ensure_layer_fbos(resolution)
@@ -517,7 +980,11 @@ class Renderer:
         self.ctx.blend_func = (moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA)
 
         # Compositing pass — blend all layers onto final FBO
-        if visible_layer_indices and self._composite_prog is not None and self._composite_vao is not None:
+        if (
+            visible_layer_indices
+            and self._composite_prog is not None
+            and self._composite_vao is not None
+        ):
             fbo.use()
             self.ctx.viewport = (0, 0, resolution[0], resolution[1])
 
@@ -542,7 +1009,8 @@ class Renderer:
             ]
             visible = [
                 (1 if self._layers[i][0].visible and self._layers[i][1] is not None else 0)
-                if i < n else 0
+                if i < n
+                else 0
                 for i in range(7)
             ]
 
@@ -553,6 +1021,14 @@ class Renderer:
             self._composite_prog["u_visible"].write(struct.pack("7i", *visible))  # type: ignore[reportAttributeAccessIssue]
 
             self._composite_vao.render(moderngl.TRIANGLE_STRIP)
+
+        # Global effects — before overlays
+        if (
+            self._preset is not None
+            and self._preset.global_effects.apply_stage == "before_overlays"
+            and _any_global_effect_enabled(self._preset.global_effects)
+        ):
+            self._apply_global_effects(fbo, frame, resolution)
 
         # Render video overlay on top of visualization
         skip_overlay = preview and self.skip_overlay_preview
@@ -569,6 +1045,14 @@ class Renderer:
             except Exception as e:
                 logger.error("Text overlay render error: %s", e)
 
+        # Global effects — after overlays
+        if (
+            self._preset is not None
+            and self._preset.global_effects.apply_stage == "after_overlays"
+            and _any_global_effect_enabled(self._preset.global_effects)
+        ):
+            self._apply_global_effects(fbo, frame, resolution)
+
     def _ensure_overlay_quad(self) -> None:
         """Lazily create the overlay fullscreen quad shader and VAO."""
         if self._overlay_program is not None:
@@ -577,15 +1061,28 @@ class Renderer:
         vert_src = load_shader("common.vert")
         frag_src = load_shader("overlay.frag")
         self._overlay_program = self.ctx.program(
-            vertex_shader=vert_src, fragment_shader=frag_src,
+            vertex_shader=vert_src,
+            fragment_shader=frag_src,
         )
 
         vertices = np.array(
             [
-                -1.0, -1.0, 0.0, 0.0,
-                 1.0, -1.0, 1.0, 0.0,
-                -1.0,  1.0, 0.0, 1.0,
-                 1.0,  1.0, 1.0, 1.0,
+                -1.0,
+                -1.0,
+                0.0,
+                0.0,
+                1.0,
+                -1.0,
+                1.0,
+                0.0,
+                -1.0,
+                1.0,
+                0.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
             ],
             dtype="f4",
         )
@@ -683,30 +1180,21 @@ class Renderer:
         """
         fbo.use()
         data = fbo.read(components=components)
-        arr = np.frombuffer(data, dtype=np.uint8).reshape(
-            resolution[1], resolution[0], components
-        )
+        arr = np.frombuffer(data, dtype=np.uint8).reshape(resolution[1], resolution[0], components)
         # Flip vertically (OpenGL has origin at bottom-left)
         return np.flipud(arr).copy()
 
-    def ensure_offscreen_fbo(
-        self, resolution: tuple[int, int]
-    ) -> moderngl.Framebuffer:
+    def ensure_offscreen_fbo(self, resolution: tuple[int, int]) -> moderngl.Framebuffer:
         """Create or resize the offscreen FBO for export rendering."""
         if self._offscreen_fbo is not None:
-            if (
-                self._offscreen_texture is not None
-                and self._offscreen_texture.size == resolution
-            ):
+            if self._offscreen_texture is not None and self._offscreen_texture.size == resolution:
                 return self._offscreen_fbo
             self._offscreen_fbo.release()
             if self._offscreen_texture is not None:
                 self._offscreen_texture.release()
 
         self._offscreen_texture = self.ctx.texture(resolution, 4)
-        self._offscreen_fbo = self.ctx.framebuffer(
-            color_attachments=[self._offscreen_texture]
-        )
+        self._offscreen_fbo = self.ctx.framebuffer(color_attachments=[self._offscreen_texture])
         logger.debug("Created offscreen FBO: %dx%d", resolution[0], resolution[1])
         return self._offscreen_fbo
 
@@ -738,6 +1226,26 @@ class Renderer:
         self._release_bg_texture()
         self._close_video_source()
         self._close_overlay()
+        self._release_bg_effects_fbo()
+        if self._bg_effects_vao is not None:
+            self._bg_effects_vao.release()
+            self._bg_effects_vao = None
+        if self._bg_effects_vbo is not None:
+            self._bg_effects_vbo.release()
+            self._bg_effects_vbo = None
+        if self._bg_effects_prog is not None:
+            self._bg_effects_prog.release()
+            self._bg_effects_prog = None
+        self._release_global_effects_fbo()
+        if self._global_effects_vao is not None:
+            self._global_effects_vao.release()
+            self._global_effects_vao = None
+        if self._global_effects_vbo is not None:
+            self._global_effects_vbo.release()
+            self._global_effects_vbo = None
+        if self._global_effects_prog is not None:
+            self._global_effects_prog.release()
+            self._global_effects_prog = None
         if self._bg_vao is not None:
             self._bg_vao.release()
             self._bg_vao = None

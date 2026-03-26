@@ -59,7 +59,11 @@ vec2 apply_movement(vec2 uv, float time) {
             padding = intensity * 0.03;
         }
         if (padding > 0.0) {
-            float scale = 1.0 / (1.0 + padding);
+            // Translation effects (shake, wave) need additive margin;
+            // multiplicative effects (zoom_pulse, breathe) cancel their own scale.
+            float scale = (u_movement_type == 2 || u_movement_type == 3)
+                ? 1.0 - 2.0 * padding
+                : 1.0 / (1.0 + padding);
             uv = 0.5 + (uv - 0.5) * scale;
         }
     }

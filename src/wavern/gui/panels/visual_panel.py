@@ -12,6 +12,7 @@ from wavern.gui.no_scroll_combo import NoScrollComboBox
 from wavern.gui.panels.background_section import BackgroundSection
 from wavern.gui.panels.color_section import ColorSection
 from wavern.gui.panels.fade_section import FadeSection
+from wavern.gui.panels.global_effects_section import GlobalEffectsSection
 from wavern.gui.panels.overlay_section import OverlaySection
 from wavern.gui.panels.param_section import ParamSection
 from wavern.presets.schema import Preset, VisualizationLayer
@@ -50,6 +51,7 @@ class VisualPanel(QWidget):
         self._param_section: ParamSection | None = None
         self._color_section_widget: ColorSection | None = None
         self._bg_section_widget: BackgroundSection | None = None
+        self._global_effects_widget: GlobalEffectsSection | None = None
         self._overlay_section_widget: OverlaySection | None = None
         self._fade_section_widget: FadeSection | None = None
 
@@ -156,6 +158,14 @@ class VisualPanel(QWidget):
         self._bg_section.set_content(self._bg_section_widget)
         self._content_layout.addWidget(self._bg_section)
 
+        # --- Global Effects ---
+        self._global_effects_section = CollapsibleSection("Global Effects")
+        self._global_effects_widget = GlobalEffectsSection()
+        self._global_effects_widget.effects_changed.connect(self._emit_update)
+        self._global_effects_widget.build(preset)
+        self._global_effects_section.set_content(self._global_effects_widget)
+        self._content_layout.addWidget(self._global_effects_section)
+
         # --- Video Overlay ---
         self._overlay_section = CollapsibleSection("Video Overlay")
         self._overlay_section_widget = OverlaySection()
@@ -259,6 +269,8 @@ class VisualPanel(QWidget):
         self._param_section.update_values(preset.layers[selected].params)
         self._color_section_widget.build_for_layer(preset, selected)
         self._bg_section_widget.update_values(preset.background, preset)
+        if self._global_effects_widget is not None:
+            self._global_effects_widget.update_values(preset)
         self._overlay_section_widget.update_values(preset.video_overlay, preset)
         self._fade_section_widget.update_values(preset)
 
@@ -285,6 +297,7 @@ class VisualPanel(QWidget):
             "Visualization": "_viz_section",
             "Colors": "_color_section",
             "Background": "_bg_section",
+            "Global Effects": "_global_effects_section",
             "Video Overlay": "_overlay_section",
             "Fade": "_fade_section",
         }
@@ -297,6 +310,7 @@ class VisualPanel(QWidget):
             "Visualization": "_viz_section",
             "Colors": "_color_section",
             "Background": "_bg_section",
+            "Global Effects": "_global_effects_section",
             "Video Overlay": "_overlay_section",
             "Fade": "_fade_section",
         }

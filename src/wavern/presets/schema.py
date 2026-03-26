@@ -33,6 +33,126 @@ class ColorStop(BaseModel):
     )
 
 
+class AudioReactiveConfig(BaseModel):
+    """Audio reactivity settings, reusable across effects and movement."""
+
+    enabled: bool = False
+    source: str = Field(
+        default="amplitude",
+        pattern=r"^(amplitude|bass|beat|mid|treble)$",
+    )
+    sensitivity: float = Field(default=1.0, ge=0.1, le=5.0)
+
+
+class BackgroundEffect(BaseModel):
+    """Single background effect with manual + audio-reactive control."""
+
+    enabled: bool = False
+    intensity: float = Field(default=0.5, ge=0.0, le=1.0)
+    audio: AudioReactiveConfig = Field(default_factory=AudioReactiveConfig)
+
+
+class BackgroundEffects(BaseModel):
+    """Container for all background post-processing effects."""
+
+    blur: BackgroundEffect = Field(default_factory=BackgroundEffect)
+    hue_shift: BackgroundEffect = Field(default_factory=BackgroundEffect)
+    saturation: BackgroundEffect = Field(default_factory=BackgroundEffect)
+    brightness: BackgroundEffect = Field(default_factory=BackgroundEffect)
+    pixelate: BackgroundEffect = Field(default_factory=BackgroundEffect)
+    posterize: BackgroundEffect = Field(default_factory=BackgroundEffect)
+    invert: BackgroundEffect = Field(default_factory=BackgroundEffect)
+
+
+class VignetteEffect(BaseModel):
+    """Vignette effect with shape selection."""
+
+    enabled: bool = False
+    intensity: float = Field(default=0.5, ge=0.0, le=1.0)
+    shape: str = Field(
+        default="circular",
+        pattern=r"^(circular|rectangular|diamond)$",
+    )
+    audio: AudioReactiveConfig = Field(default_factory=AudioReactiveConfig)
+
+
+class ChromaticAberrationEffect(BaseModel):
+    """Chromatic aberration with direction mode."""
+
+    enabled: bool = False
+    intensity: float = Field(default=0.5, ge=0.0, le=1.0)
+    direction: str = Field(
+        default="radial",
+        pattern=r"^(radial|linear)$",
+    )
+    angle: float = Field(default=0.0, ge=0.0, le=360.0)
+    audio: AudioReactiveConfig = Field(default_factory=AudioReactiveConfig)
+
+
+class GlitchEffect(BaseModel):
+    """Glitch effect with type selection."""
+
+    enabled: bool = False
+    intensity: float = Field(default=0.5, ge=0.0, le=1.0)
+    type: str = Field(
+        default="scanline",
+        pattern=r"^(scanline|block|digital)$",
+    )
+    audio: AudioReactiveConfig = Field(default_factory=AudioReactiveConfig)
+
+
+class FilmGrainEffect(BaseModel):
+    """Animated film grain noise overlay."""
+
+    enabled: bool = False
+    intensity: float = Field(default=0.5, ge=0.0, le=1.0)
+    audio: AudioReactiveConfig = Field(default_factory=AudioReactiveConfig)
+
+
+class BloomEffect(BaseModel):
+    """Bloom/glow effect — bright areas bleed light outward."""
+
+    enabled: bool = False
+    intensity: float = Field(default=0.5, ge=0.0, le=1.0)
+    threshold: float = Field(default=0.6, ge=0.0, le=1.0)
+    audio: AudioReactiveConfig = Field(default_factory=AudioReactiveConfig)
+
+
+class ScanlinesEffect(BaseModel):
+    """CRT-style horizontal scanlines overlay."""
+
+    enabled: bool = False
+    intensity: float = Field(default=0.5, ge=0.0, le=1.0)
+    density: float = Field(default=0.5, ge=0.0, le=1.0)
+    audio: AudioReactiveConfig = Field(default_factory=AudioReactiveConfig)
+
+
+class ColorShiftEffect(BaseModel):
+    """Global hue rotation applied to the entire composited frame."""
+
+    enabled: bool = False
+    intensity: float = Field(default=0.5, ge=0.0, le=1.0)
+    audio: AudioReactiveConfig = Field(default_factory=AudioReactiveConfig)
+
+
+class GlobalEffects(BaseModel):
+    """Container for all global post-processing effects."""
+
+    apply_stage: str = Field(
+        default="before_overlays",
+        pattern=r"^(before_overlays|after_overlays)$",
+    )
+    vignette: VignetteEffect = Field(default_factory=VignetteEffect)
+    chromatic_aberration: ChromaticAberrationEffect = Field(
+        default_factory=ChromaticAberrationEffect,
+    )
+    glitch: GlitchEffect = Field(default_factory=GlitchEffect)
+    film_grain: FilmGrainEffect = Field(default_factory=FilmGrainEffect)
+    bloom: BloomEffect = Field(default_factory=BloomEffect)
+    scanlines: ScanlinesEffect = Field(default_factory=ScanlinesEffect)
+    color_shift: ColorShiftEffect = Field(default_factory=ColorShiftEffect)
+
+
 class BackgroundMovement(BaseModel):
     """Animation effect applied to background UV coordinates."""
 
@@ -44,6 +164,7 @@ class BackgroundMovement(BaseModel):
     intensity: float = Field(default=0.5, ge=0.0, le=2.0)
     angle: float = Field(default=0.0, ge=0.0, le=360.0)
     clamp_to_frame: bool = Field(default=False)
+    audio: AudioReactiveConfig = Field(default_factory=AudioReactiveConfig)
 
 
 class BackgroundConfig(BaseModel):
@@ -67,6 +188,7 @@ class BackgroundConfig(BaseModel):
         description="Color stops for gradient background type",
     )
     movement: BackgroundMovement = Field(default_factory=BackgroundMovement)
+    effects: BackgroundEffects = Field(default_factory=BackgroundEffects)
 
 
 class VideoOverlayConfig(BaseModel):
@@ -177,12 +299,15 @@ class Preset(BaseModel):
     background: BackgroundConfig = Field(default_factory=BackgroundConfig)
     overlay: OverlayConfig = Field(default_factory=OverlayConfig)
     video_overlay: VideoOverlayConfig = Field(default_factory=VideoOverlayConfig)
+    global_effects: GlobalEffects = Field(default_factory=GlobalEffects)
 
     fft_size: int = Field(default=2048, ge=256, le=16384)
     smoothing: float = Field(default=0.3, ge=0.0, le=0.99)
     beat_sensitivity: float = Field(default=1.0, ge=0.1, le=5.0)
 
     fade_in: float = Field(default=0.0, ge=0.0, le=30.0, description="Fade-in duration in seconds")
-    fade_out: float = Field(default=0.0, ge=0.0, le=30.0, description="Fade-out duration in seconds")
+    fade_out: float = Field(
+        default=0.0, ge=0.0, le=30.0, description="Fade-out duration in seconds"
+    )
 
     fps: int = Field(default=60, ge=24, le=144)

@@ -9,7 +9,8 @@ Settings panels displayed inside the sidebar. Each panel targets one concern of 
 | `visual_panel.py` | Coordinator: layer list + per-layer viz type/colors + background + overlay |
 | `param_section.py` | Viz type combo + dynamic per-viz parameter widgets |
 | `color_section.py` | Color palette editor (add/remove/reorder swatches) |
-| `background_section.py` | Background type, solid/gradient/image/video, transform, movement |
+| `background_section.py` | Background type, solid/gradient/image/video, transform, movement, effects (all bg types) |
+| `global_effects_section.py` | Global post-processing: vignette, chromatic aberration, glitch, film grain, bloom, scanlines, color shift |
 | `overlay_section.py` | Overlay video, blend mode, opacity, rotation, mirror |
 | `text_panel.py` | Text overlay: content, font, size, position, animation |
 | `analysis_panel.py` | FFT size, smoothing, beat detection threshold/cooldown |

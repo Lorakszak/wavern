@@ -32,6 +32,12 @@ contract. All visualizations receive it — never pass raw audio arrays to rende
 
 Never add Qt imports or GUI awareness to any file in this directory.
 
+## Background Effects on All Background Types
+Background effects (blur, hue_shift, saturation, brightness, pixelate, posterize, invert) work on all background types. For image/video/gradient backgrounds, the renderer renders the background quad to an intermediate FBO, then applies effects in a second pass (`_render_bg_quad`). For solid/none backgrounds (no texture), `_apply_bg_effects_standalone()` copies the already-cleared FBO to the intermediate and runs the effects shader on it.
+
+## Global Effects Apply Stage
+Global effects can be applied `"before_overlays"` or `"after_overlays"`. Both use the same `_apply_global_effects()` method and shader — the staging only controls when in the pipeline the pass runs.
+
 ## Logging Pattern
 All core modules use `logger = logging.getLogger(__name__)`. Never use `print()` or `logging.basicConfig()`. The centralized setup in `src/wavern/logging_setup.py` handles handler configuration.
 
