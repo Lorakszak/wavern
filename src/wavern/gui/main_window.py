@@ -34,7 +34,17 @@ from wavern.gui.sidebar import SidebarWidget
 from wavern.gui.theme_manager import ThemeManager
 from wavern.gui.transport_bar import TransportBar
 from wavern.presets.manager import PresetManager
-from wavern.presets.schema import BackgroundConfig, Preset, VisualizationLayer
+from wavern.presets.schema import (
+    AudioReactiveConfig,
+    BackgroundConfig,
+    BackgroundMovement,
+    BlendMode,
+    ColorStop,
+    GlobalEffects,
+    Preset,
+    VignetteEffect,
+    VisualizationLayer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -43,12 +53,53 @@ DEFAULT_PRESET = Preset(
     name="Default",
     layers=[
         VisualizationLayer(
+            visualization_type="particles",
+            params={
+                "max_particles": 3000,
+                "particle_size": 3.0,
+                "spawn_rate": 4.0,
+                "lifetime": 10.0,
+                "spawn_mode": "line",
+                "spawn_x": 0.5,
+                "spawn_y": 0.5,
+                "spread": 0.8,
+                "gravity_y": 0.0,
+                "speed_min": 0.02,
+                "speed_max": 0.5,
+                "drag": 0.02,
+                "turbulence": 0.15,
+            },
+            blend_mode=BlendMode.ADDITIVE,
+            opacity=1.0,
+            colors=["#00E5FF", "#AA00FF", "#FF1744"],
+        ),
+        VisualizationLayer(
             visualization_type="spectrum_bars",
-            params={"bar_count": 64, "mirror": True},
+            params={"bar_count": 128, "mirror": True, "mirror_spectrum": True, "mirror_half": "left"},
+            colors=["#00E5FF", "#AA00FF", "#FF1744", "#FFD600"],
         ),
     ],
-    color_palette=["#00FFAA", "#FF00AA", "#FFAA00"],
-    background=BackgroundConfig(type="solid", color="#0A0A0F"),
+    color_palette=["#00E5FF", "#AA00FF", "#FF1744", "#FFD600"],
+    background=BackgroundConfig(
+        type="gradient",
+        gradient_stops=[
+            ColorStop(position=0.0, color="#0D0221"),
+            ColorStop(position=1.0, color="#0A1628"),
+        ],
+        movement=BackgroundMovement(
+            type="shake",
+            speed=1.0,
+            intensity=0.3,
+            clamp_to_frame=True,
+            audio=AudioReactiveConfig(enabled=True, source="bass", sensitivity=1.5),
+        ),
+    ),
+    global_effects=GlobalEffects(
+        vignette=VignetteEffect(enabled=True, intensity=0.1, shape="rectangular"),
+    ),
+    fft_size=4096,
+    smoothing=0.25,
+    beat_sensitivity=1.2,
 )
 
 
