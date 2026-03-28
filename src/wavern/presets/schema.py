@@ -154,17 +154,24 @@ class GlobalEffects(BaseModel):
 
 
 class BackgroundMovement(BaseModel):
-    """Animation effect applied to background UV coordinates."""
+    """Single background movement effect with independent controls."""
 
-    type: str = Field(
-        default="none",
-        pattern=r"^(none|drift|shake|wave|zoom_pulse|breathe)$",
-    )
+    enabled: bool = False
     speed: float = Field(default=1.0, ge=0.0, le=10.0)
     intensity: float = Field(default=0.5, ge=0.0, le=2.0)
     angle: float = Field(default=0.0, ge=0.0, le=360.0)
     clamp_to_frame: bool = Field(default=False)
     audio: AudioReactiveConfig = Field(default_factory=AudioReactiveConfig)
+
+
+class BackgroundMovements(BaseModel):
+    """Container for all background movement effects — multiple can be active."""
+
+    drift: BackgroundMovement = Field(default_factory=BackgroundMovement)
+    shake: BackgroundMovement = Field(default_factory=BackgroundMovement)
+    wave: BackgroundMovement = Field(default_factory=BackgroundMovement)
+    zoom_pulse: BackgroundMovement = Field(default_factory=BackgroundMovement)
+    breathe: BackgroundMovement = Field(default_factory=BackgroundMovement)
 
 
 class BackgroundConfig(BaseModel):
@@ -187,7 +194,7 @@ class BackgroundConfig(BaseModel):
         ],
         description="Color stops for gradient background type",
     )
-    movement: BackgroundMovement = Field(default_factory=BackgroundMovement)
+    movements: BackgroundMovements = Field(default_factory=BackgroundMovements)
     effects: BackgroundEffects = Field(default_factory=BackgroundEffects)
 
 

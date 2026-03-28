@@ -1,36 +1,33 @@
-"""Tests for wavern.presets.schema.BackgroundMovement and BackgroundConfig.
+"""Tests for wavern.presets.schema.BackgroundMovement and BackgroundMovements.
 
 WHAT THIS TESTS:
-- BackgroundMovement field defaults and valid type values
-- Pydantic ValidationError raised for out-of-bounds speed, intensity, angle, and invalid type
-- BackgroundConfig rotation and mirror_x/mirror_y transform fields
-- Serialization round-trip preserves all BackgroundMovement and BackgroundConfig values
+- BackgroundMovement field defaults and bounds (enabled, speed, intensity, angle, clamp_to_frame)
+- BackgroundMovements container: all 5 movement types as named fields
+- BackgroundConfig.movements field integration
+- Serialization round-trip preserves all values
 Does NOT test: actual background rendering or pixel output (those are renderer-level concerns)
 """
 
 import pytest
 from pydantic import ValidationError
 
-from wavern.presets.schema import BackgroundConfig, BackgroundMovement
+from wavern.presets.manager import _migrate_preset_data
+from wavern.presets.schema import BackgroundConfig, BackgroundMovement, BackgroundMovements
 
 
 class TestBackgroundMovement:
     def test_defaults(self):
         mv = BackgroundMovement()
-        assert mv.type == "none"
+        assert mv.enabled is False
         assert mv.speed == 1.0
         assert mv.intensity == 0.5
         assert mv.angle == 0.0
         assert mv.clamp_to_frame is False
+        assert mv.audio.enabled is False
 
-    def test_valid_types(self):
-        for t in ("none", "drift", "shake", "wave", "zoom_pulse", "breathe"):
-            mv = BackgroundMovement(type=t)
-            assert mv.type == t
-
-    def test_invalid_type(self):
-        with pytest.raises(ValidationError):
-            BackgroundMovement(type="spin")
+    def test_enabled(self):
+        mv = BackgroundMovement(enabled=True)
+        assert mv.enabled is True
 
     def test_speed_bounds(self):
         BackgroundMovement(speed=0.0)
@@ -57,38 +54,84 @@ class TestBackgroundMovement:
             BackgroundMovement(angle=361.0)
 
     def test_clamp_to_frame(self):
-        mv = BackgroundMovement(type="shake", clamp_to_frame=True)
+        mv = BackgroundMovement(enabled=True, clamp_to_frame=True)
         assert mv.clamp_to_frame is True
 
     def test_serialization_roundtrip(self):
         mv = BackgroundMovement(
-            type="drift", speed=3.0, intensity=1.5, angle=45.0, clamp_to_frame=True,
+            enabled=True,
+            speed=3.0,
+            intensity=1.5,
+            angle=45.0,
+            clamp_to_frame=True,
         )
         data = mv.model_dump()
         restored = BackgroundMovement(**data)
-        assert restored.type == "drift"
+        assert restored.enabled is True
         assert restored.speed == 3.0
         assert restored.intensity == 1.5
         assert restored.angle == 45.0
         assert restored.clamp_to_frame is True
 
-    def test_background_config_has_movement(self):
-        bg = BackgroundConfig()
-        assert bg.movement.type == "none"
 
-    def test_background_config_with_movement(self):
+class TestBackgroundMovements:
+    def test_defaults(self):
+        movements = BackgroundMovements()
+        assert movements.drift.enabled is False
+        assert movements.shake.enabled is False
+        assert movements.wave.enabled is False
+        assert movements.zoom_pulse.enabled is False
+        assert movements.breathe.enabled is False
+
+    def test_individual_enable(self):
+        movements = BackgroundMovements(
+            drift=BackgroundMovement(enabled=True, speed=0.3, angle=90.0),
+        )
+        assert movements.drift.enabled is True
+        assert movements.drift.speed == 0.3
+        assert movements.drift.angle == 90.0
+        assert movements.shake.enabled is False
+
+    def test_multiple_enable(self):
+        movements = BackgroundMovements(
+            drift=BackgroundMovement(enabled=True, speed=0.5),
+            wave=BackgroundMovement(enabled=True, intensity=1.0),
+            breathe=BackgroundMovement(enabled=True, speed=2.0),
+        )
+        assert movements.drift.enabled is True
+        assert movements.wave.enabled is True
+        assert movements.breathe.enabled is True
+        assert movements.shake.enabled is False
+        assert movements.zoom_pulse.enabled is False
+
+    def test_serialization_roundtrip(self):
+        movements = BackgroundMovements(
+            drift=BackgroundMovement(enabled=True, speed=0.3, angle=90.0),
+            shake=BackgroundMovement(enabled=True, intensity=0.8),
+        )
+        data = movements.model_dump()
+        restored = BackgroundMovements(**data)
+        assert restored.drift.enabled is True
+        assert restored.drift.angle == 90.0
+        assert restored.shake.enabled is True
+        assert restored.shake.intensity == 0.8
+
+
+class TestBackgroundConfigMovements:
+    def test_has_movements(self):
+        bg = BackgroundConfig()
+        assert bg.movements.drift.enabled is False
+
+    def test_with_movements(self):
         bg = BackgroundConfig(
             type="image",
             image_path="/some/image.png",
-            movement=BackgroundMovement(type="wave", speed=2.0),
+            movements=BackgroundMovements(
+                wave=BackgroundMovement(enabled=True, speed=2.0),
+            ),
         )
-        assert bg.movement.type == "wave"
-        assert bg.movement.speed == 2.0
-
-    def test_video_background_type(self):
-        bg = BackgroundConfig(type="video", video_path="/some/video.mp4")
-        assert bg.type == "video"
-        assert bg.video_path == "/some/video.mp4"
+        assert bg.movements.wave.enabled is True
+        assert bg.movements.wave.speed == 2.0
 
 
 class TestBackgroundTransform:
@@ -124,3 +167,68 @@ class TestBackgroundTransform:
         assert restored.rotation == 90.0
         assert restored.mirror_x is True
         assert restored.mirror_y is False
+
+
+class TestMovementMigration:
+    def test_old_single_movement_migrated(self):
+        """Old format: movement.type selects which movement is active."""
+        raw = {
+            "name": "Test",
+            "layers": [{"visualization_type": "bars", "params": {}}],
+            "background": {
+                "type": "image",
+                "movement": {
+                    "type": "drift",
+                    "speed": 0.3,
+                    "intensity": 0.2,
+                    "angle": 90.0,
+                    "clamp_to_frame": False,
+                },
+            },
+        }
+        migrated = _migrate_preset_data(raw)
+        movements = migrated["background"]["movements"]
+        assert movements["drift"]["enabled"] is True
+        assert movements["drift"]["speed"] == 0.3
+        assert movements["drift"]["angle"] == 90.0
+        assert "shake" not in movements
+
+    def test_old_none_movement_migrated(self):
+        """Old format with type=none should produce empty movements."""
+        raw = {
+            "name": "Test",
+            "layers": [{"visualization_type": "bars", "params": {}}],
+            "background": {
+                "type": "solid",
+                "movement": {"type": "none"},
+            },
+        }
+        migrated = _migrate_preset_data(raw)
+        bg = migrated["background"]
+        assert "movement" not in bg
+
+    def test_new_format_untouched(self):
+        """New format with 'movements' key should not be modified."""
+        raw = {
+            "name": "Test",
+            "layers": [{"visualization_type": "bars", "params": {}}],
+            "background": {
+                "type": "image",
+                "movements": {
+                    "drift": {"enabled": True, "speed": 0.5},
+                    "wave": {"enabled": True, "intensity": 1.0},
+                },
+            },
+        }
+        migrated = _migrate_preset_data(raw)
+        assert migrated["background"]["movements"]["drift"]["enabled"] is True
+        assert migrated["background"]["movements"]["wave"]["enabled"] is True
+
+    def test_no_background_untouched(self):
+        """Preset with no background section should pass through."""
+        raw = {
+            "name": "Test",
+            "layers": [{"visualization_type": "bars", "params": {}}],
+        }
+        migrated = _migrate_preset_data(raw)
+        assert "background" not in migrated

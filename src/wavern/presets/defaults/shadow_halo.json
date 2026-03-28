@@ -13,11 +13,13 @@
   "background": {
     "type": "solid",
     "color": "#0a0008",
-    "movement": {
-      "type": "breathe",
-      "speed": 0.6,
-      "intensity": 0.35,
-      "angle": 0.0
+    "movements": {
+      "breathe": {
+        "enabled": true,
+        "speed": 0.6,
+        "intensity": 0.35,
+        "angle": 0.0
+      }
     }
   },
   "fft_size": 8192,

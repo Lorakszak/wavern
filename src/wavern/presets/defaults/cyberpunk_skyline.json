@@ -26,11 +26,13 @@
         "color": "#000a1a"
       }
     ],
-    "movement": {
-      "type": "drift",
-      "speed": 0.8,
-      "intensity": 0.3,
-      "angle": 270.0
+    "movements": {
+      "drift": {
+        "enabled": true,
+        "speed": 0.8,
+        "intensity": 0.3,
+        "angle": 270.0
+      }
     }
   },
   "fft_size": 8192,

@@ -18,6 +18,7 @@ from wavern.presets.schema import (
     BackgroundEffect,
     BackgroundEffects,
     BackgroundMovement,
+    BackgroundMovements,
     BlendMode,
     ChromaticAberrationEffect,
     ColorStop,
@@ -105,7 +106,7 @@ class TestPresetSchema:
         assert bg.type == "solid"
         assert bg.color == "#000000"
         assert bg.opacity == 1.0
-        assert bg.movement.type == "none"
+        assert bg.movements.drift.enabled is False
 
     def test_video_overlay_defaults(self):
         ov = VideoOverlayConfig()
@@ -140,8 +141,10 @@ class TestPresetSchema:
                 video_path="/tmp/bg.mp4",
                 rotation=180.0,
                 mirror_x=True,
-                movement=BackgroundMovement(
-                    type="drift", speed=2.0, angle=90.0, clamp_to_frame=True,
+                movements=BackgroundMovements(
+                    drift=BackgroundMovement(
+                        enabled=True, speed=2.0, angle=90.0, clamp_to_frame=True,
+                    ),
                 ),
             ),
             video_overlay=VideoOverlayConfig(
@@ -154,9 +157,9 @@ class TestPresetSchema:
         assert restored.background.type == "video"
         assert restored.background.rotation == 180.0
         assert restored.background.mirror_x is True
-        assert restored.background.movement.type == "drift"
-        assert restored.background.movement.angle == 90.0
-        assert restored.background.movement.clamp_to_frame is True
+        assert restored.background.movements.drift.enabled is True
+        assert restored.background.movements.drift.angle == 90.0
+        assert restored.background.movements.drift.clamp_to_frame is True
         assert restored.video_overlay.enabled is True
         assert restored.video_overlay.opacity == 0.5
         assert restored.video_overlay.rotation == 90.0
@@ -254,9 +257,11 @@ class TestBackgroundSchemaBackwardCompat:
             background=BackgroundConfig(
                 type="image",
                 image_path="/tmp/bg.png",
-                movement=BackgroundMovement(
-                    type="shake",
-                    audio=AudioReactiveConfig(enabled=True, source="beat", sensitivity=1.5),
+                movements=BackgroundMovements(
+                    shake=BackgroundMovement(
+                        enabled=True,
+                        audio=AudioReactiveConfig(enabled=True, source="beat", sensitivity=1.5),
+                    ),
                 ),
                 effects=BackgroundEffects(
                     blur=BackgroundEffect(enabled=True, intensity=0.7),
@@ -270,8 +275,8 @@ class TestBackgroundSchemaBackwardCompat:
         )
         json_str = preset.model_dump_json()
         restored = Preset.model_validate_json(json_str)
-        assert restored.background.movement.audio.enabled is True
-        assert restored.background.movement.audio.source == "beat"
+        assert restored.background.movements.shake.audio.enabled is True
+        assert restored.background.movements.shake.audio.source == "beat"
         assert restored.background.effects.blur.enabled is True
         assert restored.background.effects.blur.intensity == 0.7
         assert restored.background.effects.brightness.audio.source == "bass"
