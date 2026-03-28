@@ -60,7 +60,7 @@ class VisualPanel(QWidget):
         self._content_layout.addWidget(self._layer_list)
 
         # Visualization (type combo + params)
-        self._viz_section = CollapsibleSection("Visualization")
+        self._viz_section = CollapsibleSection("Visualization", expanded=False)
         viz_content = QWidget()
         viz_layout = QVBoxLayout(viz_content)
         viz_layout.setContentsMargins(4, 0, 4, 0)
@@ -89,7 +89,7 @@ class VisualPanel(QWidget):
         self._content_layout.addWidget(self._viz_section)
 
         # Colors
-        self._color_section = CollapsibleSection("Colors")
+        self._color_section = CollapsibleSection("Colors", expanded=False)
         self._color_section_widget = ColorSection()
         self._color_section_widget.colors_changed.connect(
             lambda: self._emit_update(ChangeScope.LAYER_COLORS)
@@ -98,7 +98,7 @@ class VisualPanel(QWidget):
         self._content_layout.addWidget(self._color_section)
 
         # Background
-        self._bg_section = CollapsibleSection("Background")
+        self._bg_section = CollapsibleSection("Background", expanded=False)
         self._bg_section_widget = BackgroundSection()
         self._bg_section_widget.background_changed.connect(
             lambda: self._emit_update(ChangeScope.BACKGROUND)
@@ -108,7 +108,7 @@ class VisualPanel(QWidget):
         self._content_layout.addWidget(self._bg_section)
 
         # Global Effects
-        self._global_effects_section = CollapsibleSection("Global Effects")
+        self._global_effects_section = CollapsibleSection("Global Effects", expanded=False)
         self._global_effects_widget = GlobalEffectsSection()
         self._global_effects_widget.effects_changed.connect(
             lambda: self._emit_update(ChangeScope.GLOBAL_EFFECTS)
@@ -117,7 +117,7 @@ class VisualPanel(QWidget):
         self._content_layout.addWidget(self._global_effects_section)
 
         # Video Overlay
-        self._overlay_section = CollapsibleSection("Video Overlay")
+        self._overlay_section = CollapsibleSection("Video Overlay", expanded=False)
         self._overlay_section_widget = OverlaySection()
         self._overlay_section_widget.overlay_changed.connect(
             lambda: self._emit_update(ChangeScope.OVERLAY)
@@ -129,7 +129,7 @@ class VisualPanel(QWidget):
         self._content_layout.addWidget(self._overlay_section)
 
         # Fade
-        self._fade_section = CollapsibleSection("Fade")
+        self._fade_section = CollapsibleSection("Fade", expanded=False)
         self._fade_section_widget = FadeSection()
         self._fade_section_widget.fade_changed.connect(
             lambda: self._emit_update(ChangeScope.FADE)
