@@ -70,6 +70,13 @@ class FadeSection(QWidget):
         self._fade_out_spin.setValue(preset.fade_out)
         self._rebuilding = False
 
+    def apply(self, preset: Preset) -> None:
+        """Apply preset -- always in-place since structure is static."""
+        if not hasattr(self, "_fade_in_spin"):
+            self.build(preset)
+        else:
+            self.update_values(preset)
+
     def _on_fade_changed(self) -> None:
         if self._preset is None or self._rebuilding:
             return

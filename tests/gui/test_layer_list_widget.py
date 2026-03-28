@@ -162,3 +162,48 @@ class TestLayerListWidget:
         widget.build(two_layer_preset.layers)
         widget.move_layer(0, 0)
         assert widget._layers[0].name == "Bars"
+
+
+class TestLayerListApply:
+    def test_apply_reuses_existing_rows(self, qtbot, two_layer_preset):
+        widget = LayerListWidget()
+        qtbot.addWidget(widget)
+        widget.build(two_layer_preset.layers)
+
+        row_ids = [id(r) for r in widget._rows]
+
+        widget.apply(two_layer_preset.layers)
+        new_row_ids = [id(r) for r in widget._rows]
+        assert row_ids == new_row_ids, "Existing rows should be reused"
+
+    def test_apply_adds_rows_on_increase(self, qtbot, two_layer_preset):
+        widget = LayerListWidget()
+        qtbot.addWidget(widget)
+        widget.build(two_layer_preset.layers)
+
+        three_layers = list(two_layer_preset.layers) + [
+            VisualizationLayer(visualization_type="waveform", name="Wave")
+        ]
+        widget.apply(three_layers)
+        assert widget.layer_count() == 3
+
+    def test_apply_removes_rows_on_decrease(self, qtbot, two_layer_preset):
+        widget = LayerListWidget()
+        qtbot.addWidget(widget)
+        widget.build(two_layer_preset.layers)
+
+        one_layer = [two_layer_preset.layers[0]]
+        widget.apply(one_layer)
+        assert widget.layer_count() == 1
+
+    def test_apply_updates_values_in_place(self, qtbot, two_layer_preset):
+        widget = LayerListWidget()
+        qtbot.addWidget(widget)
+        widget.build(two_layer_preset.layers)
+
+        modified = [
+            two_layer_preset.layers[0].model_copy(update={"name": "Renamed"}),
+            two_layer_preset.layers[1],
+        ]
+        widget.apply(modified)
+        assert widget._rows[0]._name_edit.text() == "Renamed"

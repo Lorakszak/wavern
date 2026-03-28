@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from wavern.gui.change_scope import ChangeScope
 from wavern.core.audio_analyzer import AudioAnalyzer
 from wavern.core.audio_loader import AudioLoadError, AudioLoader
 from wavern.core.audio_player import AudioPlayer
@@ -47,6 +48,22 @@ from wavern.presets.schema import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Maps ChangeScope -> which panel groups to update on the other sidebar(s).
+# Export panels are never routed — they don't depend on preset state.
+_SCOPE_ROUTES: dict[ChangeScope, set[str]] = {
+    ChangeScope.LAYER_PARAM:        {"visual"},
+    ChangeScope.LAYER_COLORS:       {"visual"},
+    ChangeScope.LAYER_STRUCTURE:    {"visual", "preset"},
+    ChangeScope.BACKGROUND:         {"visual"},
+    ChangeScope.BACKGROUND_EFFECTS: {"visual"},
+    ChangeScope.GLOBAL_EFFECTS:     {"visual"},
+    ChangeScope.OVERLAY:            {"visual"},
+    ChangeScope.FADE:               {"visual"},
+    ChangeScope.TEXT:                {"text"},
+    ChangeScope.ANALYSIS:           {"analysis"},
+    ChangeScope.FULL:               {"visual", "text", "analysis", "preset"},
+}
 
 # Default preset to load on startup
 DEFAULT_PRESET = Preset(
@@ -543,27 +560,38 @@ class MainWindow(QMainWindow):
     def _on_preset_selected(self, preset: Preset) -> None:
         self._apply_preset(preset)
 
-    def _on_params_changed(self, preset: Preset) -> None:
-        """Handle params_changed from any panel — sync to GL and all other panels."""
+    def _on_params_changed(self, preset: Preset, scope: ChangeScope) -> None:
+        """Handle params_changed from any panel — route to relevant panels only."""
         sender = self.sender()
 
-        self._gl_widget.update_preset(preset)
+        # Renderer always gets the update
+        if scope in (ChangeScope.LAYER_STRUCTURE, ChangeScope.FULL):
+            self._gl_widget.set_preset(preset)
+        else:
+            self._gl_widget.update_preset(preset)
+
         self._sync_format_to_background(preset.background.type)
 
-        for panel in self._all_visual_panels():
-            if panel is not sender:
-                panel.update_values(preset)
+        targets = _SCOPE_ROUTES.get(scope, set())
 
-        for panel in self._all_text_panels():
-            if panel is not sender:
-                panel.update_values(preset)
+        if "visual" in targets:
+            for panel in self._all_visual_panels():
+                if panel is not sender:
+                    panel.apply(preset, scope)
 
-        for panel in self._all_analysis_panels():
-            if panel is not sender:
-                panel.update_values(preset)
+        if "text" in targets:
+            for panel in self._all_text_panels():
+                if panel is not sender:
+                    panel.update_values(preset)
 
-        for panel in self._all_preset_panels():
-            panel.set_current_preset(preset)
+        if "analysis" in targets:
+            for panel in self._all_analysis_panels():
+                if panel is not sender:
+                    panel.update_values(preset)
+
+        if "preset" in targets:
+            for panel in self._all_preset_panels():
+                panel.set_current_preset(preset)
 
         if not self._player.is_playing:
             self._gl_widget.render_single_frame()

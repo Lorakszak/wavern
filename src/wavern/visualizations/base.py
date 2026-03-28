@@ -90,6 +90,35 @@ class AbstractVisualization(ABC):
         """
         self.params = params
 
+    @property
+    def program(self) -> moderngl.Program | None:
+        """Return the compiled shader program, if any.
+
+        Subclasses should set self._prog during initialize().
+        Used by the renderer's shader cache.
+        """
+        return getattr(self, "_prog", None)
+
+    def initialize_with_program(self, program: moderngl.Program) -> None:
+        """Initialize using a pre-compiled shader program from cache.
+
+        Skips shader compilation. Subclasses that need additional GPU resources
+        beyond the main program should override and call super().
+        """
+        self._prog = program
+        self._create_geometry()
+
+    def _create_geometry(self) -> None:
+        """Create vertex buffers and arrays using self._prog.
+
+        Subclasses override this to create their specific geometry. Called
+        by both initialize() (after compiling shaders) and
+        initialize_with_program() (when using cached shaders).
+
+        Default is a no-op — visualizations opt in to cache support
+        by implementing this method.
+        """
+
     @abstractmethod
     def cleanup(self) -> None:
         """Release all GPU resources. Called before context destruction."""

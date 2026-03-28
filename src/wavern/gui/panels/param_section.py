@@ -224,6 +224,13 @@ class ParamSection(QWidget):
                 )
         self._rebuilding = False
 
+    def apply(self, viz_type: str, params: dict[str, Any]) -> None:
+        """Update params in-place if viz type unchanged, otherwise rebuild."""
+        if viz_type == self._current_viz_type and self._current_viz_type is not None:
+            self.update_values(params)
+        else:
+            self.build(viz_type, params)
+
     def _on_param_changed(self, name: str, value: Any) -> None:
         if self._rebuilding:
             return

@@ -1,6 +1,13 @@
-"""Video frame decoder with seeking, caching, and looping via PyAV."""
+"""Video frame decoder with seeking, caching, and looping via PyAV.
+
+Uses a persistent decode generator to maintain the codec's internal reorder
+buffer across calls.  Without this, codecs that use frame reordering (H.264,
+H.265, VP9, AV1, …) lose buffered frames when the generator is recreated,
+causing the last few frames before a loop/seek boundary to be inaccessible.
+"""
 
 import logging
+from collections.abc import Generator
 from pathlib import Path
 
 import av
@@ -27,6 +34,7 @@ class VideoSource:
         self._last_frame: NDArray[np.uint8] | None = None
         self._last_pts: int = -1
         self._time_base: float = 1.0
+        self._decode_gen: Generator[av.VideoFrame, None, None] | None = None
 
     def open(self) -> None:
         """Open the video file and read stream metadata."""
@@ -65,6 +73,7 @@ class VideoSource:
 
     def close(self) -> None:
         """Release the container and stream resources."""
+        self._decode_gen = None
         if self._container is not None:
             self._container.close()
             self._container = None
@@ -142,19 +151,32 @@ class VideoSource:
         if frames_ahead < 0 or frames_ahead > 30:
             # Seek to nearest keyframe before target
             self._container.seek(target_pts, stream=self._stream)
-            # Flush decoder buffers for clean playback after seek
-            # (critical for loop-point seeks to avoid stale frame lag)
             self._stream.codec_context.flush_buffers()
+            # Invalidate the persistent generator — demuxer position changed
+            self._decode_gen = None
 
-        # Decode forward to the target frame
+        # Ensure we have a persistent decode generator
+        if self._decode_gen is None:
+            self._decode_gen = self._container.decode(self._stream)
+        decode_gen = self._decode_gen
+        assert decode_gen is not None
+
+        # Decode forward to the target frame using the persistent generator.
+        # Keeping the same generator across calls preserves the codec's
+        # internal reorder buffer, so B-frame codecs properly yield all
+        # frames including those near stream boundaries.
         best_frame: av.VideoFrame | None = None
         try:
-            for frame in self._container.decode(self._stream):
+            for frame in decode_gen:
                 best_frame = frame
                 if frame.pts is not None and frame.pts >= target_pts:
                     break
+            else:
+                # Generator exhausted (EOF) without finding target —
+                # the decoder has been flushed and all frames yielded.
+                self._decode_gen = None
         except av.error.EOFError:  # type: ignore[reportAttributeAccessIssue]
-            pass
+            self._decode_gen = None
 
         if best_frame is not None:
             arr: NDArray[np.uint8] = best_frame.to_ndarray(format="rgba").astype(np.uint8)
@@ -175,7 +197,9 @@ class VideoSource:
 
     def reset(self) -> None:
         """Reset decoder to the beginning of the video."""
+        self._decode_gen = None
         if self._container is not None and self._stream is not None:
             self._container.seek(0, stream=self._stream)
+            self._stream.codec_context.flush_buffers()
         self._last_frame = None
         self._last_pts = -1

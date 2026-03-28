@@ -75,6 +75,7 @@ class PresetManager:
     def __init__(self, user_preset_dir: Path | None = None) -> None:
         self._user_dir = user_preset_dir or get_preset_directory()
         self._user_dir.mkdir(parents=True, exist_ok=True)
+        self._metadata_cache: list[dict[str, str]] | None = None
         logger.debug("Preset directories: user=%s", self._user_dir)
 
     @property
@@ -85,7 +86,11 @@ class PresetManager:
         """Get the path to the built-in defaults directory."""
         return Path(str(resources.files("wavern.presets") / "defaults"))
 
-    def list_presets(self) -> list[dict[str, str]]:
+    def _invalidate_cache(self) -> None:
+        """Clear the metadata cache so the next list call re-reads disk."""
+        self._metadata_cache = None
+
+    def _list_presets_uncached(self) -> list[dict[str, str]]:
         """Return list of available presets with name, source, and path."""
         presets: dict[str, dict[str, str]] = {}
 
@@ -112,9 +117,16 @@ class PresetManager:
         return list(presets.values())
 
     def list_presets_with_type(self) -> list[dict[str, str]]:
-        """Return preset metadata including visualization_type, without full validation."""
+        """Return preset metadata including visualization_type, with caching.
+
+        Results are cached after the first call. The cache is invalidated
+        by save(), delete(), and import_preset().
+        """
+        if self._metadata_cache is not None:
+            return self._metadata_cache
+
         result = []
-        for entry in self.list_presets():
+        for entry in self._list_presets_uncached():
             try:
                 raw = json.loads(Path(entry["path"]).read_text(encoding="utf-8"))
                 raw = _migrate_preset_data(raw)
@@ -123,7 +135,20 @@ class PresetManager:
             except Exception:
                 viz_type = ""
             result.append({**entry, "visualization_type": viz_type})
-        return result
+
+        self._metadata_cache = result
+        return self._metadata_cache
+
+    def list_presets(self) -> list[dict[str, str]]:
+        """Return list of available presets with name, source, and path.
+
+        Derives from the cached list_presets_with_type() result, stripping
+        the visualization_type field.
+        """
+        return [
+            {k: v for k, v in entry.items() if k != "visualization_type"}
+            for entry in self.list_presets_with_type()
+        ]
 
     def load(self, name: str) -> Preset:
         """Load a preset by name. User presets shadow built-ins.
@@ -168,6 +193,7 @@ class PresetManager:
 
     def save(self, preset: Preset) -> Path:
         """Save a preset to the user preset directory. Returns the file path."""
+        self._invalidate_cache()
         filename = _slugify(preset.name) + ".json"
         path = self._user_dir / filename
         path.write_text(
@@ -183,6 +209,7 @@ class PresetManager:
         Raises:
             PresetError: If preset not found or is a built-in.
         """
+        self._invalidate_cache()
         for f in self._user_dir.glob("*.json"):
             try:
                 data = json.loads(f.read_text(encoding="utf-8"))
@@ -206,6 +233,7 @@ class PresetManager:
 
     def import_preset(self, source_path: Path) -> Preset:
         """Import a preset from an arbitrary path into the user directory."""
+        self._invalidate_cache()
         preset = self.load_from_path(source_path)
         self.save(preset)
         return preset

@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from wavern.gui.change_scope import ChangeScope
 from wavern.gui.collapsible_section import CollapsibleSection
 from wavern.gui.drag_spinbox import DragSpinBox
 from wavern.presets.schema import Preset
@@ -20,45 +21,28 @@ logger = logging.getLogger(__name__)
 class AnalysisPanel(QWidget):
     """Audio analysis settings: FFT size, smoothing, beat sensitivity."""
 
-    params_changed = Signal(object)  # updated Preset
+    params_changed = Signal(object, object)  # (Preset, ChangeScope)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._preset: Preset | None = None
         self._rebuilding: bool = False
-        self._section_states: dict[str, bool] = {}
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self._content_layout = layout
 
-    def set_preset(self, preset: Preset) -> None:
-        """Rebuild the analysis panel for the given preset."""
-        self._preset = preset
-        self._rebuilding = True
-
-        self._save_section_states()
-
-        while self._content_layout.count():
-            item = self._content_layout.takeAt(0)
-            assert item is not None
-            w = item.widget()
-            if w is not None:
-                w.deleteLater()
-
         self._analysis_section = CollapsibleSection("Analysis")
-        self._build_analysis_section(preset)
+        self._build_analysis_section()
         self._content_layout.addWidget(self._analysis_section)
 
-        self._restore_section_states()
-        self._rebuilding = False
+    def set_preset(self, preset: Preset) -> None:
+        """Update the analysis panel for the given preset."""
+        self.update_values(preset)
 
     def update_values(self, preset: Preset) -> None:
         """Update widget values in-place without rebuilding."""
-        if not hasattr(self, "_fft_size_spin"):
-            self.set_preset(preset)
-            return
         self._preset = preset
         self._rebuilding = True
         for w in (self._fft_size_spin, self._smoothing_spin, self._beat_sens_spin):
@@ -70,15 +54,7 @@ class AnalysisPanel(QWidget):
             w.blockSignals(False)
         self._rebuilding = False
 
-    def _save_section_states(self) -> None:
-        if hasattr(self, "_analysis_section"):
-            self._section_states["Analysis"] = self._analysis_section.is_expanded()
-
-    def _restore_section_states(self) -> None:
-        if "Analysis" in self._section_states and hasattr(self, "_analysis_section"):
-            self._analysis_section.set_expanded(self._section_states["Analysis"])
-
-    def _build_analysis_section(self, preset: Preset) -> None:
+    def _build_analysis_section(self) -> None:
         """Build audio analysis settings."""
         analysis_content = QWidget()
         analysis_layout = QFormLayout(analysis_content)
@@ -96,7 +72,6 @@ class AnalysisPanel(QWidget):
                 "Must be power of 2. 2048=balanced, 4096=detailed, 8192=very detailed."
             ),
         )
-        self._fft_size_spin.setValue(preset.fft_size)
         self._fft_size_spin.valueChanged.connect(self._on_analysis_changed)
         analysis_layout.addRow("FFT Size:", self._fft_size_spin)
 
@@ -107,7 +82,6 @@ class AnalysisPanel(QWidget):
                 "0=raw, 0.3=moderate, 0.8=very smooth."
             ),
         )
-        self._smoothing_spin.setValue(preset.smoothing)
         self._smoothing_spin.valueChanged.connect(self._on_analysis_changed)
         analysis_layout.addRow("Smoothing:", self._smoothing_spin)
 
@@ -118,7 +92,6 @@ class AnalysisPanel(QWidget):
                 "higher=triggers on quiet transients. 1.0=default."
             ),
         )
-        self._beat_sens_spin.setValue(preset.beat_sensitivity)
         self._beat_sens_spin.valueChanged.connect(self._on_analysis_changed)
         analysis_layout.addRow("Beat Sensitivity:", self._beat_sens_spin)
 
@@ -144,4 +117,4 @@ class AnalysisPanel(QWidget):
 
     def _emit_update(self) -> None:
         if self._preset is not None:
-            self.params_changed.emit(self._preset)
+            self.params_changed.emit(self._preset, ChangeScope.ANALYSIS)

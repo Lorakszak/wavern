@@ -212,6 +212,9 @@ class Renderer:
         # Text overlay (created lazily)
         self._text_overlay: TextOverlay | None = None
 
+        # Shader program cache — keyed by viz type name, persists across preset switches
+        self._program_cache: dict[str, moderngl.Program] = {}
+
         # Preview-mode flags: when True, the layer is skipped during preview
         # but still rendered during export.
         self.skip_bg_preview: bool = False
@@ -836,7 +839,15 @@ class Renderer:
             try:
                 viz_class = registry.get(layer_cfg.visualization_type)
                 viz = viz_class(self.ctx, viz_params)
-                viz.initialize()
+
+                cached_program = self._program_cache.get(layer_cfg.visualization_type)
+                if cached_program is not None:
+                    viz.initialize_with_program(cached_program)
+                else:
+                    viz.initialize()
+                    if viz.program is not None:
+                        self._program_cache[layer_cfg.visualization_type] = viz.program
+
                 self._layers.append((layer_cfg, viz))
                 logger.info("Loaded layer: %s (%s)", viz_class.DISPLAY_NAME, viz_class.NAME)
             except Exception as e:

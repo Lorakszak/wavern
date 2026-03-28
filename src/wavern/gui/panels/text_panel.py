@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from wavern.gui.change_scope import ChangeScope
 from wavern.gui.no_scroll_combo import NoScrollComboBox
 
 from wavern.gui.collapsible_section import CollapsibleSection
@@ -28,45 +29,28 @@ logger = logging.getLogger(__name__)
 class TextPanel(QWidget):
     """Text overlay settings: title, countdown, position, font, outline, shadow."""
 
-    params_changed = Signal(object)  # updated Preset
+    params_changed = Signal(object, object)  # (Preset, ChangeScope)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._preset: Preset | None = None
         self._rebuilding: bool = False
-        self._section_states: dict[str, bool] = {}
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self._content_layout = layout
 
-    def set_preset(self, preset: Preset) -> None:
-        """Rebuild the text overlay panel for the given preset."""
-        self._preset = preset
-        self._rebuilding = True
-
-        self._save_section_states()
-
-        while self._content_layout.count():
-            item = self._content_layout.takeAt(0)
-            assert item is not None
-            w = item.widget()
-            if w is not None:
-                w.deleteLater()
-
         self._overlay_section = CollapsibleSection("Overlay")
-        self._build_overlay_section(preset)
+        self._build_overlay_section()
         self._content_layout.addWidget(self._overlay_section)
 
-        self._restore_section_states()
-        self._rebuilding = False
+    def set_preset(self, preset: Preset) -> None:
+        """Update the text overlay panel for the given preset."""
+        self.update_values(preset)
 
     def update_values(self, preset: Preset) -> None:
         """Update widget values in-place without rebuilding."""
-        if not hasattr(self, "_overlay_title_cb"):
-            self.set_preset(preset)
-            return
         self._preset = preset
         self._rebuilding = True
         cfg = preset.overlay
@@ -132,21 +116,13 @@ class TextPanel(QWidget):
             w.blockSignals(False)
         self._rebuilding = False
 
-    def _save_section_states(self) -> None:
-        if hasattr(self, "_overlay_section"):
-            self._section_states["Overlay"] = self._overlay_section.is_expanded()
-
-    def _restore_section_states(self) -> None:
-        if "Overlay" in self._section_states and hasattr(self, "_overlay_section"):
-            self._overlay_section.set_expanded(self._section_states["Overlay"])
-
-    def _build_overlay_section(self, preset: Preset) -> None:
+    def _build_overlay_section(self) -> None:
         """Build text overlay controls (title, countdown, position, font)."""
         content = QWidget()
         layout = QFormLayout(content)
         layout.setContentsMargins(4, 0, 4, 0)
 
-        cfg = preset.overlay
+        cfg = OverlayConfig()
 
         # --- Reset All ---
         reset_btn = QPushButton("Reset All")
@@ -427,4 +403,4 @@ class TextPanel(QWidget):
 
     def _emit_update(self) -> None:
         if self._preset is not None:
-            self.params_changed.emit(self._preset)
+            self.params_changed.emit(self._preset, ChangeScope.TEXT)
