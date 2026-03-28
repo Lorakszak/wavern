@@ -41,13 +41,25 @@ class GlobalEffectsSection(QWidget):
         super().__init__(parent)
         self._preset: Preset | None = None
         self._rebuilding: bool = False
+        self._layout = QVBoxLayout(self)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._built: bool = False
 
     def build(self, preset: Preset) -> None:
         """Build the global effects UI for the given preset."""
         self._preset = preset
         self._rebuilding = True
 
-        layout = QVBoxLayout(self)
+        # Clear existing content from the wrapper layout
+        while self._layout.count():
+            item = self._layout.takeAt(0)
+            assert item is not None
+            w = item.widget()
+            if w is not None:
+                w.deleteLater()
+
+        content = QWidget()
+        layout = QVBoxLayout(content)
         layout.setContentsMargins(4, 0, 4, 0)
 
         effects = preset.global_effects
@@ -87,6 +99,8 @@ class GlobalEffectsSection(QWidget):
         # Color Shift
         self._build_color_shift(layout, effects.color_shift)
 
+        self._layout.addWidget(content)
+        self._built = True
         self._rebuilding = False
 
     def _build_vignette(self, layout: QVBoxLayout, effect: VignetteEffect) -> None:
@@ -831,6 +845,13 @@ class GlobalEffectsSection(QWidget):
         )
 
         self._rebuilding = False
+
+    def apply(self, preset: Preset) -> None:
+        """Apply preset -- always in-place since structure is static."""
+        if not self._built:
+            self.build(preset)
+        else:
+            self.update_values(preset)
 
     def _sync_effect_widgets(
         self,

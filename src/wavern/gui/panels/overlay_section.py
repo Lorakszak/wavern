@@ -220,6 +220,13 @@ class OverlaySection(QWidget):
         self._overlay_mirror_y.blockSignals(False)
         self._rebuilding = False
 
+    def apply(self, preset: Preset) -> None:
+        """Apply preset -- always in-place since structure is static."""
+        if not hasattr(self, "_overlay_enabled"):
+            self.build(preset)
+        else:
+            self.update_values(preset.video_overlay, preset)
+
     def _on_overlay_changed(self) -> None:
         if self._preset is None or self._rebuilding:
             return

@@ -44,6 +44,7 @@ class BackgroundSection(QWidget):
         self._rebuilding: bool = False
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
+        self._current_bg_type: str | None = None
 
     # -- Public API --
 
@@ -92,6 +93,7 @@ class BackgroundSection(QWidget):
         self._rebuild_bg_type_widgets(preset.background)
 
         self._layout.addWidget(bg_content)
+        self._current_bg_type = preset.background.type
         self._rebuilding = False
 
     def update_values(self, bg: BackgroundConfig, preset: Preset | None = None) -> None:
@@ -219,6 +221,13 @@ class BackgroundSection(QWidget):
             if audio_sens_wrapper is not None:
                 audio_sens_wrapper.setVisible(effect.audio.enabled)
         self._rebuilding = False
+
+    def apply(self, preset: Preset) -> None:
+        """Update in-place if bg type unchanged, otherwise rebuild."""
+        if preset.background.type == self._current_bg_type and self._current_bg_type is not None:
+            self.update_values(preset.background, preset)
+        else:
+            self.build(preset)
 
     # -- Internal: rebuild type-specific widgets --
 

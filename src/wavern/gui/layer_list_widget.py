@@ -142,6 +142,28 @@ class _LayerRow(QWidget):
         ]:
             child.installEventFilter(self)
 
+    def update_values(self, layer: VisualizationLayer, data_index: int) -> None:
+        """Update row widgets in-place without recreating."""
+        self._data_index = data_index
+        self._rebuilding = True
+
+        self._eye_btn.setChecked(layer.visible)
+        self._update_eye_style()
+
+        self._name_edit.blockSignals(True)
+        self._name_edit.setText(layer.name or layer.visualization_type)
+        self._name_edit.blockSignals(False)
+
+        self._blend_combo.blockSignals(True)
+        self._set_blend(layer.blend_mode)
+        self._blend_combo.blockSignals(False)
+
+        self._opacity_spin.blockSignals(True)
+        self._opacity_spin.setValue(round(layer.opacity * 100))
+        self._opacity_spin.blockSignals(False)
+
+        self._rebuilding = False
+
     # -- Public helpers --
 
     def set_data_index(self, index: int) -> None:
@@ -285,6 +307,32 @@ class LayerListWidget(QWidget):
         self._clear_rows()
         for i, layer in enumerate(self._layers):
             self._append_row(layer, i)
+        self._refresh_controls()
+
+    def apply(self, layers: list[VisualizationLayer]) -> None:
+        """Update layer list with minimal widget churn.
+
+        Reuses existing rows, adds new ones if count increased,
+        removes excess if decreased.
+        """
+        self._layers = list(layers)
+        old_count = len(self._rows)
+        new_count = len(layers)
+
+        # Update existing rows in-place
+        for i in range(min(old_count, new_count)):
+            self._rows[i].update_values(layers[i], i)
+
+        # Add new rows if layer count increased
+        for i in range(old_count, new_count):
+            self._append_row(layers[i], i)
+
+        # Remove excess rows if layer count decreased
+        while len(self._rows) > new_count:
+            row = self._rows.pop()
+            self._rows_layout.removeWidget(row)
+            row.deleteLater()
+
         self._refresh_controls()
 
     def add_layer(self) -> None:

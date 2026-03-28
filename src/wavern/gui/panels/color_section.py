@@ -163,6 +163,35 @@ class ColorSection(QWidget):
         self.colors_changed.emit()
 
 
+    def _update_color_values(self, preset: Preset, layer_index: int) -> None:
+        """Update color button styles without recreating widgets."""
+        self._preset = preset
+        self._layer_index = layer_index
+        palette = preset.layers[layer_index].colors
+        for i, btn in enumerate(self._color_buttons):
+            if i < len(palette):
+                btn.setStyleSheet(
+                    f"background-color: {palette[i]}; border: 1px solid #555;"
+                )
+                # Update the label in the same row
+                row_widget = btn.parent()
+                if row_widget is not None:
+                    for child in row_widget.findChildren(QLabel):
+                        child.setText(palette[i])
+
+    def apply(self, preset: Preset, layer_index: int) -> None:
+        """Update in-place if same layer and same color count, otherwise rebuild."""
+        colors = preset.layers[layer_index].colors
+        if (
+            layer_index == self._layer_index
+            and len(colors) == len(self._color_buttons)
+            and self._color_buttons
+        ):
+            self._update_color_values(preset, layer_index)
+        else:
+            self.build_for_layer(preset, layer_index)
+
+
 def _clear_layout(layout: QVBoxLayout | QHBoxLayout) -> None:
     """Recursively remove all items from a layout and delete their widgets."""
     while layout.count():
