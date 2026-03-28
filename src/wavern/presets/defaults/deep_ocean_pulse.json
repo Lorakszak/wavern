@@ -13,11 +13,13 @@
   "background": {
     "type": "solid",
     "color": "#000a15",
-    "movement": {
-      "type": "wave",
-      "speed": 0.6,
-      "intensity": 0.3,
-      "angle": 180.0
+    "movements": {
+      "wave": {
+        "enabled": true,
+        "speed": 0.6,
+        "intensity": 0.3,
+        "angle": 180.0
+      }
     }
   },
   "fft_size": 8192,

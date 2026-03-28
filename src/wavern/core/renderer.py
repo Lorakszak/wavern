@@ -19,6 +19,7 @@ from wavern.presets.schema import (
     BackgroundEffect,
     BackgroundEffects,
     BackgroundMovement,
+    BackgroundMovements,
     BlendMode,
     ColorStop,
     GlobalEffects,
@@ -149,16 +150,6 @@ class Renderer:
     This class is the single rendering path used by BOTH the real-time GUI preview
     and the offline video export. The only difference is the target FBO.
     """
-
-    # Movement type name → integer mapping for the shader uniform
-    _MOVEMENT_TYPE_MAP: dict[str, int] = {
-        "none": 0,
-        "drift": 1,
-        "shake": 2,
-        "wave": 3,
-        "zoom_pulse": 4,
-        "breathe": 5,
-    }
 
     def __init__(self, ctx: moderngl.Context) -> None:
         self.ctx = ctx
@@ -449,25 +440,37 @@ class Renderer:
             self._release_bg_texture()
             self._close_video_source()
 
-    def _set_bg_movement_uniforms(self, movement: BackgroundMovement, frame: FrameAnalysis) -> None:
-        """Upload movement uniforms to the background shader program."""
+    def _set_bg_movement_uniforms(
+        self, movements: BackgroundMovements, frame: FrameAnalysis,
+    ) -> None:
+        """Upload per-movement uniforms to the background shader program."""
         prog = self._bg_program
         if prog is None:
             return
-        mv_type = self._MOVEMENT_TYPE_MAP.get(movement.type, 0)
-        intensity = _resolve_movement_intensity(movement, frame)
+
         if "u_time" in prog:
             prog["u_time"].value = frame.timestamp  # type: ignore[reportAttributeAccessIssue]
-        if "u_movement_type" in prog:
-            prog["u_movement_type"].value = mv_type  # type: ignore[reportAttributeAccessIssue]
-        if "u_movement_speed" in prog:
-            prog["u_movement_speed"].value = movement.speed  # type: ignore[reportAttributeAccessIssue]
-        if "u_movement_intensity" in prog:
-            prog["u_movement_intensity"].value = intensity  # type: ignore[reportAttributeAccessIssue]
-        if "u_movement_angle" in prog:
-            prog["u_movement_angle"].value = math.radians(movement.angle)  # type: ignore[reportAttributeAccessIssue]
-        if "u_clamp_to_frame" in prog:
-            prog["u_clamp_to_frame"].value = int(movement.clamp_to_frame)  # type: ignore[reportAttributeAccessIssue]
+
+        movement_names = ("drift", "shake", "wave", "zoom_pulse", "breathe")
+        for name in movement_names:
+            mv: BackgroundMovement = getattr(movements, name)
+            intensity = _resolve_movement_intensity(mv, frame)
+            prefix = f"u_{name}"
+
+            if f"{prefix}_enabled" in prog:
+                prog[f"{prefix}_enabled"].value = int(mv.enabled)  # type: ignore[reportAttributeAccessIssue]
+            if f"{prefix}_speed" in prog:
+                prog[f"{prefix}_speed"].value = mv.speed  # type: ignore[reportAttributeAccessIssue]
+            if f"{prefix}_intensity" in prog:
+                prog[f"{prefix}_intensity"].value = intensity  # type: ignore[reportAttributeAccessIssue]
+
+            # Drift-specific: angle
+            if name == "drift" and f"{prefix}_angle" in prog:
+                prog[f"{prefix}_angle"].value = math.radians(mv.angle)  # type: ignore[reportAttributeAccessIssue]
+
+            # Clamp (not applicable to drift)
+            if name != "drift" and f"{prefix}_clamp" in prog:
+                prog[f"{prefix}_clamp"].value = int(mv.clamp_to_frame)  # type: ignore[reportAttributeAccessIssue]
 
     def _set_bg_effects_uniforms(
         self,
@@ -658,7 +661,7 @@ class Renderer:
 
         if self._preset is not None:
             bg = self._preset.background
-            self._set_bg_movement_uniforms(bg.movement, frame)
+            self._set_bg_movement_uniforms(bg.movements, frame)
 
             if "u_rotation" in self._bg_program:  # type: ignore[reportOperatorIssue]
                 self._bg_program["u_rotation"].value = math.radians(bg.rotation)  # type: ignore[reportAttributeAccessIssue]
@@ -667,7 +670,7 @@ class Renderer:
             if "u_mirror_y" in self._bg_program:  # type: ignore[reportOperatorIssue]
                 self._bg_program["u_mirror_y"].value = int(bg.mirror_y)  # type: ignore[reportAttributeAccessIssue]
 
-            if bg.movement.type == "drift" and self._bg_texture is not None:
+            if bg.movements.drift.enabled and self._bg_texture is not None:
                 self._bg_texture.repeat_x = True
                 self._bg_texture.repeat_y = True
 

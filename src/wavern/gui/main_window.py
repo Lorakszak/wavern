@@ -39,6 +39,7 @@ from wavern.presets.schema import (
     AudioReactiveConfig,
     BackgroundConfig,
     BackgroundMovement,
+    BackgroundMovements,
     BlendMode,
     ColorStop,
     GlobalEffects,
@@ -103,12 +104,14 @@ DEFAULT_PRESET = Preset(
             ColorStop(position=0.0, color="#0D0221"),
             ColorStop(position=1.0, color="#0A1628"),
         ],
-        movement=BackgroundMovement(
-            type="shake",
-            speed=1.0,
-            intensity=0.3,
-            clamp_to_frame=True,
-            audio=AudioReactiveConfig(enabled=True, source="bass", sensitivity=1.5),
+        movements=BackgroundMovements(
+            shake=BackgroundMovement(
+                enabled=True,
+                speed=1.0,
+                intensity=0.3,
+                clamp_to_frame=True,
+                audio=AudioReactiveConfig(enabled=True, source="bass", sensitivity=1.5),
+            ),
         ),
     ),
     global_effects=GlobalEffects(

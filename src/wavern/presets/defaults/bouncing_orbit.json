@@ -13,11 +13,13 @@
   "background": {
     "type": "solid",
     "color": "#000a08",
-    "movement": {
-      "type": "zoom_pulse",
-      "speed": 1.2,
-      "intensity": 0.4,
-      "angle": 0.0
+    "movements": {
+      "zoom_pulse": {
+        "enabled": true,
+        "speed": 1.2,
+        "intensity": 0.4,
+        "angle": 0.0
+      }
     }
   },
   "fft_size": 4096,

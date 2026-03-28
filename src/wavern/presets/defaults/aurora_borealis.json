@@ -13,11 +13,13 @@
   "background": {
     "type": "solid",
     "color": "#000508",
-    "movement": {
-      "type": "drift",
-      "speed": 0.3,
-      "intensity": 0.2,
-      "angle": 90.0
+    "movements": {
+      "drift": {
+        "enabled": true,
+        "speed": 0.3,
+        "intensity": 0.2,
+        "angle": 90.0
+      }
     }
   },
   "fft_size": 8192,

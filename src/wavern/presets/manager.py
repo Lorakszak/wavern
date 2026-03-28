@@ -41,6 +41,16 @@ def _migrate_preset_data(raw_data: dict[str, Any]) -> dict[str, Any]:
                 override = layer.pop("color_override", None)
                 layer["colors"] = override if override else palette
 
+    # Migrate single-movement to multi-movement format
+    bg = raw_data.get("background")
+    if isinstance(bg, dict) and "movement" in bg and "movements" not in bg:
+        old_mv = bg.pop("movement")
+        mv_type = old_mv.get("type", "none")
+        if mv_type != "none":
+            new_mv = {k: v for k, v in old_mv.items() if k != "type"}
+            new_mv["enabled"] = True
+            bg["movements"] = {mv_type: new_mv}
+
     return raw_data
 
 
