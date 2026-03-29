@@ -39,8 +39,8 @@
         "graticule_intensity": 0.15,
         "graticule_divisions": 10,
         "bezel": false,
-        "offset_x": 0.0,
-        "offset_y": 0.0,
+        "position_x": 0.5,
+        "position_y": 0.5,
         "scale": 1.0,
         "rotation": 0.0
       },

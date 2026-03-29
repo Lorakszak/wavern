@@ -10,7 +10,7 @@ uniform float u_time;
 uniform int u_filled;
 uniform float u_glow_intensity;
 uniform float u_wave_range;
-uniform vec2 u_offset;
+uniform vec2 u_position;
 uniform float u_scale;
 uniform float u_rotation;
 
@@ -24,9 +24,8 @@ float get_sample(float x) {
 void main() {
     vec2 uv = v_texcoord;
 
-    // Apply transform (offset in screen space, before scale)
-    uv -= 0.5;
-    uv -= u_offset;
+    // Inverse of rotate -> scale -> translate
+    uv -= u_position;
     uv /= max(u_scale, 0.001);
     float c = cos(u_rotation), s = sin(u_rotation);
     uv = mat2(c, s, -s, c) * uv;

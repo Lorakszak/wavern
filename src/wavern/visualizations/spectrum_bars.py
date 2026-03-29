@@ -128,15 +128,15 @@ class SpectrumBarsVisualization(AbstractVisualization):
             "label": "Intensity",
             "description": "Brightness multiplier for bar colors.",
         },
-        "offset_x": {
-            "type": "float", "default": 0.0, "min": -1.0, "max": 1.0,
-            "label": "Offset X",
-            "description": "Horizontal position offset.",
+        "position_x": {
+            "type": "float", "default": 0.5, "min": -0.25, "max": 1.25,
+            "label": "Position X",
+            "description": "Horizontal position (0.0 = left edge, 1.0 = right edge).",
         },
-        "offset_y": {
-            "type": "float", "default": 0.0, "min": -1.0, "max": 1.0,
-            "label": "Offset Y",
-            "description": "Vertical position offset.",
+        "position_y": {
+            "type": "float", "default": 0.5, "min": -0.25, "max": 1.25,
+            "label": "Position Y",
+            "description": "Vertical position (0.0 = bottom edge, 1.0 = top edge).",
         },
         "scale": {
             "type": "float", "default": 1.0, "min": 0.1, "max": 3.0,
@@ -286,7 +286,7 @@ class SpectrumBarsVisualization(AbstractVisualization):
         self._set_uniform(prog, "u_mirror_half",
                           0 if self.get_param("mirror_half", "left") == "left" else 1)
 
-        self._set_uniform(prog, "u_offset", (self.get_param("offset_x", 0.0), self.get_param("offset_y", 0.0)))
+        self._set_uniform(prog, "u_position", (self.get_param("position_x", 0.5), self.get_param("position_y", 0.5)))
         self._set_uniform(prog, "u_scale", self.get_param("scale", 1.0))
         self._set_uniform(prog, "u_rotation", math.radians(self.get_param("rotation", 0.0)))
 

@@ -19,7 +19,7 @@ uniform vec3 u_colors[8];
 uniform int u_color_count;
 
 uniform vec2 u_resolution;
-uniform vec2 u_offset;
+uniform vec2 u_position;
 uniform float u_viz_scale;
 
 in vec2 v_texcoord;
@@ -114,8 +114,8 @@ float sample_history(float sx, float sy, float ring_newest, float ring_oldest) {
 }
 
 void main() {
-    // Viewport transform (offset + scale around center)
-    vec2 uv = (v_texcoord - 0.5) / u_viz_scale + 0.5 - u_offset;
+    // Viewport transform (scale around position)
+    vec2 uv = (v_texcoord - u_position) / u_viz_scale + 0.5;
     if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
         fragColor = vec4(0.0);
         return;

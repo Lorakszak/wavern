@@ -11,7 +11,7 @@ uniform int u_color_count;
 uniform int u_color_mode;
 uniform int u_height_reference;    // 0=per_bar, 1=universal
 uniform float u_intensity;
-uniform vec2 u_offset;
+uniform vec2 u_position;
 uniform float u_scale;
 uniform float u_rotation;
 uniform float u_bar_roundness;
@@ -131,9 +131,8 @@ vec4 compute_bar(vec2 uv, float size_scale) {
 void main() {
     vec2 uv = v_texcoord;
 
-    // Apply transform (offset in screen space, before scale)
-    uv -= 0.5;
-    uv -= u_offset;
+    // Inverse of rotate -> scale -> translate
+    uv -= u_position;
     uv /= max(u_scale, 0.001);
     float c = cos(u_rotation), s = sin(u_rotation);
     uv = mat2(c, s, -s, c) * uv;

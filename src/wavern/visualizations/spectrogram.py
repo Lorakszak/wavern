@@ -145,15 +145,15 @@ class SpectrogramVisualization(AbstractVisualization):
             "label": "Bar Separation",
             "description": "Draw thin dark lines between frequency bins, making each bin a discrete bar.",
         },
-        "offset_x": {
-            "type": "float", "default": 0.0, "min": -0.5, "max": 0.5,
-            "label": "Offset X",
-            "description": "Horizontal position offset.",
+        "position_x": {
+            "type": "float", "default": 0.5, "min": -0.25, "max": 1.25,
+            "label": "Position X",
+            "description": "Horizontal position (0.0 = left edge, 1.0 = right edge).",
         },
-        "offset_y": {
-            "type": "float", "default": 0.0, "min": -0.5, "max": 0.5,
-            "label": "Offset Y",
-            "description": "Vertical position offset.",
+        "position_y": {
+            "type": "float", "default": 0.5, "min": -0.25, "max": 1.25,
+            "label": "Position Y",
+            "description": "Vertical position (0.0 = bottom edge, 1.0 = top edge).",
         },
         "scale": {
             "type": "float", "default": 1.0, "min": 0.5, "max": 2.0,
@@ -295,9 +295,9 @@ class SpectrogramVisualization(AbstractVisualization):
                           1 if self.get_param("bar_separation", False) else 0)
 
         self._set_uniform(prog, "u_resolution", resolution)
-        self._set_uniform(prog, "u_offset", (
-            self.get_param("offset_x", 0.0),
-            self.get_param("offset_y", 0.0),
+        self._set_uniform(prog, "u_position", (
+            self.get_param("position_x", 0.5),
+            self.get_param("position_y", 0.5),
         ))
         self._set_uniform(prog, "u_viz_scale", self.get_param("scale", 1.0))
 
