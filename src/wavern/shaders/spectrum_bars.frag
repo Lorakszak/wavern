@@ -42,7 +42,17 @@ vec3 get_bar_color(float t) {
 // Returns vec4(color, alpha) for a bar at the given uv.
 // size_scale stretches bar dimensions (used for shadow sizing).
 vec4 compute_bar(vec2 uv, float size_scale) {
-    if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+    // Y bounds scale with size_scale so enlarged shadows aren't clipped.
+    // Mirror mode extends symmetrically from y=0.5, so both bounds must scale.
+    float y_min, y_max;
+    if (u_mirror == 1) {
+        y_min = 0.5 - size_scale * 0.5;
+        y_max = 0.5 + size_scale * 0.5;
+    } else {
+        y_min = 0.0;
+        y_max = size_scale;
+    }
+    if (uv.x < 0.0 || uv.x > 1.0 || uv.y < y_min || uv.y > y_max) {
         return vec4(0.0);
     }
 
