@@ -389,8 +389,8 @@ class LayerListWidget(QWidget):
             raise IndexError(f"Layer index {index} out of range [0, {len(self._layers)})")
 
         original = self._layers[index]
-        cloned_name = f"cloned_{original.name}"
-        cloned = original.model_copy(update={"name": cloned_name})
+        cloned_name = f"cloned_{original.name or original.visualization_type}"
+        cloned = original.model_copy(deep=True, update={"name": cloned_name})
         new_index = index + 1
         self._layers.insert(new_index, cloned)
 

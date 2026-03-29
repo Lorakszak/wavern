@@ -228,6 +228,35 @@ class TestCloneLayer:
         widget.clone_layer(0)
         assert widget.selected_index() == 1
 
+    def test_clone_name_falls_back_to_viz_type(self, qtbot):
+        """When layer has no name, clone uses visualization_type."""
+        layer = VisualizationLayer(visualization_type="particles", name="")
+        preset = Preset(name="Test", layers=[layer])
+        widget = LayerListWidget()
+        qtbot.addWidget(widget)
+        widget.build(preset.layers)
+
+        widget.clone_layer(0)
+        assert widget._layers[1].name == "cloned_particles"
+
+    def test_clone_params_independent(self, qtbot):
+        """Mutating cloned layer params must not affect the original."""
+        original = VisualizationLayer(
+            visualization_type="spectrum_bars",
+            name="Src",
+            params={"bar_count": 64},
+        )
+        preset = Preset(name="Test", layers=[original])
+        widget = LayerListWidget()
+        qtbot.addWidget(widget)
+        widget.build(preset.layers)
+
+        widget.clone_layer(0)
+        clone = widget._layers[1]
+        clone.params["bar_count"] = 128
+
+        assert widget._layers[0].params["bar_count"] == 64
+
     def test_clone_blocked_at_max_layers(self, qtbot):
         """Cloning does nothing when already at 7 layers."""
         layers = [
