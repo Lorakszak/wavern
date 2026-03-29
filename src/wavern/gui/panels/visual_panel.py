@@ -312,6 +312,8 @@ class VisualPanel(QWidget):
         cloned_layer = self._layer_list._layers[new_index]
         self._preset.layers.insert(new_index, cloned_layer)
         self._selected_layer_index = new_index
+        self._apply_viz_and_params(self._preset)
+        self._color_section_widget.apply(self._preset, new_index)
         self._emit_update(ChangeScope.LAYER_STRUCTURE)
 
     def _on_layer_order_changed(self, from_index: int, to_index: int) -> None:
