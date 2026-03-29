@@ -58,7 +58,7 @@ src/wavern/
     ffmpeg_cmd.py      — build_ffmpeg_cmd() pure function
     gif_export.py      — two-pass GIF pipeline
     codecs.py, hwaccel.py
-  visualizations/ — base ABC + image_mixin + 9 built-in types + registry
+  visualizations/ — base ABC + image_mixin + 11 built-in types + registry
   presets/        — pydantic schema + manager + defaults/*.json
   shaders/        — GLSL 3.3 core (.vert/.frag), including composite.vert/.frag for layer blending
   gui/            — PySide6 widgets

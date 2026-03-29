@@ -10,6 +10,7 @@ WHAT THIS TESTS:
 - Visibility toggle emits layer_property_changed
 - Move layer swaps and emits layer_order_changed
 - Move button enable/disable at boundaries
+- Clone layer duplicates with correct name, params, and insertion position
 Does NOT test: drag reorder (requires mouse simulation), rendering
 """
 
@@ -162,6 +163,84 @@ class TestLayerListWidget:
         widget.build(two_layer_preset.layers)
         widget.move_layer(0, 0)
         assert widget._layers[0].name == "Bars"
+
+
+class TestCloneLayer:
+    def test_clone_layer_emits_signal(self, qtbot, two_layer_preset):
+        widget = LayerListWidget()
+        qtbot.addWidget(widget)
+        widget.build(two_layer_preset.layers)
+
+        with qtbot.waitSignal(widget.layer_cloned, timeout=1000) as sig:
+            widget.clone_layer(0)
+        assert sig.args[0] == 1  # inserted right after index 0
+
+    def test_clone_layer_name(self, qtbot, two_layer_preset):
+        """Cloned layer is named cloned_<original_name>."""
+        widget = LayerListWidget()
+        qtbot.addWidget(widget)
+        widget.build(two_layer_preset.layers)
+
+        widget.clone_layer(0)
+        assert widget._layers[1].name == "cloned_Bars"
+
+    def test_clone_preserves_params(self, qtbot):
+        """Cloned layer keeps visualization_type, params, colors, blend, opacity."""
+        original = VisualizationLayer(
+            visualization_type="particles",
+            name="Src",
+            params={"count": 500, "speed": 1.5},
+            colors=["#FF0000", "#00FF00"],
+            blend_mode=BlendMode.SCREEN,
+            opacity=0.6,
+        )
+        preset = Preset(name="Test", layers=[original])
+        widget = LayerListWidget()
+        qtbot.addWidget(widget)
+        widget.build(preset.layers)
+
+        widget.clone_layer(0)
+        clone = widget._layers[1]
+        assert clone.visualization_type == "particles"
+        assert clone.params == {"count": 500, "speed": 1.5}
+        assert clone.colors == ["#FF0000", "#00FF00"]
+        assert clone.blend_mode == BlendMode.SCREEN
+        assert clone.opacity == 0.6
+        assert clone.name == "cloned_Src"
+
+    def test_clone_inserts_after_original(self, qtbot, two_layer_preset):
+        """Clone is inserted at index+1, not appended to end."""
+        widget = LayerListWidget()
+        qtbot.addWidget(widget)
+        widget.build(two_layer_preset.layers)
+
+        widget.clone_layer(0)
+        assert widget.layer_count() == 3
+        assert widget._layers[0].name == "Bars"
+        assert widget._layers[1].name == "cloned_Bars"
+        assert widget._layers[2].name == "Particles"
+
+    def test_clone_selects_new_layer(self, qtbot, two_layer_preset):
+        widget = LayerListWidget()
+        qtbot.addWidget(widget)
+        widget.build(two_layer_preset.layers)
+
+        widget.clone_layer(0)
+        assert widget.selected_index() == 1
+
+    def test_clone_blocked_at_max_layers(self, qtbot):
+        """Cloning does nothing when already at 7 layers."""
+        layers = [
+            VisualizationLayer(visualization_type="spectrum_bars", name=f"L{i}")
+            for i in range(7)
+        ]
+        preset = Preset(name="Max", layers=layers)
+        widget = LayerListWidget()
+        qtbot.addWidget(widget)
+        widget.build(preset.layers)
+
+        widget.clone_layer(0)
+        assert widget.layer_count() == 7  # unchanged
 
 
 class TestLayerListApply:

@@ -56,6 +56,7 @@ class VisualPanel(QWidget):
         self._layer_list.layer_property_changed.connect(self._on_layer_property_changed)
         self._layer_list.layer_added.connect(self._on_layer_added)
         self._layer_list.layer_removed.connect(self._on_layer_removed)
+        self._layer_list.layer_cloned.connect(self._on_layer_cloned)
         self._layer_list.layer_order_changed.connect(self._on_layer_order_changed)
         self._content_layout.addWidget(self._layer_list)
 
@@ -294,6 +295,23 @@ class VisualPanel(QWidget):
         self._preset.layers.pop(index)
         if self._selected_layer_index >= len(self._preset.layers):
             self._selected_layer_index = len(self._preset.layers) - 1
+        self._emit_update(ChangeScope.LAYER_STRUCTURE)
+
+    def _on_layer_cloned(self, new_index: int) -> None:
+        """Handle a layer-cloned event from LayerListWidget.
+
+        The widget already inserted the cloned VisualizationLayer into its
+        internal list. Mirror that insertion into the preset's layer list.
+
+        Args:
+            new_index: Data-model index of the newly created clone.
+        """
+        if self._preset is None or self._rebuilding:
+            return
+        # The widget's internal _layers already has the clone at new_index.
+        cloned_layer = self._layer_list._layers[new_index]
+        self._preset.layers.insert(new_index, cloned_layer)
+        self._selected_layer_index = new_index
         self._emit_update(ChangeScope.LAYER_STRUCTURE)
 
     def _on_layer_order_changed(self, from_index: int, to_index: int) -> None:

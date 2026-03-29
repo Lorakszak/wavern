@@ -50,6 +50,7 @@ class _LayerRow(QWidget):
     name_changed = Signal(int, str)  # data_index, new_name
     blend_changed = Signal(int, str)  # data_index, blend_mode value
     opacity_changed = Signal(int, float)  # data_index, opacity 0.0–1.0
+    clone_clicked = Signal(int)  # data_index
     delete_clicked = Signal(int)  # data_index
     move_up_clicked = Signal(int)  # data_index
     move_down_clicked = Signal(int)  # data_index
@@ -121,6 +122,14 @@ class _LayerRow(QWidget):
         self._down_btn.clicked.connect(self._on_move_down)
         layout.addWidget(self._down_btn)
 
+        # Clone button
+        self._clone_btn = QPushButton("\u2398")
+        self._clone_btn.setObjectName("ColorControlBtn")
+        self._clone_btn.setFixedSize(24, 24)
+        self._clone_btn.setToolTip("Clone layer")
+        self._clone_btn.clicked.connect(self._on_clone_clicked)
+        layout.addWidget(self._clone_btn)
+
         # Delete button
         self._delete_btn = QPushButton("x")
         self._delete_btn.setObjectName("ColorControlBtn")
@@ -138,6 +147,7 @@ class _LayerRow(QWidget):
             self._opacity_spin,
             self._up_btn,
             self._down_btn,
+            self._clone_btn,
             self._delete_btn,
         ]:
             child.installEventFilter(self)
@@ -169,6 +179,10 @@ class _LayerRow(QWidget):
     def set_data_index(self, index: int) -> None:
         """Update which data-model index this row represents."""
         self._data_index = index
+
+    def set_clone_enabled(self, enabled: bool) -> None:
+        """Enable or disable the clone button."""
+        self._clone_btn.setEnabled(enabled)
 
     def set_delete_enabled(self, enabled: bool) -> None:
         """Enable or disable the delete button."""
@@ -240,6 +254,9 @@ class _LayerRow(QWidget):
     def _on_move_up(self) -> None:
         self.move_up_clicked.emit(self._data_index)
 
+    def _on_clone_clicked(self) -> None:
+        self.clone_clicked.emit(self._data_index)
+
     def _on_move_down(self) -> None:
         self.move_down_clicked.emit(self._data_index)
 
@@ -265,6 +282,7 @@ class LayerListWidget(QWidget):
     layer_order_changed = Signal(int, int)  # old_index, new_index
     layer_property_changed = Signal(int, str, object)
     layer_added = Signal(int, str)  # data_index, layer_name
+    layer_cloned = Signal(int)  # data_index of new clone
     layer_removed = Signal(int)
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -352,6 +370,41 @@ class LayerListWidget(QWidget):
         self._refresh_controls()
         logger.debug("Layer added at index %d: %s", new_index, name)
         self.layer_added.emit(new_index, name)
+
+    def clone_layer(self, index: int) -> None:
+        """Clone the layer at *index*, inserting the copy right after it.
+
+        The clone gets the name ``cloned_<original_name>``.
+
+        Args:
+            index: Data-model index of the layer to clone (0 = bottom).
+
+        Raises:
+            IndexError: If *index* is out of range.
+        """
+        if not self.can_add_layer():
+            logger.debug("clone_layer: already at max layers (%d)", _MAX_LAYERS)
+            return
+        if index < 0 or index >= len(self._layers):
+            raise IndexError(f"Layer index {index} out of range [0, {len(self._layers)})")
+
+        original = self._layers[index]
+        cloned_name = f"cloned_{original.name}"
+        cloned = original.model_copy(update={"name": cloned_name})
+        new_index = index + 1
+        self._layers.insert(new_index, cloned)
+
+        # Rebuild rows to reflect the insertion
+        self._clear_rows()
+        for i, layer in enumerate(self._layers):
+            self._append_row(layer, i)
+        self._refresh_controls()
+
+        # Select the new clone
+        self.select_layer(new_index)
+
+        logger.debug("Layer cloned from index %d to %d: %s", index, new_index, cloned_name)
+        self.layer_cloned.emit(new_index)
 
     def remove_layer(self, index: int) -> None:
         """Remove the layer at *index* and emit layer_removed.
@@ -496,6 +549,7 @@ class LayerListWidget(QWidget):
         row.name_changed.connect(self._on_name_changed)
         row.blend_changed.connect(self._on_blend_changed)
         row.opacity_changed.connect(self._on_opacity_changed)
+        row.clone_clicked.connect(self._on_clone_clicked)
         row.delete_clicked.connect(self._on_delete_clicked)
         row.move_up_clicked.connect(self._on_move_up_clicked)
         row.move_down_clicked.connect(self._on_move_down_clicked)
@@ -516,11 +570,13 @@ class LayerListWidget(QWidget):
         row.deleteLater()
 
     def _refresh_controls(self) -> None:
-        """Update add button, delete buttons, and move buttons on all rows."""
-        self._add_btn.setEnabled(self.can_add_layer())
+        """Update add/clone/delete buttons and move buttons on all rows."""
+        can_add = self.can_add_layer()
+        self._add_btn.setEnabled(can_add)
         can_del = self.can_remove_layer()
         n = len(self._rows)
         for i, row in enumerate(self._rows):
+            row.set_clone_enabled(can_add)
             row.set_delete_enabled(can_del)
             # Highest index is at the top visually, so it cannot move up further
             row.set_move_up_enabled(i < n - 1)
@@ -551,6 +607,9 @@ class LayerListWidget(QWidget):
             update={"opacity": opacity}
         )
         self.layer_property_changed.emit(data_index, "opacity", opacity)
+
+    def _on_clone_clicked(self, data_index: int) -> None:
+        self.clone_layer(data_index)
 
     def _on_delete_clicked(self, data_index: int) -> None:
         self.remove_layer(data_index)
