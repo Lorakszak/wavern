@@ -69,15 +69,15 @@ class ParticlesVisualization(AbstractVisualization):
             "label": "Spawn Mode",
             "description": "Where particles originate: point, line, circle, edges, or random.",
         },
-        "spawn_x": {
+        "position_x": {
             "type": "float", "default": 0.5, "min": -0.25, "max": 1.25,
-            "label": "Spawn X",
-            "description": "Horizontal spawn position (0=left, 0.5=center, 1=right).",
+            "label": "Position X",
+            "description": "Horizontal position (0.0 = left edge, 1.0 = right edge).",
         },
-        "spawn_y": {
+        "position_y": {
             "type": "float", "default": 0.5, "min": -0.25, "max": 1.25,
-            "label": "Spawn Y",
-            "description": "Vertical spawn position (0=bottom, 0.5=center, 1=top).",
+            "label": "Position Y",
+            "description": "Vertical position (0.0 = bottom edge, 1.0 = top edge).",
         },
         "spawn_radius": {
             "type": "float", "default": 0.3, "min": 0.01, "max": 1.0,
@@ -330,10 +330,10 @@ class ParticlesVisualization(AbstractVisualization):
         # --- Radial force (attraction/repulsion from spawn point) ---
         radial_force = self.get_param("radial_force", 0.0)
         if radial_force != 0.0:
-            spawn_x = self.get_param("spawn_x", 0.5)
-            spawn_y = self.get_param("spawn_y", 0.5)
-            dx = active[:, _X] - spawn_x
-            dy = active[:, _Y] - spawn_y
+            pos_x_param = self.get_param("position_x", 0.5)
+            pos_y_param = self.get_param("position_y", 0.5)
+            dx = active[:, _X] - pos_x_param
+            dy = active[:, _Y] - pos_y_param
             dist = np.sqrt(dx * dx + dy * dy)
             dist = np.maximum(dist, 0.01)  # avoid division by zero
             # Positive = repel, negative = attract
@@ -344,10 +344,10 @@ class ParticlesVisualization(AbstractVisualization):
         # --- Vortex (rotational force) ---
         vortex = self.get_param("vortex", 0.0)
         if vortex != 0.0:
-            spawn_x = self.get_param("spawn_x", 0.5)
-            spawn_y = self.get_param("spawn_y", 0.5)
-            dx = active[:, _X] - spawn_x
-            dy = active[:, _Y] - spawn_y
+            pos_x_param = self.get_param("position_x", 0.5)
+            pos_y_param = self.get_param("position_y", 0.5)
+            dx = active[:, _X] - pos_x_param
+            dy = active[:, _Y] - pos_y_param
             # Perpendicular direction for rotation
             vortex_strength = vortex * 0.5 * dt
             active[:, _VX] += -dy * vortex_strength
@@ -396,8 +396,8 @@ class ParticlesVisualization(AbstractVisualization):
         if spawn_count <= 0:
             return
 
-        spawn_x = self.get_param("spawn_x", 0.5)
-        spawn_y = self.get_param("spawn_y", 0.5)
+        pos_x_param = self.get_param("position_x", 0.5)
+        pos_y_param = self.get_param("position_y", 0.5)
         speed_min = self.get_param("speed_min", 0.05)
         speed_max = self.get_param("speed_max", 0.3)
 
@@ -445,12 +445,12 @@ class ParticlesVisualization(AbstractVisualization):
         # --- Spawn positions based on mode ---
         spawn_mode = self.get_param("spawn_mode", "point")
         pos_x, pos_y = self._compute_spawn_positions(
-            n, spawn_mode, spawn_x, spawn_y
+            n, spawn_mode, pos_x_param, pos_y_param
         )
 
         # --- Velocity direction based on spawn mode ---
         vx, vy = self._compute_spawn_velocities(
-            n, spawn_mode, pos_x, pos_y, spawn_x, spawn_y, angles, speeds
+            n, spawn_mode, pos_x, pos_y, pos_x_param, pos_y_param, angles, speeds
         )
 
         batch = self._particles[start:end]
@@ -473,21 +473,21 @@ class ParticlesVisualization(AbstractVisualization):
         self,
         n: int,
         mode: str,
-        spawn_x: float,
-        spawn_y: float,
+        pos_x_param: float,
+        pos_y_param: float,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Compute spawn positions for n particles based on spawn mode."""
         if mode == "line":
-            # Horizontal line centered at spawn_y
+            # Horizontal line centered at pos_y_param
             pos_x = np.random.uniform(0.0, 1.0, n).astype("f4")
-            pos_y = np.full(n, spawn_y, dtype="f4")
+            pos_y = np.full(n, pos_y_param, dtype="f4")
         elif mode == "circle":
             radius = self.get_param("spawn_radius", 0.3)
             ring_angles = np.random.uniform(0, 2 * np.pi, n).astype("f4")
             # Slight variation in radius for organic look
             r = radius * np.random.uniform(0.9, 1.1, n).astype("f4")
-            pos_x = (spawn_x + np.cos(ring_angles) * r).astype("f4")
-            pos_y = (spawn_y + np.sin(ring_angles) * r).astype("f4")
+            pos_x = (pos_x_param + np.cos(ring_angles) * r).astype("f4")
+            pos_y = (pos_y_param + np.sin(ring_angles) * r).astype("f4")
         elif mode == "edges":
             # Spawn from random screen edges
             edge = np.random.randint(0, 4, n)
@@ -511,8 +511,8 @@ class ParticlesVisualization(AbstractVisualization):
             pos_x = np.random.uniform(0.0, 1.0, n).astype("f4")
             pos_y = np.random.uniform(0.0, 1.0, n).astype("f4")
         else:  # point
-            pos_x = np.full(n, spawn_x, dtype="f4")
-            pos_y = np.full(n, spawn_y, dtype="f4")
+            pos_x = np.full(n, pos_x_param, dtype="f4")
+            pos_y = np.full(n, pos_y_param, dtype="f4")
 
         return pos_x, pos_y
 
@@ -522,16 +522,16 @@ class ParticlesVisualization(AbstractVisualization):
         mode: str,
         pos_x: np.ndarray,
         pos_y: np.ndarray,
-        spawn_x: float,
-        spawn_y: float,
+        pos_x_param: float,
+        pos_y_param: float,
         angles: np.ndarray,
         speeds: np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Compute initial velocities based on spawn mode."""
         if mode == "edges":
             # Particles move inward from edges toward center
-            dx = spawn_x - pos_x
-            dy = spawn_y - pos_y
+            dx = pos_x_param - pos_x
+            dy = pos_y_param - pos_y
             dist = np.sqrt(dx * dx + dy * dy)
             dist = np.maximum(dist, 0.01)
             # Add some angular spread
@@ -544,8 +544,8 @@ class ParticlesVisualization(AbstractVisualization):
             vy = (dir_x * sin_s + dir_y * cos_s) * speeds
         elif mode == "circle":
             # Particles move outward from circle center
-            dx = pos_x - spawn_x
-            dy = pos_y - spawn_y
+            dx = pos_x - pos_x_param
+            dy = pos_y - pos_y_param
             dist = np.sqrt(dx * dx + dy * dy)
             dist = np.maximum(dist, 0.01)
             vx = (dx / dist) * speeds

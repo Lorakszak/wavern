@@ -37,7 +37,7 @@ uniform float u_color_spread;
 uniform float u_glow_intensity;
 uniform float u_pulse_intensity;
 uniform int   u_ring_shape;   // 0=circle, 1=square, 2=hexagon, 3=octagon
-uniform vec2  u_center;
+uniform vec2  u_position;
 uniform float u_scale;
 uniform float u_rotation;
 
@@ -79,16 +79,15 @@ void main() {
     vec2 uv = v_texcoord;
     float aspect = u_resolution.x / u_resolution.y;
 
-    // Center + aspect correction
-    uv -= 0.5;
-    uv -= u_center * 0.5;
-    uv /= u_scale;
+    // Inverse of rotate -> scale -> translate
+    uv -= u_position;
+    uv /= max(u_scale, 0.001);
     uv.x *= aspect;
 
     // Static rotation
     float c = cos(u_rotation);
     float s = sin(u_rotation);
-    uv = mat2(c, -s, s, c) * uv;
+    uv = mat2(c, s, -s, c) * uv;
 
     // Distance from tunnel center
     float dist = shape_dist(uv);
@@ -238,15 +237,15 @@ class TunnelVisualization(AbstractVisualization):
             "label": "Ring Shape",
             "description": "Shape of the concentric rings.",
         },
-        "center_x": {
-            "type": "float", "default": 0.0, "min": -1.0, "max": 1.0,
-            "label": "Center X",
-            "description": "Horizontal offset of tunnel center.",
+        "position_x": {
+            "type": "float", "default": 0.5, "min": -0.25, "max": 1.25,
+            "label": "Position X",
+            "description": "Horizontal position (0.0 = left edge, 1.0 = right edge).",
         },
-        "center_y": {
-            "type": "float", "default": 0.0, "min": -1.0, "max": 1.0,
-            "label": "Center Y",
-            "description": "Vertical offset of tunnel center.",
+        "position_y": {
+            "type": "float", "default": 0.5, "min": -0.25, "max": 1.25,
+            "label": "Position Y",
+            "description": "Vertical position (0.0 = bottom edge, 1.0 = top edge).",
         },
         "scale": {
             "type": "float", "default": 1.0, "min": 0.1, "max": 3.0,
@@ -363,7 +362,7 @@ class TunnelVisualization(AbstractVisualization):
             prog, "u_ring_shape",
             self._SHAPE_MAP.get(self.get_param("ring_shape", "circle"), 0),
         )
-        self._set_uniform(prog, "u_center", (self.get_param("center_x", 0.0), self.get_param("center_y", 0.0)))
+        self._set_uniform(prog, "u_position", (self.get_param("position_x", 0.5), self.get_param("position_y", 0.5)))
         self._set_uniform(prog, "u_scale", self.get_param("scale", 1.0))
         self._set_uniform(prog, "u_rotation", math.radians(self.get_param("rotation", 0.0)))
 

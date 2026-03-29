@@ -89,15 +89,15 @@ class CircularSpectrumVisualization(ImageTextureMixin, AbstractVisualization):
             "label": "Rotation Offset",
             "description": "Static rotation angle in degrees.",
         },
-        "center_x": {
-            "type": "float", "default": 0.0, "min": -1.0, "max": 1.0,
-            "label": "Center X",
-            "description": "Horizontal center offset for the circle.",
+        "position_x": {
+            "type": "float", "default": 0.5, "min": -0.25, "max": 1.25,
+            "label": "Position X",
+            "description": "Horizontal position (0.0 = left edge, 1.0 = right edge).",
         },
-        "center_y": {
-            "type": "float", "default": 0.0, "min": -1.0, "max": 1.0,
-            "label": "Center Y",
-            "description": "Vertical center offset for the circle.",
+        "position_y": {
+            "type": "float", "default": 0.5, "min": -0.25, "max": 1.25,
+            "label": "Position Y",
+            "description": "Vertical position (0.0 = bottom edge, 1.0 = top edge).",
         },
         "scale": {
             "type": "float", "default": 1.0, "min": 0.1, "max": 3.0,
@@ -289,7 +289,7 @@ class CircularSpectrumVisualization(ImageTextureMixin, AbstractVisualization):
         self._set_uniform(prog, "u_bar_spacing", self.get_param("bar_spacing", 0.25))
         self._set_uniform(prog, "u_glow_intensity", self.get_param("glow_intensity", 0.5))
         self._set_uniform(prog, "u_rotation_offset", math.radians(self.get_param("rotation_offset", 0.0)))
-        self._set_uniform(prog, "u_center_offset", (self.get_param("center_x", 0.0), self.get_param("center_y", 0.0)))
+        self._set_uniform(prog, "u_position", (self.get_param("position_x", 0.5), self.get_param("position_y", 0.5)))
         self._set_uniform(prog, "u_viz_scale", self.get_param("scale", 1.0))
         self._set_uniform(prog, "u_mirror_spectrum",
                           1 if self.get_param("mirror_spectrum", False) else 0)

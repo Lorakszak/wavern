@@ -60,8 +60,8 @@
         "glow_intensity": 0.8,
         "pulse_intensity": 0.7,
         "ring_shape": "hexagon",
-        "center_x": 0.0,
-        "center_y": 0.0,
+        "position_x": 0.5,
+        "position_y": 0.5,
         "scale": 1.0,
         "rotation": 0.0
       },

@@ -12,7 +12,7 @@ uniform float u_rotation_speed;
 uniform float u_amplitude;
 uniform float u_glow_intensity;
 uniform float u_rotation_offset;
-uniform vec2 u_center_offset;
+uniform vec2 u_position;
 uniform float u_viz_scale;
 uniform int u_mirror_mode;  // 0=none, 1=mirror, 2=duplicate
 
@@ -53,8 +53,10 @@ void main() {
     float aspect = u_resolution.x / u_resolution.y;
     uv.x *= aspect;
 
-    // Apply center offset
-    uv -= u_center_offset;
+    // Convert absolute position (0-1) to aspect-corrected NDC
+    vec2 pos_ndc = u_position * 2.0 - 1.0;
+    pos_ndc.x *= aspect;
+    uv -= pos_ndc;
 
     float dist = length(uv);
     float angle = atan(uv.y, uv.x) + PI;  // [0, 2PI]
