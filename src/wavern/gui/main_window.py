@@ -25,6 +25,14 @@ from wavern.core.audio_player import AudioPlayer
 from wavern.gui.export_dialog import ExportDialog
 from wavern.gui.favorites_store import FavoritesStore
 from wavern.gui.file_import_dialog import open_audio_file
+from wavern.gui.welcome_dialog import (
+    WelcomeAction,
+    WelcomeDialog,
+    get_showcase_audio_path,
+    get_showcase_background_path,
+    get_showcase_logo_path,
+    should_show_welcome,
+)
 from wavern.gui.gl_widget import GLPreviewWidget
 from wavern.gui.keyboard_handler import KeyboardHandler
 from wavern.gui.menu_builder import build_menu_bar
@@ -200,9 +208,12 @@ class MainWindow(QMainWindow):
         assert app_instance is not None
         app_instance.installEventFilter(self._keyboard_handler)
 
-        # Load audio if provided
+        # Load audio if provided via CLI
         if audio_path:
             self._load_audio(audio_path)
+        else:
+            # Show welcome dialog on first launch (deferred so window is visible)
+            QTimer.singleShot(100, self._maybe_show_welcome)
 
     def _create_sidebar(self, side: str) -> SidebarWidget:
         """Create a SidebarWidget with all 5 tabs populated.
@@ -538,6 +549,54 @@ class MainWindow(QMainWindow):
             self._on_import_audio()
             return self._audio_data is not None
         return False
+
+    # -- Welcome dialog --
+
+    def _maybe_show_welcome(self) -> None:
+        """Show the welcome dialog if this is the first launch."""
+        if not should_show_welcome():
+            return
+
+        dialog = WelcomeDialog(self)
+        dialog.exec()
+
+        if dialog.action == WelcomeAction.LOAD_SHOWCASE:
+            self._load_showcase()
+        elif dialog.action == WelcomeAction.OPEN_AUDIO:
+            self._on_import_audio()
+
+    def _load_showcase(self) -> None:
+        """Load showcase assets: audio, background image, and a featured preset."""
+        # Load a showcase preset that uses the background image
+        showcase_preset_name = "Deep Ocean"
+        try:
+            preset = self._preset_manager.load(showcase_preset_name)
+        except Exception:
+            logger.warning("Showcase preset '%s' not found, using default", showcase_preset_name)
+            preset = DEFAULT_PRESET
+
+        # Set the showcase background image on the preset
+        bg_path = get_showcase_background_path()
+        if bg_path is not None:
+            preset.background.type = "image"
+            preset.background.image_path = str(bg_path)
+
+        # Set the showcase logo as inner image on circular_spectrum layers
+        logo_path = get_showcase_logo_path()
+        if logo_path is not None:
+            for layer in preset.layers:
+                if layer.visualization_type in ("circular_spectrum", "rect_spectrum"):
+                    layer.params["inner_image_path"] = str(logo_path)
+                    layer.params["inner_image_padding"] = 0.05
+
+        self._apply_preset(preset)
+
+        # Load the showcase audio
+        audio_path = get_showcase_audio_path()
+        if audio_path is not None:
+            self._load_audio(audio_path)
+        else:
+            logger.warning("Showcase audio not found at expected path")
 
     # -- Action callbacks --
 
