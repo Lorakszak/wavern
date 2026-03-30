@@ -39,8 +39,10 @@ class BackgroundSection(QWidget):
     background_changed = Signal()
     preview_flags_changed = Signal(bool)  # skip_bg
 
-    # Background types that show transform/movement/effects sections
+    # Background types that show transform/effects sections
     _RICH_BG_TYPES = frozenset({"image", "video", "gradient"})
+    # Background types that support movement (gradient is 1D texture, movements don't apply)
+    _MOVEMENT_BG_TYPES = frozenset({"image", "video"})
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -187,7 +189,7 @@ class BackgroundSection(QWidget):
         if self._transform_container is not None:
             self._transform_container.setVisible(is_rich)
         if self._movement_container is not None:
-            self._movement_container.setVisible(is_rich)
+            self._movement_container.setVisible(bg_type in self._MOVEMENT_BG_TYPES)
         # Effects are always visible (solid/none also support effects)
         if self._effects_container is not None:
             self._effects_container.setVisible(True)
