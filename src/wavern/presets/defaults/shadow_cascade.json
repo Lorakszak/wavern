@@ -52,7 +52,7 @@
         "height_reference": "universal",
         "intensity": 1.2,
         "position_x": 0.5,
-        "position_y": 0.5,
+        "position_y": 0.0,
         "shadow_enabled": true,
         "shadow_color": "#2200aa",
         "shadow_opacity": 0.8,

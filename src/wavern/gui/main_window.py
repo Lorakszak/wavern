@@ -101,7 +101,7 @@ DEFAULT_PRESET = Preset(
         ),
         VisualizationLayer(
             visualization_type="spectrum_bars",
-            params={"bar_count": 128, "mirror": True, "mirror_spectrum": True, "mirror_half": "left"},
+            params={"bar_count": 128, "mirror": True, "mirror_spectrum": True, "mirror_half": "left", "position_y": 0.5},
             colors=["#00E5FF", "#AA00FF", "#FF1744", "#FFD600"],
         ),
     ],

@@ -99,7 +99,7 @@
         "shadow_size": 1.25,
         "shadow_blur": 0.012,
         "position_x": 0.5,
-        "position_y": 0.5
+        "position_y": 0.0
       },
       "blend_mode": "additive",
       "opacity": 1.0,

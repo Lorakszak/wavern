@@ -146,7 +146,10 @@ void main() {
     uv /= max(u_scale, 0.001);
     float c = cos(u_rotation), s = sin(u_rotation);
     uv = mat2(c, s, -s, c) * uv;
-    uv += 0.5;
+    uv.x += 0.5;
+    if (u_mirror == 1) {
+        uv.y += 0.5;
+    }
 
     // Shadow pass
     if (u_shadow_enabled == 1) {

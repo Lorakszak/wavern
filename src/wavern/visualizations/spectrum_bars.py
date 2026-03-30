@@ -134,7 +134,7 @@ class SpectrumBarsVisualization(AbstractVisualization):
             "description": "Horizontal position (0.0 = left edge, 1.0 = right edge).",
         },
         "position_y": {
-            "type": "float", "default": 0.5, "min": -0.25, "max": 1.25,
+            "type": "float", "default": 0.0, "min": -0.25, "max": 1.25,
             "label": "Position Y",
             "description": "Vertical position (0.0 = bottom edge, 1.0 = top edge).",
         },

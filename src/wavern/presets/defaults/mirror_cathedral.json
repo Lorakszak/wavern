@@ -46,7 +46,8 @@
         "height_reference": "per_bar",
         "intensity": 1.0,
         "mirror_spectrum": true,
-        "mirror_half": "left"
+        "mirror_half": "left",
+        "position_y": 0.5
       },
       "blend_mode": "normal",
       "opacity": 1.0,

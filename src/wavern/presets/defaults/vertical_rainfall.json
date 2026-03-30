@@ -53,6 +53,7 @@
         "gravity": 0.88,
         "color_mode": "position",
         "intensity": 1.1,
+        "position_y": 0.5,
         "rotation": 90.0,
         "shadow_enabled": true,
         "shadow_color": "#003366",

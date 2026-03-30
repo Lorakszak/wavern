@@ -38,6 +38,7 @@
         "intensity": 1.2,
         "mirror_spectrum": true,
         "mirror_half": "left",
+        "position_y": 0.5,
         "shadow_enabled": true,
         "shadow_color": "#001122",
         "shadow_opacity": 0.35,
