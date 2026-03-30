@@ -27,6 +27,7 @@ class KeyboardHandler(QObject):
         on_toggle_fullscreen: Callback to toggle fullscreen mode.
         on_cycle_viz: Callback to cycle to the next visualization type.
         on_cycle_viz_reverse: Callback to cycle to the previous visualization type.
+        on_toggle_ambient: Callback to toggle ambient mode.
         parent: Optional parent QObject.
     """
 
@@ -38,6 +39,8 @@ class KeyboardHandler(QObject):
         on_toggle_fullscreen: Callable[[], None],
         on_cycle_viz: Callable[[], None] | None = None,
         on_cycle_viz_reverse: Callable[[], None] | None = None,
+        on_toggle_ambient: Callable[[], None] | None = None,
+        is_ambient_active: Callable[[], bool] | None = None,
         parent: QObject | None = None,
     ) -> None:
         super().__init__(parent)
@@ -47,6 +50,8 @@ class KeyboardHandler(QObject):
         self._on_toggle_fullscreen = on_toggle_fullscreen
         self._on_cycle_viz = on_cycle_viz
         self._on_cycle_viz_reverse = on_cycle_viz_reverse
+        self._on_toggle_ambient = on_toggle_ambient
+        self._is_ambient_active = is_ambient_active
 
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:
         """Filter key events for transport shortcuts."""
@@ -79,8 +84,8 @@ class KeyboardHandler(QObject):
             self._transport.update_position(0.0)
             return True
 
-        # Left / vim-h → seek backward
-        if key in (Qt.Key.Key_Left, Qt.Key.Key_H):
+        # Left / vim-h → seek backward (plain or Shift only, not Ctrl+H)
+        if key in (Qt.Key.Key_Left, Qt.Key.Key_H) and not mods & Qt.KeyboardModifier.ControlModifier:
             step = 1.0 if mods & Qt.KeyboardModifier.ShiftModifier else 5.0
             pos = max(0.0, self._player.get_position() - step)
             self._on_seek(pos)
@@ -149,6 +154,19 @@ class KeyboardHandler(QObject):
         if key == Qt.Key.Key_F:
             self._on_toggle_fullscreen()
             return True
+
+        # Ctrl+H → toggle ambient mode
+        if key == Qt.Key.Key_H and mods & Qt.KeyboardModifier.ControlModifier:
+            if self._on_toggle_ambient is not None:
+                self._on_toggle_ambient()
+            return True
+
+        # Escape → exit ambient mode
+        if key == Qt.Key.Key_Escape:
+            if self._is_ambient_active is not None and self._is_ambient_active():
+                if self._on_toggle_ambient is not None:
+                    self._on_toggle_ambient()
+                return True
 
         # 0–9 → seek to 0%, 10%, 20%, … 90% of duration
         if Qt.Key.Key_0 <= key <= Qt.Key.Key_9 and not mods:

@@ -25,6 +25,7 @@ def build_menu_bar(
     on_split_left: callable,  # type: ignore[reportGeneralTypeIssues]
     on_split_right: callable,  # type: ignore[reportGeneralTypeIssues]
     on_fullscreen: callable,  # type: ignore[reportGeneralTypeIssues]
+    on_ambient: callable,  # type: ignore[reportGeneralTypeIssues]
     on_theme_selected: callable,  # type: ignore[reportGeneralTypeIssues]
     on_viz_shortcut: callable,  # type: ignore[reportGeneralTypeIssues]
 ) -> dict[str, QAction]:
@@ -41,6 +42,7 @@ def build_menu_bar(
         on_split_left: Callback for split left sidebar.
         on_split_right: Callback for split right sidebar.
         on_fullscreen: Callback for fullscreen toggle.
+        on_ambient: Callback for ambient mode toggle.
         on_theme_selected: Callback for theme selection.
         on_viz_shortcut: Callback for visualization shortcuts.
 
@@ -114,6 +116,13 @@ def build_menu_bar(
     fullscreen_action.setShortcut("F11")
     fullscreen_action.triggered.connect(on_fullscreen)
     view_menu.addAction(fullscreen_action)
+
+    ambient_action = QAction("Ambient Mode", window)
+    ambient_action.setShortcut("Ctrl+H")
+    ambient_action.setCheckable(True)
+    ambient_action.triggered.connect(on_ambient)
+    view_menu.addAction(ambient_action)
+    actions["ambient_mode"] = ambient_action
 
     view_menu.addSeparator()
 

@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Any, cast
 
 import numpy as np
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QAction, QIcon, QPixmap
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer
+from PySide6.QtGui import QAction, QIcon, QMouseEvent, QPixmap, QResizeEvent
 from PySide6.QtWidgets import QApplication
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -159,6 +159,17 @@ class MainWindow(QMainWindow):
 
         self._bg_type: str = ""  # last known background type
         self._was_maximized: bool = False  # state before entering fullscreen
+
+        # Ambient mode state
+        self._ambient_mode: bool = False
+        self._pre_ambient_left_sidebar: bool = True
+        self._pre_ambient_right_sidebar: bool = False
+        self._pre_ambient_left_strip: bool = True
+        self._pre_ambient_right_strip: bool = True
+        self._ambient_hide_timer: QTimer = QTimer(self)
+        self._ambient_hide_timer.setSingleShot(True)
+        self._ambient_hide_timer.setInterval(300)
+        self._ambient_hide_timer.timeout.connect(self._ambient_hide_bars)
         self._left_panels: dict[str, Any] = {}
         self._right_panels: dict[str, Any] = {}
 
@@ -176,6 +187,7 @@ class MainWindow(QMainWindow):
             on_split_left=self._toggle_split_left,
             on_split_right=self._toggle_split_right,
             on_fullscreen=self._on_toggle_fullscreen,
+            on_ambient=self._on_toggle_ambient,
             on_theme_selected=self._on_theme_selected,
             on_viz_shortcut=self._on_viz_shortcut,
         )
@@ -203,6 +215,8 @@ class MainWindow(QMainWindow):
             on_toggle_fullscreen=self._on_toggle_fullscreen,
             on_cycle_viz=self._cycle_viz,
             on_cycle_viz_reverse=self._cycle_viz_reverse,
+            on_toggle_ambient=self._on_toggle_ambient,
+            is_ambient_active=lambda: self._ambient_mode,
         )
         app_instance = QApplication.instance()
         assert app_instance is not None
@@ -344,9 +358,9 @@ class MainWindow(QMainWindow):
         self._left_toggle_btn.clicked.connect(self._toggle_left_sidebar)
         self._left_toggle_btn.setToolTip("Toggle Left Sidebar (Ctrl+B)")
 
-        left_strip = QWidget()
-        left_strip.setFixedWidth(20)
-        left_strip_layout = QVBoxLayout(left_strip)
+        self._left_strip = QWidget()
+        self._left_strip.setFixedWidth(20)
+        left_strip_layout = QVBoxLayout(self._left_strip)
         left_strip_layout.setContentsMargins(0, 0, 0, 0)
         left_strip_layout.setSpacing(0)
         left_strip_layout.addStretch()
@@ -361,9 +375,9 @@ class MainWindow(QMainWindow):
         self._right_toggle_btn.clicked.connect(self._toggle_right_sidebar)
         self._right_toggle_btn.setToolTip("Toggle Right Sidebar (Ctrl+Shift+B)")
 
-        right_strip = QWidget()
-        right_strip.setFixedWidth(20)
-        right_strip_layout = QVBoxLayout(right_strip)
+        self._right_strip = QWidget()
+        self._right_strip.setFixedWidth(20)
+        right_strip_layout = QVBoxLayout(self._right_strip)
         right_strip_layout.setContentsMargins(0, 0, 0, 0)
         right_strip_layout.setSpacing(0)
         right_strip_layout.addStretch()
@@ -387,14 +401,14 @@ class MainWindow(QMainWindow):
 
         # Center area (GL preview + transport)
         center = QWidget()
-        center_layout = QVBoxLayout(center)
-        center_layout.setContentsMargins(0, 0, 0, 0)
+        self._center_layout = QVBoxLayout(center)
+        self._center_layout.setContentsMargins(0, 0, 0, 0)
 
         self._gl_widget = GLPreviewWidget()
-        center_layout.addWidget(self._gl_widget, stretch=1)
+        self._center_layout.addWidget(self._gl_widget, stretch=1)
 
         self._transport = TransportBar()
-        center_layout.addWidget(self._transport)
+        self._center_layout.addWidget(self._transport)
 
         # Main splitter: left_sidebar | center | right_sidebar
         self._splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -407,9 +421,9 @@ class MainWindow(QMainWindow):
         self._splitter.setSizes([430, 750, 430])
 
         # Assemble: left_strip | splitter | right_strip
-        main_layout.addWidget(left_strip)
+        main_layout.addWidget(self._left_strip)
         main_layout.addWidget(self._splitter, stretch=1)
-        main_layout.addWidget(right_strip)
+        main_layout.addWidget(self._right_strip)
 
         # Convenience aliases for backward-compatible access
         self._visual_panel = self._left_panels["visual"]
@@ -743,6 +757,122 @@ class MainWindow(QMainWindow):
             self.setWindowState(
                 self.windowState() | Qt.WindowState.WindowFullScreen
             )
+
+    # -- Ambient mode --
+
+    def _on_toggle_ambient(self) -> None:
+        """Toggle ambient mode on/off."""
+        if self._ambient_mode:
+            self._exit_ambient()
+        else:
+            self._enter_ambient()
+        if "ambient_mode" in self._menu_actions:
+            self._menu_actions["ambient_mode"].setChecked(self._ambient_mode)
+
+    def _enter_ambient(self) -> None:
+        """Enter ambient mode: hide chrome, set up overlay bars."""
+        # Save current visibility state
+        self._pre_ambient_left_sidebar = self._left_sidebar.isVisible()
+        self._pre_ambient_right_sidebar = self._right_sidebar.isVisible()
+        self._pre_ambient_left_strip = self._left_strip.isVisible()
+        self._pre_ambient_right_strip = self._right_strip.isVisible()
+
+        # Hide all chrome
+        self._left_sidebar.setVisible(False)
+        self._right_sidebar.setVisible(False)
+        self._left_strip.setVisible(False)
+        self._right_strip.setVisible(False)
+        self.menuBar().setVisible(False)
+
+        # Reparent transport as overlay on GL widget
+        self._center_layout.removeWidget(self._transport)
+        self._transport.setParent(self._gl_widget)
+        self._transport.set_overlay_style(True)
+        self._transport.setVisible(False)
+        self._transport.raise_()
+
+        # Install app-level event filter for hover detection
+        app_instance = QApplication.instance()
+        assert app_instance is not None
+        app_instance.installEventFilter(self)
+
+        self._ambient_mode = True
+
+    def _exit_ambient(self) -> None:
+        """Exit ambient mode: restore chrome and layout."""
+        self._ambient_hide_timer.stop()
+
+        # Reparent transport back into center layout
+        self._transport.setParent(None)
+        self._transport.set_overlay_style(False)
+        self._center_layout.addWidget(self._transport)
+        self._transport.setVisible(True)
+
+        # Restore chrome visibility
+        self.menuBar().setVisible(True)
+        self._left_sidebar.setVisible(self._pre_ambient_left_sidebar)
+        self._right_sidebar.setVisible(self._pre_ambient_right_sidebar)
+        self._left_strip.setVisible(self._pre_ambient_left_strip)
+        self._right_strip.setVisible(self._pre_ambient_right_strip)
+
+        # Remove app-level event filter
+        app_instance = QApplication.instance()
+        if app_instance is not None:
+            app_instance.removeEventFilter(self)
+
+        self._ambient_mode = False
+
+    def _position_ambient_transport(self) -> None:
+        """Position the transport bar overlay at the bottom of the GL widget."""
+        if not self._ambient_mode:
+            return
+        h = self._transport.sizeHint().height()
+        self._transport.setGeometry(
+            0,
+            self._gl_widget.height() - h,
+            self._gl_widget.width(),
+            h,
+        )
+        self._transport.raise_()
+
+    def eventFilter(self, obj: QObject, event: QEvent) -> bool:
+        """App-level event filter for ambient mode hover detection."""
+        if not self._ambient_mode or event.type() != QEvent.Type.MouseMove:
+            return super().eventFilter(obj, event)
+
+        mouse_event = cast(QMouseEvent, event)
+        pos = self.mapFromGlobal(mouse_event.globalPosition().toPoint())
+        y = pos.y()
+        height = self.height()
+
+        menu_zone = y <= 30
+        transport_zone = y >= height - 40
+
+        if menu_zone or transport_zone:
+            self._ambient_hide_timer.stop()
+            if menu_zone and not self.menuBar().isVisible():
+                self.menuBar().setVisible(True)
+            if transport_zone and not self._transport.isVisible():
+                self._position_ambient_transport()
+                self._transport.setVisible(True)
+        else:
+            if not self._ambient_hide_timer.isActive():
+                self._ambient_hide_timer.start()
+
+        return super().eventFilter(obj, event)
+
+    def _ambient_hide_bars(self) -> None:
+        """Hide overlay bars after the delay timer fires."""
+        if not self._ambient_mode:
+            return
+        self.menuBar().setVisible(False)
+        self._transport.setVisible(False)
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        """Reposition ambient overlay transport on window resize."""
+        super().resizeEvent(event)
+        if self._ambient_mode and self._transport.isVisible():
+            self._position_ambient_transport()
 
     def _on_theme_selected(self) -> None:
         """Apply the selected theme and save the preference."""

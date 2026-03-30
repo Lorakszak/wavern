@@ -163,3 +163,19 @@ class TransportBar(QWidget):
     def _on_slider_moved(self, value: int) -> None:
         timestamp = (value / 10000.0) * self._duration
         self._time_label.setText(_format_time(timestamp))
+
+    def set_overlay_style(self, enabled: bool) -> None:
+        """Toggle semi-transparent overlay appearance for ambient mode."""
+        if enabled:
+            if not hasattr(self, "_saved_stylesheet"):
+                self._saved_stylesheet = self.styleSheet()
+            self.setStyleSheet(
+                "TransportBar {"
+                "  background-color: rgba(0, 0, 0, 0.7);"
+                "  border-top: 1px solid rgba(255, 255, 255, 0.1);"
+                "}"
+            )
+        else:
+            self.setStyleSheet(getattr(self, "_saved_stylesheet", ""))
+            if hasattr(self, "_saved_stylesheet"):
+                del self._saved_stylesheet
