@@ -1,0 +1,94 @@
+{
+  "name": "Radial Pulse",
+  "description": "Sonar-style circular spectrum with beat-reactive zoom pulse and chromatic aberration",
+  "author": "wavern",
+  "version": 1,
+  "color_palette": ["#00FF88", "#00DDCC", "#33FF44"],
+  "background": {
+    "type": "solid",
+    "color": "#010A05",
+    "movements": {
+      "zoom_pulse": {
+        "enabled": true,
+        "speed": 2.5,
+        "intensity": 0.55,
+        "audio": {
+          "enabled": true,
+          "source": "beat",
+          "sensitivity": 2.5
+        }
+      },
+      "breathe": {
+        "enabled": true,
+        "speed": 0.5,
+        "intensity": 0.08
+      }
+    },
+    "effects": {
+      "brightness": {
+        "enabled": true,
+        "intensity": 0.15
+      }
+    }
+  },
+  "global_effects": {
+    "apply_stage": "after_overlays",
+    "chromatic_aberration": {
+      "enabled": true,
+      "intensity": 0.25,
+      "direction": "radial",
+      "audio": {
+        "enabled": true,
+        "source": "beat",
+        "sensitivity": 3.0
+      }
+    },
+    "bloom": {
+      "enabled": true,
+      "intensity": 0.6,
+      "threshold": 0.55,
+      "audio": {
+        "enabled": true,
+        "source": "amplitude",
+        "sensitivity": 1.5
+      }
+    },
+    "vignette": {
+      "enabled": true,
+      "intensity": 0.6,
+      "shape": "circular"
+    }
+  },
+  "fft_size": 4096,
+  "smoothing": 0.35,
+  "beat_sensitivity": 1.8,
+  "fps": 60,
+  "layers": [
+    {
+      "visualization_type": "circular_spectrum",
+      "name": "Sonar Ring",
+      "blend_mode": "additive",
+      "opacity": 1.0,
+      "visible": true,
+      "colors": ["#00FF88", "#00DDCC", "#33FF44"],
+      "params": {
+        "bar_count": 120,
+        "bar_spacing": 0.12,
+        "inner_radius": 0.17,
+        "bar_length": 0.38,
+        "rotation_speed": 1.8,
+        "rotation_direction": "clockwise",
+        "gravity": 0.92,
+        "glow_intensity": 1.2,
+        "min_bar_height": 0.01,
+        "scale": 1.1,
+        "frequency_limit": true,
+        "max_frequency": 8000,
+        "mirror_spectrum": true,
+        "mirror_half": "left",
+        "shape_beat_bounce": true,
+        "shape_bounce_strength": 0.25
+      }
+    }
+  ]
+}

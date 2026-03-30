@@ -1,30 +1,15 @@
 {
   "name": "Shadow Cascade",
-  "description": "Height-colored bars with deep purple shadows, high opacity, and a drifting gradient background",
+  "description": "Height-colored bars with deep purple shadows and a drifting gradient background",
   "author": "wavern",
   "version": 1,
-  "color_palette": [
-    "#6600ff",
-    "#aa00ff",
-    "#ff00cc",
-    "#ff0066",
-    "#ff4400"
-  ],
+  "color_palette": ["#6600ff", "#aa00ff", "#ff00cc", "#ff0066", "#ff4400"],
   "background": {
     "type": "gradient",
     "gradient_stops": [
-      {
-        "position": 0.0,
-        "color": "#05000f"
-      },
-      {
-        "position": 0.5,
-        "color": "#0f0020"
-      },
-      {
-        "position": 1.0,
-        "color": "#050010"
-      }
+      {"position": 0.0, "color": "#05000f"},
+      {"position": 0.5, "color": "#0f0020"},
+      {"position": 1.0, "color": "#050010"}
     ],
     "movements": {
       "drift": {
@@ -32,6 +17,19 @@
         "speed": 0.6,
         "intensity": 0.25,
         "angle": 180.0
+      }
+    }
+  },
+  "global_effects": {
+    "apply_stage": "before_overlays",
+    "bloom": {
+      "enabled": true,
+      "intensity": 0.5,
+      "threshold": 0.5,
+      "audio": {
+        "enabled": true,
+        "source": "amplitude",
+        "sensitivity": 1.3
       }
     }
   },
@@ -54,7 +52,7 @@
         "height_reference": "universal",
         "intensity": 1.2,
         "position_x": 0.5,
-        "position_y": 0.4,
+        "position_y": 0.5,
         "shadow_enabled": true,
         "shadow_color": "#2200aa",
         "shadow_opacity": 0.8,
@@ -69,13 +67,7 @@
       "opacity": 1.0,
       "visible": true,
       "name": "",
-      "colors": [
-        "#6600ff",
-        "#aa00ff",
-        "#ff00cc",
-        "#ff0066",
-        "#ff4400"
-      ]
+      "colors": ["#6600ff", "#aa00ff", "#ff00cc", "#ff0066", "#ff4400"]
     }
   ]
 }

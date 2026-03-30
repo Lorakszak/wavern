@@ -1,29 +1,44 @@
 {
   "name": "Neon Fortress",
-  "description": "Static rectangular spectrum with continuous colors, beat bounce, and 45-degree offset",
+  "description": "Diamond-oriented neon fortress with film grain and background blur",
   "author": "wavern",
   "version": 1,
-  "color_palette": [
-    "#ff0066",
-    "#ff00ff",
-    "#6600ff",
-    "#0066ff",
-    "#00ffcc"
-  ],
+  "color_palette": ["#00eeff", "#aa00ff", "#ff0099", "#ff6600", "#0066ff"],
   "background": {
     "type": "solid",
-    "color": "#05000a",
+    "color": "#04000d",
     "movements": {
       "breathe": {
         "enabled": true,
-        "speed": 0.8,
-        "intensity": 0.3,
-        "angle": 0.0
+        "speed": 0.7,
+        "intensity": 0.25
+      }
+    },
+    "effects": {
+      "blur": {
+        "enabled": true,
+        "intensity": 0.18
+      },
+      "hue_shift": {
+        "enabled": true,
+        "intensity": 0.06
       }
     }
   },
-  "fft_size": 4096,
-  "smoothing": 0.85,
+  "global_effects": {
+    "apply_stage": "before_overlays",
+    "film_grain": {
+      "enabled": true,
+      "intensity": 0.35
+    },
+    "vignette": {
+      "enabled": true,
+      "intensity": 0.65,
+      "shape": "circular"
+    }
+  },
+  "fft_size": 8192,
+  "smoothing": 0.82,
   "beat_sensitivity": 1.8,
   "fps": 60,
   "layers": [
@@ -31,30 +46,35 @@
       "visualization_type": "rect_spectrum",
       "params": {
         "bar_count": 128,
-        "bar_spacing": 0.15,
-        "inner_size": 0.2,
-        "bar_length": 0.45,
-        "rotates": false,
-        "rotation_speed": 0.0,
-        "gravity": 0.9,
-        "glow_intensity": 1.0,
+        "bar_spacing": 0.18,
+        "inner_size": 0.22,
+        "bar_length": 0.42,
+        "rotates": true,
+        "rotation_speed": 0.2,
         "rotation_offset": 45.0,
+        "gravity": 0.88,
+        "glow_intensity": 1.2,
         "continuous_colors": true,
         "mirror_sides": true,
+        "mirror_half": "left",
+        "frequency_limit": true,
+        "max_frequency": 14000,
         "shape_beat_bounce": true,
-        "shape_bounce_strength": 0.25
+        "shape_bounce_strength": 0.3,
+        "min_bar_height": 0.008,
+        "shadow_enabled": true,
+        "shadow_color": "#3300aa",
+        "shadow_opacity": 0.45,
+        "shadow_offset_x": 0.004,
+        "shadow_offset_y": -0.004,
+        "shadow_size": 1.8,
+        "shadow_blur": 0.018
       },
       "blend_mode": "additive",
       "opacity": 1.0,
       "visible": true,
       "name": "",
-      "colors": [
-        "#ff0066",
-        "#ff00ff",
-        "#6600ff",
-        "#0066ff",
-        "#00ffcc"
-      ]
+      "colors": ["#00eeff", "#aa00ff", "#ff0099", "#ff6600", "#0066ff"]
     }
   ]
 }

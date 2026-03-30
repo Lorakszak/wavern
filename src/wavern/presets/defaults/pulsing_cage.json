@@ -1,15 +1,9 @@
 {
   "name": "Pulsing Cage",
-  "description": "Beat-bouncing rectangular spectrum with counterclockwise rotation, blue shadows, and continuous colors",
+  "description": "Beat-bouncing rectangular spectrum with counterclockwise rotation and blue shadows",
   "author": "wavern",
   "version": 1,
-  "color_palette": [
-    "#0044ff",
-    "#0088ff",
-    "#00ccff",
-    "#00ffcc",
-    "#00ff66"
-  ],
+  "color_palette": ["#0044ff", "#0088ff", "#00ccff", "#00ffcc", "#00ff66"],
   "background": {
     "type": "solid",
     "color": "#000508",
@@ -17,8 +11,20 @@
       "breathe": {
         "enabled": true,
         "speed": 0.8,
-        "intensity": 0.3,
-        "angle": 0.0
+        "intensity": 0.3
+      }
+    }
+  },
+  "global_effects": {
+    "apply_stage": "before_overlays",
+    "chromatic_aberration": {
+      "enabled": true,
+      "intensity": 0.15,
+      "direction": "radial",
+      "audio": {
+        "enabled": true,
+        "source": "beat",
+        "sensitivity": 2.0
       }
     }
   },
@@ -55,13 +61,7 @@
       "opacity": 1.0,
       "visible": true,
       "name": "",
-      "colors": [
-        "#0044ff",
-        "#0088ff",
-        "#00ccff",
-        "#00ffcc",
-        "#00ff66"
-      ]
+      "colors": ["#0044ff", "#0088ff", "#00ccff", "#00ffcc", "#00ff66"]
     }
   ]
 }

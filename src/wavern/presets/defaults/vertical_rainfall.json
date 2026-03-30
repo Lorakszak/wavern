@@ -1,15 +1,9 @@
 {
   "name": "Vertical Rainfall",
-  "description": "90-degree rotated mirrored bars with tight spacing and shadow \u2014 sideways rain effect",
+  "description": "90-degree rotated mirrored bars with tight spacing and wave background",
   "author": "wavern",
   "version": 1,
-  "color_palette": [
-    "#0044ff",
-    "#0088ff",
-    "#00ccff",
-    "#44eeff",
-    "#aaffff"
-  ],
+  "color_palette": ["#0044ff", "#0088ff", "#00ccff", "#44eeff", "#aaffff"],
   "background": {
     "type": "solid",
     "color": "#000510",
@@ -18,8 +12,26 @@
         "enabled": true,
         "speed": 0.8,
         "intensity": 0.3,
-        "angle": 90.0
+        "angle": 90.0,
+        "audio": {
+          "enabled": true,
+          "source": "bass",
+          "sensitivity": 1.5
+        }
       }
+    },
+    "effects": {
+      "blur": {
+        "enabled": true,
+        "intensity": 0.1
+      }
+    }
+  },
+  "global_effects": {
+    "apply_stage": "before_overlays",
+    "film_grain": {
+      "enabled": true,
+      "intensity": 0.15
     }
   },
   "fft_size": 4096,
@@ -56,13 +68,7 @@
       "opacity": 1.0,
       "visible": true,
       "name": "",
-      "colors": [
-        "#0044ff",
-        "#0088ff",
-        "#00ccff",
-        "#44eeff",
-        "#aaffff"
-      ]
+      "colors": ["#0044ff", "#0088ff", "#00ccff", "#44eeff", "#aaffff"]
     }
   ]
 }

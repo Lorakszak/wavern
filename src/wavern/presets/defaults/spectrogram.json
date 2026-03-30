@@ -1,46 +1,25 @@
 {
   "name": "Spectrogram",
-  "description": "Scrolling inferno heatmap \u2014 frequency over time",
+  "description": "Scrolling viridis frequency heatmap",
   "author": "wavern",
   "version": 1,
-  "color_palette": [
-    "#000000",
-    "#FF4400",
-    "#FFAA00",
-    "#FFFFFF"
-  ],
+  "color_palette": ["#000000", "#440154", "#21908C", "#FDE725"],
   "background": {
     "type": "solid",
-    "color": "#000000"
-  },
-  "overlay": {
-    "title_enabled": false,
-    "title_text": "",
-    "countdown_enabled": false,
-    "countdown_format": "elapsed_total",
-    "link_positions": true,
-    "title_x": 0.5,
-    "title_y": 0.05,
-    "countdown_x": 0.5,
-    "countdown_y": 0.05,
-    "font_family": "montserrat",
-    "font_bold": false,
-    "font_size": 28,
-    "font_color": "#FFFFFF",
-    "font_opacity": 1.0,
-    "outline_enabled": false,
-    "outline_color": "#000000",
-    "outline_width": 2,
-    "shadow_enabled": false,
-    "shadow_color": "#000000",
-    "shadow_opacity": 0.7,
-    "shadow_offset_x": 3,
-    "shadow_offset_y": 3
+    "color": "#040408"
   },
   "fft_size": 4096,
-  "smoothing": 0.2,
-  "beat_sensitivity": 1.5,
+  "smoothing": 0.15,
+  "beat_sensitivity": 1.2,
   "fps": 60,
+  "global_effects": {
+    "apply_stage": "after_overlays",
+    "vignette": {
+      "enabled": true,
+      "intensity": 0.35,
+      "shape": "rectangular"
+    }
+  },
   "layers": [
     {
       "visualization_type": "spectrogram",
@@ -50,28 +29,20 @@
         "frequency_scale": "logarithmic",
         "frequency_limit": false,
         "min_frequency": 20,
-        "max_frequency": 16000,
-        "color_map": "inferno",
-        "brightness": 1.0,
-        "contrast": 1.2,
-        "saturation": 1.0,
-        "history_length": 256,
-        "blur": 0.0,
-        "bar_separation": false,
-        "position_x": 0.5,
-        "position_y": 0.5,
-        "scale": 1.0
+        "max_frequency": 20000,
+        "color_map": "viridis",
+        "brightness": 1.3,
+        "contrast": 1.4,
+        "saturation": 1.1,
+        "history_length": 512,
+        "blur": 0.3,
+        "bar_separation": false
       },
       "blend_mode": "normal",
       "opacity": 1.0,
       "visible": true,
       "name": "",
-      "colors": [
-        "#000000",
-        "#FF4400",
-        "#FFAA00",
-        "#FFFFFF"
-      ]
+      "colors": ["#000000", "#440154", "#21908C", "#FDE725"]
     }
   ]
 }

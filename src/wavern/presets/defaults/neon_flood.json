@@ -1,51 +1,75 @@
 {
   "name": "Neon Flood (Beta)",
-  "description": "[Beta] Thick filled waveform with heavy glow and beat-reactive zoom pulse background",
+  "description": "Thick filled waveform over smoky waves with beat-reactive block glitch",
   "author": "wavern",
   "version": 1,
-  "color_palette": [
-    "#00ffaa",
-    "#00ff55",
-    "#33ffcc",
-    "#00ddff"
-  ],
+  "color_palette": ["#00FF66", "#00FFCC", "#00DDFF"],
   "background": {
     "type": "solid",
-    "color": "#000a0d",
+    "color": "#000A14",
     "movements": {
       "zoom_pulse": {
         "enabled": true,
         "speed": 1.5,
-        "intensity": 0.6,
-        "angle": 0.0
+        "intensity": 0.5,
+        "audio": {
+          "enabled": true,
+          "source": "beat",
+          "sensitivity": 1.8
+        }
+      }
+    }
+  },
+  "global_effects": {
+    "apply_stage": "before_overlays",
+    "glitch": {
+      "enabled": true,
+      "intensity": 0.45,
+      "type": "block",
+      "audio": {
+        "enabled": true,
+        "source": "beat",
+        "sensitivity": 2.5
       }
     }
   },
   "fft_size": 4096,
-  "smoothing": 0.8,
+  "smoothing": 0.75,
   "beat_sensitivity": 2.0,
   "fps": 60,
   "layers": [
     {
+      "visualization_type": "smoky_waves",
+      "params": {
+        "wave_count": 9,
+        "speed": 1.8,
+        "turbulence": 1.2,
+        "thickness": 2.5,
+        "wave_spacing": 0.09,
+        "base_amplitude": 0.18,
+        "glow_intensity": 1.4
+      },
+      "blend_mode": "additive",
+      "opacity": 0.75,
+      "visible": true,
+      "name": "Smoke",
+      "colors": ["#FF0066", "#CC00FF", "#6600FF", "#0099FF", "#00FFCC"]
+    },
+    {
       "visualization_type": "waveform",
       "params": {
-        "line_thickness": 20.0,
+        "line_thickness": 18.0,
         "filled": true,
         "sample_count": 512,
-        "amplitude_scale": 2.0,
-        "glow_intensity": 2.0,
-        "wave_range": 0.75
+        "amplitude_scale": 2.2,
+        "glow_intensity": 1.8,
+        "wave_range": 0.7
       },
       "blend_mode": "additive",
       "opacity": 1.0,
       "visible": true,
-      "name": "",
-      "colors": [
-        "#00ffaa",
-        "#00ff55",
-        "#33ffcc",
-        "#00ddff"
-      ]
+      "name": "Waveform",
+      "colors": ["#00FF66"]
     }
   ]
 }

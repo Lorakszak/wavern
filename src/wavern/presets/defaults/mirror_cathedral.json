@@ -3,36 +3,28 @@
   "description": "Sparse mirrored bars with heavy gravity and a breathing gradient background",
   "author": "wavern",
   "version": 1,
-  "color_palette": [
-    "#e0d0ff",
-    "#a080ff",
-    "#6040cc",
-    "#3020aa",
-    "#ffffff"
-  ],
+  "color_palette": ["#e0d0ff", "#a080ff", "#6040cc", "#3020aa", "#ffffff"],
   "background": {
     "type": "gradient",
     "gradient_stops": [
-      {
-        "position": 0.0,
-        "color": "#0d0d1a"
-      },
-      {
-        "position": 0.5,
-        "color": "#1a1a33"
-      },
-      {
-        "position": 1.0,
-        "color": "#0d0d1a"
-      }
+      {"position": 0.0, "color": "#0d0d1a"},
+      {"position": 0.5, "color": "#1a1a33"},
+      {"position": 1.0, "color": "#0d0d1a"}
     ],
     "movements": {
       "breathe": {
         "enabled": true,
         "speed": 0.5,
-        "intensity": 0.4,
-        "angle": 0.0
+        "intensity": 0.4
       }
+    }
+  },
+  "global_effects": {
+    "apply_stage": "before_overlays",
+    "bloom": {
+      "enabled": true,
+      "intensity": 0.4,
+      "threshold": 0.6
     }
   },
   "fft_size": 4096,
@@ -60,13 +52,7 @@
       "opacity": 1.0,
       "visible": true,
       "name": "",
-      "colors": [
-        "#e0d0ff",
-        "#a080ff",
-        "#6040cc",
-        "#3020aa",
-        "#ffffff"
-      ]
+      "colors": ["#e0d0ff", "#a080ff", "#6040cc", "#3020aa", "#ffffff"]
     }
   ]
 }

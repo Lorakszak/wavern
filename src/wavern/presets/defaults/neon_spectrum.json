@@ -1,0 +1,56 @@
+{
+  "name": "Neon Spectrum",
+  "description": "Clean mirrored spectrum with vignette frame",
+  "author": "wavern",
+  "version": 1,
+  "color_palette": ["#00FFAA", "#FF00AA", "#FFAA00", "#00AAFF"],
+  "background": {
+    "type": "solid",
+    "color": "#080810"
+  },
+  "fft_size": 4096,
+  "smoothing": 0.35,
+  "beat_sensitivity": 1.2,
+  "fps": 60,
+  "global_effects": {
+    "apply_stage": "after_overlays",
+    "vignette": {
+      "enabled": true,
+      "intensity": 0.55,
+      "shape": "circular"
+    }
+  },
+  "layers": [
+    {
+      "visualization_type": "spectrum_bars",
+      "params": {
+        "frequency_limit": true,
+        "max_frequency": 14000,
+        "bar_count": 80,
+        "bar_spacing": 0.2,
+        "mirror": true,
+        "min_bar_height": 0.015,
+        "max_bar_height": 0.9,
+        "frequency_scale": "logarithmic",
+        "gravity": 0.86,
+        "color_mode": "position",
+        "height_reference": "per_bar",
+        "intensity": 1.2,
+        "mirror_spectrum": true,
+        "mirror_half": "left",
+        "shadow_enabled": true,
+        "shadow_color": "#001122",
+        "shadow_opacity": 0.35,
+        "shadow_offset_x": 0.0,
+        "shadow_offset_y": -0.006,
+        "shadow_size": 1.15,
+        "shadow_blur": 0.015
+      },
+      "blend_mode": "additive",
+      "opacity": 1.0,
+      "visible": true,
+      "name": "",
+      "colors": ["#00FFAA", "#FF00AA", "#FFAA00", "#00AAFF"]
+    }
+  ]
+}

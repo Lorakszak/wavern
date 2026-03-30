@@ -1,37 +1,72 @@
 {
-  "name": "Oscilloscope (Beta)",
-  "description": "[Beta] Thin monochrome green waveform with no smoothing \u2014 retro CRT oscilloscope look",
+  "name": "Oscilloscope",
+  "description": "Retro CRT oscilloscope with P31 phosphor green, film grain, and scanlines",
   "author": "wavern",
   "version": 1,
-  "color_palette": [
-    "#00ff00"
-  ],
+  "color_palette": ["#39FF6A"],
   "background": {
     "type": "solid",
-    "color": "#000800"
+    "color": "#020A03",
+    "effects": {
+      "brightness": {
+        "enabled": true,
+        "intensity": 0.08,
+        "audio": {
+          "enabled": true,
+          "source": "amplitude",
+          "sensitivity": 1.8
+        }
+      }
+    }
+  },
+  "global_effects": {
+    "apply_stage": "before_overlays",
+    "film_grain": {
+      "enabled": true,
+      "intensity": 0.28
+    },
+    "scanlines": {
+      "enabled": true,
+      "intensity": 0.18,
+      "density": 0.35
+    }
   },
   "fft_size": 4096,
-  "smoothing": 0.0,
-  "beat_sensitivity": 0.5,
+  "smoothing": 0.05,
+  "beat_sensitivity": 0.9,
   "fps": 60,
   "layers": [
     {
-      "visualization_type": "waveform",
+      "visualization_type": "oscilloscope",
       "params": {
-        "line_thickness": 0.8,
-        "filled": false,
-        "sample_count": 2048,
-        "amplitude_scale": 1.2,
-        "glow_intensity": 0.8,
-        "wave_range": 0.35
+        "display_mode": "line",
+        "line_thickness": 2.0,
+        "sample_count": 512,
+        "amplitude_scale": 1.8,
+        "wave_range": 0.38,
+        "trigger_mode": "rising",
+        "phosphor_glow": 1.8,
+        "glow_radius": 2.2,
+        "phosphor_persistence": 0.45,
+        "barrel_distortion": 0.2,
+        "scanline_intensity": 0.25,
+        "scanline_count": 480,
+        "chromatic_aberration": 1.2,
+        "vignette": 0.55,
+        "noise_intensity": 0.045,
+        "screen_flicker": 0.06,
+        "screen_tint": 0.08,
+        "graticule_enabled": true,
+        "graticule_intensity": 0.12,
+        "graticule_divisions": 8,
+        "bezel": false,
+        "fill_screen": false
       },
       "blend_mode": "additive",
       "opacity": 1.0,
       "visible": true,
       "name": "",
-      "colors": [
-        "#00ff00"
-      ]
+      "colors": ["#39FF6A"]
     }
   ]
 }

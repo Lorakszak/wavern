@@ -1,65 +1,99 @@
 {
   "name": "Shadow Monolith",
-  "description": "Static rectangular spectrum with heavy red-orange shadow, large inner size, and drifting background",
+  "description": "Two-layer rect_spectrum with multiply shadow carving",
   "author": "wavern",
   "version": 1,
-  "color_palette": [
-    "#ff3300",
-    "#ff6600",
-    "#ff9900",
-    "#ffcc00",
-    "#ffee88"
-  ],
+  "color_palette": ["#ff4400", "#ff6600", "#ff9900", "#ffcc55", "#fff0bb"],
   "background": {
     "type": "solid",
     "color": "#080200",
-    "movements": {
-      "drift": {
+    "effects": {
+      "posterize": {
         "enabled": true,
-        "speed": 0.5,
-        "intensity": 0.2,
-        "angle": 45.0
+        "intensity": 0.72
+      },
+      "brightness": {
+        "enabled": true,
+        "intensity": 0.42
       }
+    }
+  },
+  "global_effects": {
+    "apply_stage": "before_overlays",
+    "vignette": {
+      "enabled": true,
+      "intensity": 0.75,
+      "shape": "rectangular"
+    },
+    "film_grain": {
+      "enabled": true,
+      "intensity": 0.22
     }
   },
   "fft_size": 4096,
   "smoothing": 0.9,
-  "beat_sensitivity": 1.6,
+  "beat_sensitivity": 1.5,
   "fps": 60,
   "layers": [
     {
       "visualization_type": "rect_spectrum",
       "params": {
-        "bar_count": 64,
-        "bar_spacing": 0.2,
-        "inner_size": 0.4,
-        "bar_length": 0.35,
+        "bar_count": 80,
+        "bar_spacing": 0.22,
+        "inner_size": 0.35,
+        "bar_length": 0.3,
         "rotates": false,
         "rotation_speed": 0.0,
         "rotation_offset": 0.0,
-        "gravity": 0.92,
-        "glow_intensity": 0.5,
+        "gravity": 0.93,
+        "glow_intensity": 0.3,
         "continuous_colors": false,
         "mirror_sides": true,
+        "mirror_half": "left",
+        "frequency_limit": true,
+        "max_frequency": 10000,
+        "shape_beat_bounce": false,
+        "min_bar_height": 0.012,
         "shadow_enabled": true,
-        "shadow_color": "#ff3300",
-        "shadow_opacity": 0.9,
-        "shadow_offset_x": 0.008,
-        "shadow_offset_y": -0.012,
-        "shadow_size": 3.0,
-        "shadow_blur": 0.05
+        "shadow_color": "#220800",
+        "shadow_opacity": 0.85,
+        "shadow_offset_x": 0.007,
+        "shadow_offset_y": -0.01,
+        "shadow_size": 2.5,
+        "shadow_blur": 0.04
       },
-      "blend_mode": "additive",
+      "blend_mode": "normal",
       "opacity": 1.0,
       "visible": true,
-      "name": "",
-      "colors": [
-        "#ff3300",
-        "#ff6600",
-        "#ff9900",
-        "#ffcc00",
-        "#ffee88"
-      ]
+      "name": "Main structure",
+      "colors": ["#ff4400", "#ff6600", "#ff9900", "#ffcc55", "#fff0bb"]
+    },
+    {
+      "visualization_type": "rect_spectrum",
+      "params": {
+        "bar_count": 48,
+        "bar_spacing": 0.3,
+        "inner_size": 0.28,
+        "bar_length": 0.38,
+        "rotates": false,
+        "rotation_speed": 0.0,
+        "rotation_offset": 45.0,
+        "gravity": 0.96,
+        "glow_intensity": 0.1,
+        "continuous_colors": false,
+        "mirror_sides": true,
+        "mirror_half": "left",
+        "frequency_limit": true,
+        "max_frequency": 10000,
+        "shape_beat_bounce": false,
+        "min_bar_height": 0.01,
+        "shadow_enabled": false
+      },
+      "blend_mode": "multiply",
+      "opacity": 0.6,
+      "visible": true,
+      "name": "Shadow carve",
+      "colors": ["#1a0500", "#2d0a00", "#3d1200", "#1a0500", "#0d0200"]
     }
   ]
 }

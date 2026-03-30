@@ -1,79 +1,111 @@
 {
   "name": "Cyberpunk Skyline",
-  "description": "Dense neon cityscape with 256 height-colored bars, shadows, and a drifting gradient background",
+  "description": "Dense neon cityscape with gradient background, bloom, scanlines, and text overlay",
   "author": "wavern",
   "version": 1,
-  "color_palette": [
-    "#ff00ff",
-    "#00ffff",
-    "#ff0066",
-    "#6600ff",
-    "#00ff99"
-  ],
+  "color_palette": ["#ff00ff", "#00ffff", "#ff0066", "#6600ff", "#00ff99"],
   "background": {
     "type": "gradient",
     "gradient_stops": [
-      {
-        "position": 0.0,
-        "color": "#0a0015"
-      },
-      {
-        "position": 0.5,
-        "color": "#1a0033"
-      },
-      {
-        "position": 1.0,
-        "color": "#000a1a"
-      }
+      {"position": 0.0, "color": "#0a0015"},
+      {"position": 0.45, "color": "#180030"},
+      {"position": 0.75, "color": "#050020"},
+      {"position": 1.0, "color": "#000a1a"}
     ],
     "movements": {
       "drift": {
         "enabled": true,
-        "speed": 0.8,
-        "intensity": 0.3,
+        "speed": 0.5,
+        "intensity": 0.2,
         "angle": 270.0
+      },
+      "breathe": {
+        "enabled": true,
+        "speed": 0.4,
+        "intensity": 0.12,
+        "audio": {
+          "enabled": true,
+          "source": "bass",
+          "sensitivity": 1.2
+        }
       }
     }
   },
+  "overlay": {
+    "title_enabled": true,
+    "title_text": "WAVERN",
+    "countdown_enabled": true,
+    "countdown_format": "elapsed_total",
+    "link_positions": false,
+    "title_x": 0.5,
+    "title_y": 0.08,
+    "countdown_x": 0.5,
+    "countdown_y": 0.93,
+    "font_family": "montserrat",
+    "font_bold": true,
+    "font_size": 32,
+    "font_color": "#00ffff",
+    "font_opacity": 0.85,
+    "shadow_enabled": true,
+    "shadow_color": "#ff00ff",
+    "shadow_opacity": 0.6,
+    "shadow_offset_x": 2,
+    "shadow_offset_y": 2
+  },
+  "global_effects": {
+    "apply_stage": "before_overlays",
+    "bloom": {
+      "enabled": true,
+      "intensity": 0.55,
+      "threshold": 0.45
+    },
+    "scanlines": {
+      "enabled": true,
+      "intensity": 0.22,
+      "density": 0.35
+    },
+    "vignette": {
+      "enabled": true,
+      "intensity": 0.45,
+      "shape": "rectangular"
+    }
+  },
   "fft_size": 8192,
-  "smoothing": 0.85,
+  "smoothing": 0.55,
   "beat_sensitivity": 1.5,
   "fps": 60,
   "layers": [
     {
       "visualization_type": "spectrum_bars",
       "params": {
-        "bar_count": 256,
-        "bar_spacing": 0.1,
+        "frequency_limit": true,
+        "max_frequency": 8000,
+        "bar_count": 192,
+        "bar_spacing": 0.08,
         "mirror": false,
-        "min_bar_height": 0.005,
-        "max_bar_height": 0.95,
+        "min_bar_height": 0.004,
+        "max_bar_height": 0.92,
         "frequency_scale": "logarithmic",
-        "gravity": 0.92,
+        "gravity": 0.93,
         "color_mode": "height",
         "height_reference": "universal",
-        "intensity": 1.4,
+        "intensity": 1.5,
+        "mirror_spectrum": false,
         "shadow_enabled": true,
         "shadow_color": "#1a0033",
-        "shadow_opacity": 0.6,
-        "shadow_offset_x": 0.003,
-        "shadow_offset_y": -0.008,
-        "shadow_size": 1.2,
-        "shadow_blur": 0.01,
-        "frequency_limit": true,
-        "max_frequency": 8000
+        "shadow_opacity": 0.55,
+        "shadow_offset_x": 0.002,
+        "shadow_offset_y": -0.007,
+        "shadow_size": 1.25,
+        "shadow_blur": 0.012,
+        "position_x": 0.5,
+        "position_y": 0.5
       },
       "blend_mode": "additive",
       "opacity": 1.0,
       "visible": true,
       "name": "",
-      "colors": [
-        "#ff00ff",
-        "#00ffff",
-        "#ff0066",
-        "#6600ff",
-        "#00ff99"
-      ]
+      "colors": ["#ff00ff", "#cc00ff", "#6600ff", "#0033ff", "#00ffff", "#00ff99"]
     }
   ]
 }

@@ -1,15 +1,9 @@
 {
   "name": "Shadow Halo",
-  "description": "Circular spectrum with colored pink shadow, slow clockwise rotation, and breathing background",
+  "description": "Circular spectrum with pink shadow halo, slow clockwise rotation, and breathing background",
   "author": "wavern",
   "version": 1,
-  "color_palette": [
-    "#ff0088",
-    "#ff44aa",
-    "#ff88cc",
-    "#ffaadd",
-    "#ffffff"
-  ],
+  "color_palette": ["#ff0088", "#ff44aa", "#ff88cc", "#ffaadd", "#ffffff"],
   "background": {
     "type": "solid",
     "color": "#0a0008",
@@ -17,9 +11,20 @@
       "breathe": {
         "enabled": true,
         "speed": 0.6,
-        "intensity": 0.35,
-        "angle": 0.0
+        "intensity": 0.35
       }
+    }
+  },
+  "global_effects": {
+    "apply_stage": "before_overlays",
+    "bloom": {
+      "enabled": true,
+      "intensity": 0.45,
+      "threshold": 0.55
+    },
+    "color_shift": {
+      "enabled": true,
+      "intensity": 0.15
     }
   },
   "fft_size": 8192,
@@ -53,13 +58,7 @@
       "opacity": 1.0,
       "visible": true,
       "name": "",
-      "colors": [
-        "#ff0088",
-        "#ff44aa",
-        "#ff88cc",
-        "#ffaadd",
-        "#ffffff"
-      ]
+      "colors": ["#ff0088", "#ff44aa", "#ff88cc", "#ffaadd", "#ffffff"]
     }
   ]
 }

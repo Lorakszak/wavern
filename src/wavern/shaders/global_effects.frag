@@ -186,9 +186,11 @@ vec4 apply_vignette(vec2 uv, vec4 color) {
         dist = length(centered) * 2.0;
     }
 
-    // Map intensity to vignette reach: 0=no darkening, 1=heavy
-    float inner = 1.0 - u_vignette_intensity * 0.8;
-    float outer = inner + 0.3;
+    // Map intensity to vignette reach: 0=no visible darkening, 1=heavy
+    // At intensity 0: inner=2.0 (well past max dist ~1.41), outer=2.5 -> no darkening
+    // At intensity 1: inner=0.2, outer=0.7 -> heavy vignette
+    float inner = 2.0 - u_vignette_intensity * 1.8;
+    float outer = inner + 0.5;
     float factor = smoothstep(outer, inner, dist);
     color.rgb *= factor;
     return color;
