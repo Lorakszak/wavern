@@ -37,9 +37,9 @@ class TestHeightReferenceParam:
 
 
 class TestPresetDefaults:
-    """Verify spectrum_bars preset JSON contains height_reference."""
+    """Verify neon_spectrum preset JSON contains height_reference."""
 
     def test_spectrum_bars_preset(self) -> None:
-        data = json.loads((PRESETS_DIR / "spectrum_bars.json").read_text())
+        data = json.loads((PRESETS_DIR / "neon_spectrum.json").read_text())
         params = data["layers"][0]["params"]
         assert params["height_reference"] == "per_bar"

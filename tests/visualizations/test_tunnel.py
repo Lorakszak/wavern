@@ -1,9 +1,8 @@
 """Tests for tunnel-specific preset content.
 
 WHAT THIS TESTS:
-- tunnel_warp uses inward direction
-- tunnel_vortex has non-zero spiral_twist and hexagon ring_shape
-- tunnel_emergence uses outward direction and octagon ring_shape
+- warp_drive uses inward direction with circle ring_shape
+- spiral_galaxy has a tunnel layer with spiral_twist and inward direction
 Does NOT test: registration, PARAM_SCHEMA structure, generic preset validity (see test_common,
 test_all_presets), OpenGL rendering, or GPU initialization
 """
@@ -23,27 +22,34 @@ def _register() -> None:
     import wavern.visualizations  # noqa: F401
 
 
-class TestTunnelWarpPreset:
+class TestWarpDrivePreset:
     def test_is_inward(self) -> None:
-        raw = json.loads((_DEFAULTS_DIR / "tunnel_warp.json").read_text())
-        assert raw["layers"][0]["params"]["direction"] == "inward"
+        raw = json.loads((_DEFAULTS_DIR / "warp_drive.json").read_text())
+        tunnel_layer = raw["layers"][0]
+        assert tunnel_layer["params"]["direction"] == "inward"
+
+    def test_is_circle(self) -> None:
+        raw = json.loads((_DEFAULTS_DIR / "warp_drive.json").read_text())
+        tunnel_layer = raw["layers"][0]
+        assert tunnel_layer["params"]["ring_shape"] == "circle"
+
+    def test_has_particle_debris_layer(self) -> None:
+        raw = json.loads((_DEFAULTS_DIR / "warp_drive.json").read_text())
+        assert len(raw["layers"]) == 2
+        assert raw["layers"][1]["visualization_type"] == "particles"
 
 
-class TestTunnelVortexPreset:
-    def test_has_spiral_twist(self) -> None:
-        raw = json.loads((_DEFAULTS_DIR / "tunnel_vortex.json").read_text())
-        assert raw["layers"][0]["params"]["spiral_twist"] != 0.0
+class TestSpiralGalaxyPreset:
+    def test_has_tunnel_layer(self) -> None:
+        raw = json.loads((_DEFAULTS_DIR / "spiral_galaxy.json").read_text())
+        tunnel_layers = [ly for ly in raw["layers"] if ly["visualization_type"] == "tunnel"]
+        assert len(tunnel_layers) == 1
 
-    def test_is_hexagon(self) -> None:
-        raw = json.loads((_DEFAULTS_DIR / "tunnel_vortex.json").read_text())
-        assert raw["layers"][0]["params"]["ring_shape"] == "hexagon"
+    def test_tunnel_has_spiral_twist(self) -> None:
+        raw = json.loads((_DEFAULTS_DIR / "spiral_galaxy.json").read_text())
+        tunnel_layer = [ly for ly in raw["layers"] if ly["visualization_type"] == "tunnel"][0]
+        assert tunnel_layer["params"]["spiral_twist"] != 0
 
-
-class TestTunnelEmergencePreset:
-    def test_is_outward(self) -> None:
-        raw = json.loads((_DEFAULTS_DIR / "tunnel_emergence.json").read_text())
-        assert raw["layers"][0]["params"]["direction"] == "outward"
-
-    def test_is_octagon(self) -> None:
-        raw = json.loads((_DEFAULTS_DIR / "tunnel_emergence.json").read_text())
-        assert raw["layers"][0]["params"]["ring_shape"] == "octagon"
+    def test_is_three_layers(self) -> None:
+        raw = json.loads((_DEFAULTS_DIR / "spiral_galaxy.json").read_text())
+        assert len(raw["layers"]) == 3

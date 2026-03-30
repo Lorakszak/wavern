@@ -2,7 +2,7 @@
 
 WHAT THIS TESTS:
 - _find_trigger_offset() locates zero-crossings correctly for rising, falling, and none modes
-- Specific preset content: busted_crt has persistence and dot mode, all presets use solid backgrounds
+- Specific preset content: oscilloscope preset has solid background and rising trigger
 Does NOT test: registration, PARAM_SCHEMA structure, generic preset validity (see test_common,
 test_all_presets), OpenGL rendering, GPU initialization, or FBO persistence
 """
@@ -87,21 +87,14 @@ class TestOscilloscopePresetContent:
     def _load(filename: str) -> dict:
         return json.loads((_PRESET_DIR / filename).read_text())
 
-    def test_busted_crt_has_persistence(self) -> None:
-        params = self._load("oscilloscope_busted_crt.json")["layers"][0].get("params", {})
-        assert params.get("phosphor_persistence", 0.0) > 0.0
+    def test_oscilloscope_has_solid_background(self) -> None:
+        data = self._load("oscilloscope.json")
+        assert data.get("background", {}).get("type") == "solid"
 
-    def test_busted_crt_dot_mode(self) -> None:
-        params = self._load("oscilloscope_busted_crt.json")["layers"][0].get("params", {})
-        assert params.get("display_mode") == "dot"
+    def test_oscilloscope_has_rising_trigger(self) -> None:
+        params = self._load("oscilloscope.json")["layers"][0].get("params", {})
+        assert params.get("trigger_mode") == "rising"
 
-    def test_all_presets_have_solid_background(self) -> None:
-        for filename in (
-            "oscilloscope_green_phosphor.json",
-            "oscilloscope_neon.json",
-            "oscilloscope_busted_crt.json",
-        ):
-            data = self._load(filename)
-            assert data.get("background", {}).get("type") == "solid", (
-                f"{filename}: expected solid background"
-            )
+    def test_oscilloscope_has_graticule(self) -> None:
+        params = self._load("oscilloscope.json")["layers"][0].get("params", {})
+        assert params.get("graticule_enabled") is True
