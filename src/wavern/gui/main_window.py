@@ -728,17 +728,21 @@ class MainWindow(QMainWindow):
         self._preset_panel._on_save()
 
     def _on_toggle_fullscreen(self) -> None:
-        """Toggle between fullscreen and the previous window state."""
+        """Toggle between fullscreen and the previous window state.
+
+        Uses bitwise state manipulation to avoid the intermediate flash
+        caused by Qt sending separate REMOVE/ADD protocol messages when
+        replacing one window state with another (QTBUG-35166).
+        """
         if self.isFullScreen():
-            target = (
-                Qt.WindowState.WindowMaximized
-                if self._was_maximized
-                else Qt.WindowState.WindowNoState
+            self.setWindowState(
+                self.windowState() & ~Qt.WindowState.WindowFullScreen
             )
-            self.setWindowState(target)
         else:
             self._was_maximized = self.isMaximized()
-            self.setWindowState(Qt.WindowState.WindowFullScreen)
+            self.setWindowState(
+                self.windowState() | Qt.WindowState.WindowFullScreen
+            )
 
     def _on_theme_selected(self) -> None:
         """Apply the selected theme and save the preference."""
