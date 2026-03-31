@@ -51,10 +51,22 @@ class TestLayerListWidget:
         with qtbot.waitSignal(widget.layer_added, timeout=1000) as sig:
             widget.add_layer()
         assert sig.args[0] == 2  # new layer index
-        assert sig.args[1] == "Layer 3"  # auto-generated name (2 layers + 1)
+        # Existing layers are "Bars"/"Particles" (not "Layer N"), so first gap is 1
+        assert sig.args[1] == "Layer 1"
+
+    def test_add_layer_selects_new_layer(self, qtbot, two_layer_preset):
+        """Adding a layer should auto-select it."""
+        widget = LayerListWidget()
+        qtbot.addWidget(widget)
+        widget.build(two_layer_preset.layers)
+        widget.select_layer(0)
+
+        with qtbot.waitSignal(widget.layer_selected, timeout=1000):
+            widget.add_layer()
+        assert widget.selected_index() == 2  # the newly added layer
 
     def test_add_layer_name_increments(self, qtbot):
-        """Adding layers uses count-based naming: Layer {current_count + 1}."""
+        """Adding layers fills gaps then increments: Layer 1, Layer 2, ..."""
         preset = Preset(
             name="Single",
             layers=[VisualizationLayer(visualization_type="spectrum_bars", name="Base")],
@@ -63,15 +75,15 @@ class TestLayerListWidget:
         qtbot.addWidget(widget)
         widget.build(preset.layers)
 
-        # Add first → "Layer 2" (1 existing + 1)
+        # "Base" isn't "Layer N", so first gap is 1
+        with qtbot.waitSignal(widget.layer_added, timeout=1000) as sig:
+            widget.add_layer()
+        assert sig.args[1] == "Layer 1"
+
+        # Next gap is 2
         with qtbot.waitSignal(widget.layer_added, timeout=1000) as sig:
             widget.add_layer()
         assert sig.args[1] == "Layer 2"
-
-        # Add second → "Layer 3"
-        with qtbot.waitSignal(widget.layer_added, timeout=1000) as sig:
-            widget.add_layer()
-        assert sig.args[1] == "Layer 3"
 
     def test_max_layers_enforced(self, qtbot):
         layers = [VisualizationLayer(visualization_type="spectrum_bars") for _ in range(7)]
@@ -257,6 +269,27 @@ class TestCloneLayer:
 
         assert widget._layers[0].params["bar_count"] == 64
 
+    def test_clone_object_identity_independent(self, qtbot):
+        """Cloned layer in _layers must be a distinct object from the original."""
+        original = VisualizationLayer(
+            visualization_type="spectrum_bars",
+            name="Src",
+            params={"bar_count": 64},
+            colors=["#FF0000"],
+        )
+        preset = Preset(name="Test", layers=[original])
+        widget = LayerListWidget()
+        qtbot.addWidget(widget)
+        widget.build(preset.layers)
+
+        widget.clone_layer(0)
+
+        # They must be different objects entirely
+        assert widget._layers[0] is not widget._layers[1]
+        # And nested mutable containers must also be independent
+        assert widget._layers[0].params is not widget._layers[1].params
+        assert widget._layers[0].colors is not widget._layers[1].colors
+
     def test_clone_blocked_at_max_layers(self, qtbot):
         """Cloning does nothing when already at 7 layers."""
         layers = [
@@ -315,3 +348,167 @@ class TestLayerListApply:
         ]
         widget.apply(modified)
         assert widget._rows[0]._name_edit.text() == "Renamed"
+
+
+class TestLayerNaming:
+    def test_add_after_delete_reuses_number(self, qtbot):
+        """Deleting a layer then adding should reuse the freed number."""
+        preset = Preset(
+            name="Test",
+            layers=[
+                VisualizationLayer(visualization_type="spectrum_bars", name="Layer 1"),
+                VisualizationLayer(visualization_type="spectrum_bars", name="Layer 2"),
+            ],
+        )
+        widget = LayerListWidget()
+        qtbot.addWidget(widget)
+        widget.build(preset.layers)
+
+        widget.remove_layer(1)  # remove "Layer 2"
+        with qtbot.waitSignal(widget.layer_added, timeout=1000) as sig:
+            widget.add_layer()
+        assert sig.args[1] == "Layer 2"  # should reuse, not "Layer 3"
+
+    def test_add_after_apply_resets_counter(self, qtbot):
+        """Calling apply() with new layers should not carry over stale counter."""
+        widget = LayerListWidget()
+        qtbot.addWidget(widget)
+        # Build with 5 layers, add 2 more to push counter high
+        layers_5 = [
+            VisualizationLayer(visualization_type="spectrum_bars", name=f"Layer {i + 1}")
+            for i in range(5)
+        ]
+        widget.build(layers_5)
+        widget.add_layer()  # "Layer 6"
+        widget.add_layer()  # "Layer 7" -- counter is now at 8
+
+        # Now apply a fresh 2-layer preset
+        fresh = [
+            VisualizationLayer(visualization_type="spectrum_bars", name="Layer 1"),
+            VisualizationLayer(visualization_type="spectrum_bars", name="Layer 2"),
+        ]
+        widget.apply(fresh)
+
+        with qtbot.waitSignal(widget.layer_added, timeout=1000) as sig:
+            widget.add_layer()
+        assert sig.args[1] == "Layer 3"  # not "Layer 8"
+
+    def test_clone_then_add_skips_used_numbers(self, qtbot):
+        """After cloning, new layer name should skip numbers in use."""
+        preset = Preset(
+            name="Test",
+            layers=[
+                VisualizationLayer(visualization_type="spectrum_bars", name="Layer 1"),
+                VisualizationLayer(visualization_type="spectrum_bars", name="Layer 2"),
+            ],
+        )
+        widget = LayerListWidget()
+        qtbot.addWidget(widget)
+        widget.build(preset.layers)
+
+        # Clone doesn't use "Layer N" naming, so next add should be "Layer 3"
+        widget.clone_layer(0)
+        with qtbot.waitSignal(widget.layer_added, timeout=1000) as sig:
+            widget.add_layer()
+        assert sig.args[1] == "Layer 3"
+
+    def test_naming_max_is_bounded(self, qtbot):
+        """Layer name numbers should never exceed reasonable bounds."""
+        widget = LayerListWidget()
+        qtbot.addWidget(widget)
+        # Simulate repeated add/delete cycles
+        for _ in range(10):
+            widget.build(
+                [VisualizationLayer(visualization_type="spectrum_bars", name="Layer 1")]
+            )
+            for _ in range(6):
+                widget.add_layer()
+            for i in range(6, 0, -1):
+                widget.remove_layer(i)
+
+        # After all that churn, next add should still be reasonable
+        with qtbot.waitSignal(widget.layer_added, timeout=1000) as sig:
+            widget.add_layer()
+        name = sig.args[1]
+        num = int(name.split()[-1])
+        assert num <= 7, f"Layer number {num} exceeds max layer count"
+
+
+class TestDeleteSelection:
+    def test_delete_selected_selects_neighbor(self, qtbot, two_layer_preset):
+        """Deleting the selected layer should auto-select a neighbor."""
+        widget = LayerListWidget()
+        qtbot.addWidget(widget)
+        widget.build(two_layer_preset.layers)
+        widget.select_layer(1)  # select "Particles"
+
+        widget.remove_layer(1)
+        assert widget.selected_index() != -1, "Should auto-select, not leave -1"
+        assert widget.selected_index() == 0  # only remaining layer
+
+    def test_delete_first_of_three_selects_next(self, qtbot):
+        """Deleting layer 0 of 3 should select the new layer 0."""
+        preset = Preset(
+            name="Test",
+            layers=[
+                VisualizationLayer(visualization_type="spectrum_bars", name="A"),
+                VisualizationLayer(visualization_type="spectrum_bars", name="B"),
+                VisualizationLayer(visualization_type="spectrum_bars", name="C"),
+            ],
+        )
+        widget = LayerListWidget()
+        qtbot.addWidget(widget)
+        widget.build(preset.layers)
+        widget.select_layer(0)
+
+        widget.remove_layer(0)
+        assert widget.selected_index() == 0
+        assert widget._layers[0].name == "B"
+
+    def test_delete_middle_selects_same_index(self, qtbot):
+        """Deleting middle layer should select the layer that slides into its position."""
+        preset = Preset(
+            name="Test",
+            layers=[
+                VisualizationLayer(visualization_type="spectrum_bars", name="A"),
+                VisualizationLayer(visualization_type="spectrum_bars", name="B"),
+                VisualizationLayer(visualization_type="spectrum_bars", name="C"),
+            ],
+        )
+        widget = LayerListWidget()
+        qtbot.addWidget(widget)
+        widget.build(preset.layers)
+        widget.select_layer(1)  # select "B"
+
+        widget.remove_layer(1)  # delete "B"
+        assert widget.selected_index() == 1  # now pointing at "C"
+        assert widget._layers[1].name == "C"
+
+    def test_delete_last_selects_new_last(self, qtbot):
+        """Deleting the last layer should select the new last layer."""
+        preset = Preset(
+            name="Test",
+            layers=[
+                VisualizationLayer(visualization_type="spectrum_bars", name="A"),
+                VisualizationLayer(visualization_type="spectrum_bars", name="B"),
+                VisualizationLayer(visualization_type="spectrum_bars", name="C"),
+            ],
+        )
+        widget = LayerListWidget()
+        qtbot.addWidget(widget)
+        widget.build(preset.layers)
+        widget.select_layer(2)  # select "C" (last)
+
+        widget.remove_layer(2)
+        assert widget.selected_index() == 1  # new last layer "B"
+
+    def test_delete_emits_layer_selected(self, qtbot, two_layer_preset):
+        """Deleting selected layer should emit layer_selected for the new selection."""
+        widget = LayerListWidget()
+        qtbot.addWidget(widget)
+        widget.build(two_layer_preset.layers)
+        widget.select_layer(1)
+
+        with qtbot.waitSignal(widget.layer_selected, timeout=1000) as sig:
+            widget.remove_layer(1)
+        assert sig.args[0] == 0  # auto-selected the remaining layer
