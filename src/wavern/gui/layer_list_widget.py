@@ -291,7 +291,6 @@ class LayerListWidget(QWidget):
         self._layers: list[VisualizationLayer] = []
         self._rows: list[_LayerRow] = []  # index matches data-model index
         self._selected_index: int = -1
-        self._next_layer_number: int = 2  # counter for auto-naming new layers
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -321,7 +320,6 @@ class LayerListWidget(QWidget):
         """
         self._layers = list(layers)
         self._selected_index = -1
-        self._next_layer_number = len(layers) + 1
         self._clear_rows()
         for i, layer in enumerate(self._layers):
             self._append_row(layer, i)
@@ -361,8 +359,7 @@ class LayerListWidget(QWidget):
         if not self.can_add_layer():
             logger.debug("add_layer: already at max layers (%d)", _MAX_LAYERS)
             return
-        name = f"Layer {self._next_layer_number}"
-        self._next_layer_number += 1
+        name = self._next_layer_name()
         new_layer = VisualizationLayer(visualization_type=_DEFAULT_VIZ_TYPE, name=name)
         new_index = len(self._layers)
         self._layers.append(new_layer)
@@ -370,6 +367,9 @@ class LayerListWidget(QWidget):
         self._refresh_controls()
         logger.debug("Layer added at index %d: %s", new_index, name)
         self.layer_added.emit(new_index, name)
+        # Select after layer_added so the preset has the layer when
+        # _on_layer_selected fires and reads preset.layers[new_index]
+        self.select_layer(new_index)
 
     def clone_layer(self, index: int) -> None:
         """Clone the layer at *index*, inserting the copy right after it.
@@ -426,14 +426,23 @@ class LayerListWidget(QWidget):
         # Reindex remaining rows
         for i, row in enumerate(self._rows):
             row.set_data_index(i)
-        # Adjust selected index
+        # Adjust selected index -- auto-select neighbor instead of leaving -1
         if self._selected_index == index:
-            self._selected_index = -1
+            self._selected_index = min(index, len(self._layers) - 1)
         elif self._selected_index > index:
             self._selected_index -= 1
         self._refresh_controls()
+
+        # Update row highlights
+        for i, row in enumerate(self._rows):
+            row.set_selected(i == self._selected_index)
+
         logger.debug("Layer removed at index %d", index)
         self.layer_removed.emit(index)
+
+        # Emit selection after removal so listeners can update their panels
+        if 0 <= self._selected_index < len(self._layers):
+            self.layer_selected.emit(self._selected_index)
 
     def move_layer(self, from_index: int, to_index: int) -> None:
         """Swap the layer at *from_index* with the one at *to_index*.
@@ -582,6 +591,20 @@ class LayerListWidget(QWidget):
             row.set_move_up_enabled(i < n - 1)
             # Index 0 is already at the bottom, cannot move down
             row.set_move_down_enabled(i > 0)
+
+    def _next_layer_name(self) -> str:
+        """Return the next available ``Layer N`` name, reusing gaps."""
+        used: set[int] = set()
+        for layer in self._layers:
+            if layer.name.startswith("Layer "):
+                try:
+                    used.add(int(layer.name[6:]))
+                except ValueError:
+                    pass
+        n = 1
+        while n in used:
+            n += 1
+        return f"Layer {n}"
 
     # -- Row signal handlers --
 

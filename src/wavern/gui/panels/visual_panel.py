@@ -272,7 +272,7 @@ class VisualPanel(QWidget):
         """Handle a layer-added event from LayerListWidget.
 
         Args:
-            index: Data-model index of the newly added layer (unused — we append).
+            index: Data-model index of the newly added layer (unused -- we append).
             name: Auto-generated name for the new layer.
         """
         if self._preset is None or self._rebuilding:
@@ -280,6 +280,9 @@ class VisualPanel(QWidget):
         new_layer = VisualizationLayer(visualization_type="spectrum_bars", name=name)
         self._preset.layers.append(new_layer)
         self._selected_layer_index = len(self._preset.layers) - 1
+        # Update local panels immediately (the round-trip skips the sender)
+        self._apply_viz_and_params(self._preset)
+        self._color_section_widget.apply(self._preset, self._selected_layer_index)
         self._emit_update(ChangeScope.LAYER_STRUCTURE)
 
     def _on_layer_removed(self, index: int) -> None:
@@ -293,23 +296,33 @@ class VisualPanel(QWidget):
         if len(self._preset.layers) <= 1:
             return
         self._preset.layers.pop(index)
-        if self._selected_layer_index >= len(self._preset.layers):
-            self._selected_layer_index = len(self._preset.layers) - 1
+        # Mirror the same neighbor-selection logic as LayerListWidget
+        if self._selected_layer_index == index:
+            self._selected_layer_index = min(index, len(self._preset.layers) - 1)
+        elif self._selected_layer_index > index:
+            self._selected_layer_index -= 1
+        # Update local panels immediately (the round-trip skips the sender)
+        self._apply_viz_and_params(self._preset)
+        self._color_section_widget.apply(self._preset, self._selected_layer_index)
         self._emit_update(ChangeScope.LAYER_STRUCTURE)
 
     def _on_layer_cloned(self, new_index: int) -> None:
         """Handle a layer-cloned event from LayerListWidget.
 
-        The widget already inserted the cloned VisualizationLayer into its
-        internal list. Mirror that insertion into the preset's layer list.
+        Clone from the preset's layer list (source of truth for params)
+        rather than the widget's internal list, which may be stale after
+        param/color/viz-type changes that only update the preset.
 
         Args:
             new_index: Data-model index of the newly created clone.
         """
         if self._preset is None or self._rebuilding:
             return
-        # The widget's internal _layers already has the clone at new_index.
-        cloned_layer = self._layer_list._layers[new_index]
+        # Clone from the preset (current state) not the widget (potentially stale)
+        original_index = new_index - 1
+        original = self._preset.layers[original_index]
+        cloned_name = f"cloned_{original.name or original.visualization_type}"
+        cloned_layer = original.model_copy(deep=True, update={"name": cloned_name})
         self._preset.layers.insert(new_index, cloned_layer)
         self._selected_layer_index = new_index
         self._apply_viz_and_params(self._preset)
