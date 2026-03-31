@@ -292,6 +292,8 @@ class Renderer:
         self._release_bg_effects_fbo()
         self._bg_effects_texture = self.ctx.texture(resolution, 4)
         self._bg_effects_texture.filter = (moderngl.LINEAR, moderngl.LINEAR)
+        self._bg_effects_texture.repeat_x = False
+        self._bg_effects_texture.repeat_y = False
         self._bg_effects_fbo = self.ctx.framebuffer(color_attachments=[self._bg_effects_texture])
         self._bg_effects_resolution = resolution
 
@@ -351,6 +353,8 @@ class Renderer:
         self._release_global_effects_fbo()
         self._global_effects_texture = self.ctx.texture(resolution, 4)
         self._global_effects_texture.filter = (moderngl.LINEAR, moderngl.LINEAR)
+        self._global_effects_texture.repeat_x = False
+        self._global_effects_texture.repeat_y = False
         self._global_effects_fbo = self.ctx.framebuffer(
             color_attachments=[self._global_effects_texture],
         )
