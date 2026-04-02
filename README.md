@@ -37,11 +37,6 @@ Wavern is a local music visualizer for Linux. It renders GPU-accelerated audio v
     - [Headless Video Export](#headless-video-export)
     - [CLI Reference](#cli-reference)
   - [Keyboard Shortcuts](#keyboard-shortcuts)
-    - [Playback \& Transport](#playback--transport)
-    - [Volume](#volume)
-    - [File](#file)
-    - [View](#view)
-    - [Visualization](#visualization)
   - [Built-in Visualizations](#built-in-visualizations)
   - [Presets](#presets)
     - [Exploring Some of Built-in Presets and Themes](#exploring-some-of-built-in-presets-and-themes)
@@ -71,7 +66,7 @@ Wavern is a local music visualizer for Linux. It renders GPU-accelerated audio v
 - **Dual tabbed sidebars** - two independent sidebars with tabs (Visual, Text, Export, Presets, Analysis), each with optional vertical split mode
 - **5 built-in themes** - Dark, Light, Nord, Dracula, Gruvbox — persists across sessions
 - **Color palettes** - multi-color gradients applied across visualizations
-- **36 built-in presets** - ranging from showcase demos to utility starting points; favorites, source filter, and item size toggle in the preset panel
+- **20 built-in presets** - ranging from showcase demos to utility starting points; favorites, source filter, and item size toggle in the preset panel
 - **Multi-layer compositing** - stack up to 7 visualization layers, each with independent type, parameters, colors, blend mode (Normal/Additive/Screen/Multiply), and opacity; reorder, toggle visibility, and edit per-layer from the sidebar
 - **Backgrounds with effects** - solid, gradient, image, and video backgrounds with 7 post-processing effects (blur, hue shift, saturation, brightness, pixelate, posterize, invert), movement animations (drift, shake, wave, zoom pulse, breathe), rotation, and mirror transforms — effects work on all background types including solid and transparent
 - **Global post-processing** - 7 screen-wide effects applied to the composited frame: vignette, chromatic aberration, glitch, film grain, bloom, scanlines, and color shift — each with audio reactivity; apply before or after overlays
@@ -174,61 +169,9 @@ uv run wavern --file-log-level warning gui            # reduce file log verbosit
 
 ## Keyboard Shortcuts
 
-### Playback & Transport
+Essential shortcuts: `Ctrl+O` (import audio), `Ctrl+E` (render video), `Space` (play/pause), `F` (fullscreen).
 
-| Shortcut | Action |
-|----------|--------|
-| `Space` | Play / Pause |
-| `Left` / `Right` | Seek +/-5 seconds |
-| `h` / `l` | Seek +/-5 seconds |
-| `Shift+Left` / `Shift+Right` | Seek +/-1 second |
-| `Shift+h` / `Shift+l` | Seek +/-1 second |
-| `Home` | Go to start |
-| `0` - `9` | Jump to 0% - 90% of track |
-
-### Volume
-
-| Shortcut | Action |
-|----------|--------|
-| `Up` | Volume +5% |
-| `Down` | Volume -5% |
-| `Ctrl+Up` | Volume +25% |
-| `Ctrl+Down` | Volume -25% |
-| `M` | Mute / Unmute |
-
-### File
-
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+O` | Import Audio |
-| `Ctrl+E` | Render Video |
-| `Ctrl+S` | Save Preset As |
-| `Ctrl+Q` | Quit |
-
-### View
-
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+B` | Toggle Left Sidebar |
-| `Ctrl+Shift+B` | Toggle Right Sidebar |
-| `F` / `F11` | Toggle Fullscreen |
-
-### Visualization
-
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+Tab` | Cycle between all visualization types |
-| `Ctrl+Shift+Tab` | Cycle visualizations in reverse |
-| `Ctrl+1` | Switch to Classic Waveform (Beta) |
-| `Ctrl+2` | Switch to Spectrum Bars |
-| `Ctrl+3` | Switch to Circular Spectrum |
-| `Ctrl+4` | Switch to Rectangle Spectrum |
-| `Ctrl+5` | Switch to Particle Burst |
-| `Ctrl+6` | Switch to Smoky Waves (Beta) |
-| `Ctrl+7` | Switch to Lissajous (Alpha) |
-| `Ctrl+8` | Switch to Radial Waveform (Alpha) |
-| `Ctrl+9` | Switch to Spectrogram (Alpha) |
-| `Ctrl+0` | Switch to CRT Oscilloscope (Beta) |
+See [KEYBINDINGS.md](KEYBINDINGS.md) for the full list.
 
 
 ## Built-in Visualizations
@@ -249,7 +192,7 @@ uv run wavern --file-log-level warning gui            # reduce file log verbosit
 
 ## Presets
 
-36 built-in presets ship with the package, covering all visualization types from utility starting points to showcase demos (aurora_borealis, cyberpunk_skyline, ghost_signal, etc.). The preset panel includes:
+20 built-in presets ship with the package, covering all visualization types from utility starting points to showcase demos (aurora_borealis, cyberpunk_skyline, ghost_signal, etc.). The preset panel includes:
 
 - **Search** — filter by name
 - **Source filter** — show All, Built-in only, or User only
@@ -353,7 +296,7 @@ Bug reports and feature requests: use the [GitHub issue templates](https://githu
 
 ## Acknowledgements
 
-Wavern is built on top of these goated projects:
+Wavern is built on top of these excellent open-source projects:
 
 - [moderngl](https://github.com/moderngl/moderngl) - Python OpenGL bindings
 - [PySide6](https://doc.qt.io/qtforpython/) - Qt6 GUI framework
