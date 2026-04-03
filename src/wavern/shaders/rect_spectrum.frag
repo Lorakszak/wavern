@@ -176,24 +176,22 @@ void main() {
     if (u_shadow_enabled == 1) {
         vec2 shadow_uv = uv - u_shadow_offset;
         vec4 shadow_bar = compute_all_sides(shadow_uv, u_shadow_size);
-        if (shadow_bar.a > 0.0) {
-            float alpha = shadow_bar.a * u_shadow_opacity;
-            if (u_shadow_blur > 0.0) {
-                float edge_sum = 0.0;
-                float samples = 0.0;
-                for (float dx = -1.0; dx <= 1.0; dx += 1.0) {
-                    for (float dy = -1.0; dy <= 1.0; dy += 1.0) {
-                        vec2 s_uv = shadow_uv + vec2(dx, dy) * u_shadow_blur;
-                        edge_sum += compute_all_sides(s_uv, u_shadow_size).a;
-                        samples += 1.0;
-                    }
+        float alpha = 0.0;
+        if (u_shadow_blur > 0.0) {
+            float edge_sum = 0.0;
+            float samples = 0.0;
+            for (float dx = -1.0; dx <= 1.0; dx += 1.0) {
+                for (float dy = -1.0; dy <= 1.0; dy += 1.0) {
+                    vec2 s_uv = shadow_uv + vec2(dx, dy) * u_shadow_blur;
+                    edge_sum += compute_all_sides(s_uv, u_shadow_size).a;
+                    samples += 1.0;
                 }
-                alpha = (edge_sum / samples) * u_shadow_opacity;
             }
-            fragColor = vec4(u_shadow_color * alpha, alpha);
-        } else {
-            fragColor = vec4(0.0);
+            alpha = (edge_sum / samples) * u_shadow_opacity;
+        } else if (shadow_bar.a > 0.0) {
+            alpha = shadow_bar.a * u_shadow_opacity;
         }
+        fragColor = vec4(u_shadow_color * alpha, alpha);
     } else {
         fragColor = vec4(0.0);
     }

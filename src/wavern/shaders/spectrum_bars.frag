@@ -155,29 +155,24 @@ void main() {
     if (u_shadow_enabled == 1) {
         vec2 shadow_uv = uv - u_shadow_offset;
         vec4 shadow_bar = compute_bar(shadow_uv, u_shadow_size);
-        if (shadow_bar.a > 0.0) {
-            // Compute soft edge via distance to bar boundary for blur
-            float alpha = shadow_bar.a * u_shadow_opacity;
-            // Simple blur: sample nearby and use smoothstep falloff
-            if (u_shadow_blur > 0.0) {
-                vec4 center = compute_bar(shadow_uv, u_shadow_size);
-                // Check distance to edge by sampling offset points
-                float edge_sum = 0.0;
-                float samples = 0.0;
-                for (float dx = -1.0; dx <= 1.0; dx += 1.0) {
-                    for (float dy = -1.0; dy <= 1.0; dy += 1.0) {
-                        vec2 s_uv = shadow_uv + vec2(dx, dy) * u_shadow_blur;
-                        edge_sum += compute_bar(s_uv, u_shadow_size).a;
-                        samples += 1.0;
-                    }
+        float alpha = 0.0;
+        if (u_shadow_blur > 0.0) {
+            // Sample 3x3 grid unconditionally so exterior penumbra gets softened
+            float edge_sum = 0.0;
+            float samples = 0.0;
+            for (float dx = -1.0; dx <= 1.0; dx += 1.0) {
+                for (float dy = -1.0; dy <= 1.0; dy += 1.0) {
+                    vec2 s_uv = shadow_uv + vec2(dx, dy) * u_shadow_blur;
+                    edge_sum += compute_bar(s_uv, u_shadow_size).a;
+                    samples += 1.0;
                 }
-                alpha = (edge_sum / samples) * u_shadow_opacity;
             }
-            // Store shadow; bar pass may overwrite
-            fragColor = vec4(u_shadow_color * alpha, alpha);
-        } else {
-            fragColor = vec4(0.0);
+            alpha = (edge_sum / samples) * u_shadow_opacity;
+        } else if (shadow_bar.a > 0.0) {
+            alpha = shadow_bar.a * u_shadow_opacity;
         }
+        // Store shadow; bar pass may overwrite
+        fragColor = vec4(u_shadow_color * alpha, alpha);
     } else {
         fragColor = vec4(0.0);
     }

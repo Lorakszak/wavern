@@ -11,7 +11,7 @@ uniform int u_blend_modes[7];
 uniform int u_visible[7];
 
 vec4 blend_normal(vec4 dst, vec4 src) {
-    return vec4(src.rgb + dst.rgb * (1.0 - src.a), src.a + dst.a * (1.0 - src.a));
+    return vec4(src.rgb * src.a + dst.rgb * (1.0 - src.a), src.a + dst.a * (1.0 - src.a));
 }
 
 vec4 blend_additive(vec4 dst, vec4 src) {
