@@ -49,6 +49,7 @@ class ImageTextureMixin:
             self._image_path_loaded = path
         except Exception:
             logger.error("Failed to load inner image: %s", path)
+            self._image_path_loaded = path
 
     def _release_image_texture(self) -> None:
         if self._image_texture is not None:

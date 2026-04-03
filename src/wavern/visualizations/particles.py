@@ -298,8 +298,7 @@ class ParticlesVisualization(AbstractVisualization):
 
         self._vbo.write(vbo_data.tobytes())
 
-        if "u_resolution" in self._program:
-            self._program["u_resolution"].value = resolution  # type: ignore[reportAttributeAccessIssue]
+        self._set_uniform(self._program, "u_resolution", resolution)
         self._vao.render(moderngl.POINTS, vertices=self._active_count)
 
         self.ctx.disable(moderngl.PROGRAM_POINT_SIZE | moderngl.BLEND)

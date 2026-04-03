@@ -45,7 +45,7 @@ def _log_resample(
     if edges[-1] > effective_n:
         cutoff = int(np.searchsorted(edges, effective_n, side="right"))
         edges = edges[:cutoff]
-        edges[-1] = n
+        edges[-1] = effective_n
 
     actual_bars = len(edges) - 1
     result = np.zeros(bar_count, dtype="f4")
