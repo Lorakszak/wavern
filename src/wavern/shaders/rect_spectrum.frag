@@ -62,12 +62,12 @@ vec4 render_side(float side_pos, float side_dist, int bars_per_side, bool revers
 
     int mag_idx;
     if (u_mirror_sides == 1) {
-        int half = bars_per_side / 2;
-        int dist_from_center = abs(local_idx - half);
+        int half_count = bars_per_side / 2;
+        int dist_from_center = abs(local_idx - half_count);
         if (u_mirror_half == 0) {
             mag_idx = dist_from_center;                   // bass at center
         } else {
-            mag_idx = (half - 1 - dist_from_center);     // treble at center
+            mag_idx = (half_count - 1 - dist_from_center);     // treble at center
         }
     } else {
         mag_idx = reverse ? (bars_per_side - 1 - local_idx) : local_idx;
