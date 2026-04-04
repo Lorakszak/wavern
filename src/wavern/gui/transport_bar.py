@@ -71,6 +71,10 @@ class TransportBar(QWidget):
         """Whether loop playback is active."""
         return self._loop_btn.isChecked()
 
+    def toggle_loop(self) -> None:
+        """Toggle the loop button state."""
+        self._loop_btn.setChecked(not self._loop_btn.isChecked())
+
     def _setup_ui(self) -> None:
         layout = QHBoxLayout(self)
         layout.setContentsMargins(8, 4, 8, 4)
@@ -105,7 +109,7 @@ class TransportBar(QWidget):
         self._loop_btn.setObjectName("LoopButton")
         self._loop_btn.setCheckable(True)
         self._loop_btn.setFixedWidth(60)
-        self._loop_btn.setToolTip("Loop playback")
+        self._loop_btn.setToolTip("Loop playback (Ctrl+L)")
         self._loop_btn.toggled.connect(self.loop_toggled)
         layout.addWidget(self._loop_btn)
 

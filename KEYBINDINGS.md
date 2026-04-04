@@ -11,6 +11,7 @@
 | `Shift+h` / `Shift+l` | Seek +/-1 second |
 | `Home` | Go to start |
 | `0` - `9` | Jump to 0% - 90% of track |
+| `Ctrl+L` | Toggle loop playback |
 
 ## Volume
 

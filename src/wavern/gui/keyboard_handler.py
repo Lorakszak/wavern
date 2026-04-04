@@ -17,8 +17,8 @@ class KeyboardHandler(QObject):
     """Event filter for global keyboard shortcuts.
 
     Handles transport (space, arrows, home), volume (up/down, M),
-    fullscreen (F), percentage seek (0-9), and visualization cycling
-    (Ctrl+Tab forward, Ctrl+Shift+Tab backward).
+    fullscreen (F), loop toggle (Ctrl+L), percentage seek (0-9),
+    and visualization cycling (Ctrl+Tab forward, Ctrl+Shift+Tab backward).
 
     Args:
         player: The audio player for position/volume queries and control.
@@ -92,8 +92,13 @@ class KeyboardHandler(QObject):
             self._transport.update_position(pos)
             return True
 
+        # Ctrl+L → toggle loop
+        if key == Qt.Key.Key_L and mods & Qt.KeyboardModifier.ControlModifier:
+            self._transport.toggle_loop()
+            return True
+
         # Right / vim-l → seek forward
-        if key in (Qt.Key.Key_Right, Qt.Key.Key_L):
+        if key in (Qt.Key.Key_Right, Qt.Key.Key_L) and not mods & Qt.KeyboardModifier.ControlModifier:
             step = 1.0 if mods & Qt.KeyboardModifier.ShiftModifier else 5.0
             duration = self._player.duration
             pos = self._player.get_position() + step
