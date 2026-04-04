@@ -143,9 +143,9 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Wavern — Music Visualizer")
         self.setMinimumSize(1100, 700)
 
-        icon_path = Path(__file__).parent.parent.parent / "assets" / "logo.png"
-        pixmap = QPixmap(str(icon_path))
-        self.setWindowIcon(QIcon(pixmap))
+        icon_path = Path(__file__).resolve().parents[3] / "assets" / "logo.png"
+        if icon_path.exists():
+            self.setWindowIcon(QIcon(QPixmap(str(icon_path))))
 
         self._audio_path: Path | None = None
         self._audio_data: np.ndarray | None = None
