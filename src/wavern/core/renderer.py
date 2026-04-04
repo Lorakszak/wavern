@@ -71,9 +71,9 @@ def _gradient_to_rgba(stops: list[ColorStop], width: int = 256) -> NDArray[np.ui
         r1, g1, b1 = hex_to_rgb(left.color)
         r2, g2, b2 = hex_to_rgb(right.color)
         result[0, x] = [
-            int((r1 + (r2 - r1) * local_t) * 255),
-            int((g1 + (g2 - g1) * local_t) * 255),
-            int((b1 + (b2 - b1) * local_t) * 255),
+            min(int((r1 + (r2 - r1) * local_t) * 255), 255),
+            min(int((g1 + (g2 - g1) * local_t) * 255), 255),
+            min(int((b1 + (b2 - b1) * local_t) * 255), 255),
             255,
         ]
     return result
