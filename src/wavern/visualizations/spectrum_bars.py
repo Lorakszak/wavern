@@ -30,6 +30,8 @@ def _log_resample(
         max_bin: If >0, only map bins up to this index (frequency limit).
     """
     effective_n = min(n, max_bin) if max_bin > 0 else n
+    if effective_n <= 0 or bar_count <= 0:
+        return np.zeros(bar_count, dtype="f4")
     # Compute log-spaced bin edges (skip DC at bin 0)
     edges = np.logspace(0, np.log10(effective_n), bar_count + 1)
     edges = np.round(edges).astype(int)
