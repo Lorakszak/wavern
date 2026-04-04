@@ -288,6 +288,10 @@ class PresetPanel(QWidget):
             logger.error("Failed to load preset: %s", e)
             QMessageBox.warning(self, "Preset Error", str(e))
 
+    def trigger_save(self) -> None:
+        """Public entry point for the save-preset flow."""
+        self._on_save()
+
     def _on_save(self) -> None:
         if self._current_preset is None:
             QMessageBox.information(self, "Save", "No preset to save.")

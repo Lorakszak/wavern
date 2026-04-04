@@ -476,6 +476,7 @@ class BackgroundSection(QWidget):
         row.addWidget(pos_spin)
 
         remove_btn = QPushButton("x")
+        remove_btn.setObjectName("ColorControlBtn")
         remove_btn.setFixedSize(24, 24)
         remove_btn.clicked.connect(lambda _, idx=index: self._on_remove_gradient_stop(idx))
         row.addWidget(remove_btn)

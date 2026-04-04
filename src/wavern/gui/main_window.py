@@ -6,7 +6,7 @@ from typing import Any, cast
 
 import numpy as np
 from PySide6.QtCore import QEvent, QObject, Qt, QTimer
-from PySide6.QtGui import QAction, QIcon, QMouseEvent, QPixmap, QResizeEvent
+from PySide6.QtGui import QAction, QCloseEvent, QIcon, QMouseEvent, QPixmap, QResizeEvent
 from PySide6.QtWidgets import QApplication
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -739,7 +739,7 @@ class MainWindow(QMainWindow):
 
     def _on_save_preset_as(self) -> None:
         """Delegate to the preset panel's save flow."""
-        self._preset_panel._on_save()
+        self._preset_panel.trigger_save()
 
     def _on_toggle_fullscreen(self) -> None:
         """Toggle between fullscreen and the previous window state.
@@ -901,7 +901,7 @@ class MainWindow(QMainWindow):
         """Cycle to the previous visualization type (Ctrl+Shift+Tab)."""
         self._visual_panel.cycle_viz(reverse=True)
 
-    def closeEvent(self, event) -> None:
+    def closeEvent(self, event: QCloseEvent) -> None:
         """Cleanup on window close."""
         close_app = QApplication.instance()
         assert close_app is not None

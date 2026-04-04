@@ -8,7 +8,6 @@ from PySide6.QtCore import QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QCheckBox,
-    QComboBox,
     QDialog,
     QDialogButtonBox,
     QFileDialog,
@@ -19,12 +18,12 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QProgressBar,
     QPushButton,
-    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
 
 from wavern.gui.collapsible_section import CollapsibleSection
+from wavern.gui.no_scroll_combo import NoScrollComboBox
 from wavern.gui.drag_spinbox import DragSpinBox
 from wavern.core.codecs import (
     AUDIO_BITRATE_OPTIONS,
@@ -78,8 +77,8 @@ class ExportDialog(QDialog):
         if ps.output_dir:
             default_dir = Path(ps.output_dir)
         else:
-            default_dir = Path(__file__).resolve().parents[3] / "video"
-        default_dir.mkdir(exist_ok=True)
+            default_dir = Path.home() / "Videos"
+        default_dir.mkdir(parents=True, exist_ok=True)
         stem = ps.output_filename or (self._audio_path.stem if self._audio_path else "output")
         ext = ps.container
         self._output_edit.setText(str(default_dir / f"{stem}.{ext}"))
@@ -91,32 +90,29 @@ class ExportDialog(QDialog):
 
         # Resolution
         res_layout = QHBoxLayout()
-        self._width_spin = QSpinBox()
-        self._width_spin.setRange(320, 7680)
+        self._width_spin = DragSpinBox(minimum=320, maximum=7680, step=1, decimals=0)
         self._width_spin.setValue(ps.resolution[0])
         res_layout.addWidget(self._width_spin)
         res_layout.addWidget(QLabel("x"))
-        self._height_spin = QSpinBox()
-        self._height_spin.setRange(240, 4320)
+        self._height_spin = DragSpinBox(minimum=240, maximum=4320, step=1, decimals=0)
         self._height_spin.setValue(ps.resolution[1])
         res_layout.addWidget(self._height_spin)
         form.addRow("Resolution:", res_layout)
 
         # FPS
-        self._fps_spin = QSpinBox()
-        self._fps_spin.setRange(24, 144)
+        self._fps_spin = DragSpinBox(minimum=24, maximum=144, step=1, decimals=0)
         self._fps_spin.setValue(ps.fps)
         form.addRow("FPS:", self._fps_spin)
 
         # Format
-        self._format_combo = QComboBox()
+        self._format_combo = NoScrollComboBox()
         self._format_combo.addItems(["mp4", "webm", "mov", "gif"])
         self._format_combo.setCurrentText(ps.container)
         self._format_combo.currentTextChanged.connect(self._on_format_changed)
         form.addRow("Format:", self._format_combo)
 
         # Hardware Acceleration
-        self._hw_accel_combo = QComboBox()
+        self._hw_accel_combo = NoScrollComboBox()
         self._hw_accel_combo.addItem("Auto (Recommended)", "auto")
         self._hw_accel_combo.addItem("Off (Software Only)", "off")
         hw_idx = self._hw_accel_combo.findData(ps.hw_accel)
@@ -126,7 +122,7 @@ class ExportDialog(QDialog):
         self._hw_accel_label = form.labelForField(self._hw_accel_combo)
 
         # Codec
-        self._codec_combo = QComboBox()
+        self._codec_combo = NoScrollComboBox()
         self._populate_codec_combo(self._format_combo.currentText())
         # Pre-select from project settings if applicable
         if ps.video_codec:
@@ -138,7 +134,7 @@ class ExportDialog(QDialog):
         self._codec_label = form.labelForField(self._codec_combo)
 
         # Quality preset (quick-select, always visible)
-        self._quality_combo = QComboBox()
+        self._quality_combo = NoScrollComboBox()
         for value, display in QUALITY_PRESET_DISPLAY:
             self._quality_combo.addItem(display, value)
         # Set from project settings
@@ -150,22 +146,21 @@ class ExportDialog(QDialog):
         form.addRow("Quality:", self._quality_combo)
 
         # CRF (always visible for CRF-based codecs)
-        self._crf_spin = QSpinBox()
-        self._crf_spin.setRange(0, 51)
+        self._crf_spin = DragSpinBox(minimum=0, maximum=51, step=1, decimals=0)
         self._crf_spin.setValue(ps.crf)
         self._crf_spin.valueChanged.connect(self._on_quality_detail_changed)
         form.addRow("CRF:", self._crf_spin)
         self._crf_label = form.labelForField(self._crf_spin)
 
         # Encoder speed (always visible for codecs that support it)
-        self._speed_combo = QComboBox()
+        self._speed_combo = NoScrollComboBox()
         self._populate_speed_combo(self._codec_combo.currentData() or "")
         self._speed_combo.currentIndexChanged.connect(self._on_quality_detail_changed)
         form.addRow("Encoder Speed:", self._speed_combo)
         self._speed_label = form.labelForField(self._speed_combo)
 
         # ProRes profile (always visible for ProRes)
-        self._prores_combo = QComboBox()
+        self._prores_combo = NoScrollComboBox()
         for profile_id, name in PRORES_PROFILES:
             self._prores_combo.addItem(name, profile_id)
         idx = self._prores_combo.findData(ps.prores_profile)
@@ -176,7 +171,7 @@ class ExportDialog(QDialog):
         self._prores_label = form.labelForField(self._prores_combo)
 
         # Audio bitrate
-        self._audio_bitrate_combo = QComboBox()
+        self._audio_bitrate_combo = NoScrollComboBox()
         self._audio_bitrate_combo.addItems(AUDIO_BITRATE_OPTIONS)
         self._audio_bitrate_combo.setCurrentText(ps.audio_bitrate)
         form.addRow("Audio Bitrate:", self._audio_bitrate_combo)
@@ -201,8 +196,7 @@ class ExportDialog(QDialog):
         self._outro_fade_out.setValue(ps.outro_fade_out)
 
         # GIF settings
-        self._gif_colors_spin = QSpinBox()
-        self._gif_colors_spin.setRange(64, 256)
+        self._gif_colors_spin = DragSpinBox(minimum=64, maximum=256, step=1, decimals=0)
         self._gif_colors_spin.setValue(ps.gif_max_colors)
         form.addRow("GIF Colors:", self._gif_colors_spin)
         self._gif_colors_label = form.labelForField(self._gif_colors_spin)
@@ -211,16 +205,13 @@ class ExportDialog(QDialog):
         self._gif_dither_check.setChecked(ps.gif_dither)
         form.addRow("", self._gif_dither_check)
 
-        self._gif_loop_spin = QSpinBox()
-        self._gif_loop_spin.setRange(0, 9999)
+        self._gif_loop_spin = DragSpinBox(minimum=0, maximum=9999, step=1, decimals=0)
         self._gif_loop_spin.setValue(ps.gif_loop)
         form.addRow("GIF Loop:", self._gif_loop_spin)
         self._gif_loop_label = form.labelForField(self._gif_loop_spin)
 
-        self._gif_scale_spin = QSpinBox()
-        self._gif_scale_spin.setRange(25, 100)
+        self._gif_scale_spin = DragSpinBox(minimum=25, maximum=100, step=1, decimals=0)
         self._gif_scale_spin.setValue(int(ps.gif_scale * 100))
-        self._gif_scale_spin.setSuffix("%")
         form.addRow("GIF Scale:", self._gif_scale_spin)
         self._gif_scale_label = form.labelForField(self._gif_scale_spin)
 
@@ -537,8 +528,8 @@ class ExportDialog(QDialog):
         """Check intro/outro for mismatches. Returns True to proceed, False to abort."""
         from wavern.core.video_concat import detect_mismatches, probe_video_clip
 
-        target_res = (self._width_spin.value(), self._height_spin.value())
-        target_fps = self._fps_spin.value()
+        target_res = (int(self._width_spin.value()), int(self._height_spin.value()))
+        target_fps = int(self._fps_spin.value())
         clips: list[tuple[str, object]] = []
         try:
             if intro_path:
@@ -581,8 +572,8 @@ class ExportDialog(QDialog):
         return msg_box.clickedButton() == conform_btn
 
     def _on_browse(self) -> None:
-        default_dir = Path(__file__).resolve().parents[3] / "video"
-        default_dir.mkdir(exist_ok=True)
+        default_dir = Path.home() / "Videos"
+        default_dir.mkdir(parents=True, exist_ok=True)
         path, _ = QFileDialog.getSaveFileName(
             self,
             "Save Video",
@@ -621,7 +612,7 @@ class ExportDialog(QDialog):
             return
 
         # Always read values directly from the detail widgets
-        crf = self._crf_spin.value()
+        crf = int(self._crf_spin.value())
         encoder_speed = self._speed_combo.currentData() or "medium"
         prores_val = self._prores_combo.currentData()
         prores_profile = prores_val if prores_val is not None else 3
@@ -644,8 +635,8 @@ class ExportDialog(QDialog):
 
         config = ExportConfig(
             output_path=Path(output_path),
-            resolution=(self._width_spin.value(), self._height_spin.value()),
-            fps=self._fps_spin.value(),
+            resolution=(int(self._width_spin.value()), int(self._height_spin.value())),
+            fps=int(self._fps_spin.value()),
             video_codec=codec_id,
             container=container,
             crf=crf,
@@ -653,9 +644,9 @@ class ExportDialog(QDialog):
             quality_preset=quality_preset,
             audio_bitrate=self._audio_bitrate_combo.currentText(),
             prores_profile=prores_profile,
-            gif_max_colors=self._gif_colors_spin.value(),
+            gif_max_colors=int(self._gif_colors_spin.value()),
             gif_dither=self._gif_dither_check.isChecked(),
-            gif_loop=self._gif_loop_spin.value(),
+            gif_loop=int(self._gif_loop_spin.value()),
             gif_scale=self._gif_scale_spin.value() / 100.0,
             hw_accel=self._hw_accel_combo.currentData() or "auto",
             intro_path=intro_path,

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from PySide6.QtGui import QAction, QActionGroup, QKeySequence
@@ -17,17 +18,17 @@ def build_menu_bar(
     window: QMainWindow,
     theme_manager: ThemeManager,
     *,
-    on_import: callable,  # type: ignore[reportGeneralTypeIssues]
-    on_export: callable,  # type: ignore[reportGeneralTypeIssues]
-    on_save_preset: callable,  # type: ignore[reportGeneralTypeIssues]
-    on_toggle_left: callable,  # type: ignore[reportGeneralTypeIssues]
-    on_toggle_right: callable,  # type: ignore[reportGeneralTypeIssues]
-    on_split_left: callable,  # type: ignore[reportGeneralTypeIssues]
-    on_split_right: callable,  # type: ignore[reportGeneralTypeIssues]
-    on_fullscreen: callable,  # type: ignore[reportGeneralTypeIssues]
-    on_ambient: callable,  # type: ignore[reportGeneralTypeIssues]
-    on_theme_selected: callable,  # type: ignore[reportGeneralTypeIssues]
-    on_viz_shortcut: callable,  # type: ignore[reportGeneralTypeIssues]
+    on_import: Callable[[], None],
+    on_export: Callable[[], None],
+    on_save_preset: Callable[[], None],
+    on_toggle_left: Callable[[], None],
+    on_toggle_right: Callable[[], None],
+    on_split_left: Callable[[], None],
+    on_split_right: Callable[[], None],
+    on_fullscreen: Callable[[], None],
+    on_ambient: Callable[[], None],
+    on_theme_selected: Callable[[], None],
+    on_viz_shortcut: Callable[[], None],
 ) -> dict[str, QAction]:
     """Build the application menu bar and return named action references.
 

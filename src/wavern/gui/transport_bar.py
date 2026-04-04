@@ -153,13 +153,6 @@ class TransportBar(QWidget):
         timestamp = (value / 10000.0) * self._duration
         self.seek_requested.emit(timestamp)
 
-    def set_volume_display(self, volume: float, muted: bool) -> None:
-        """Update the volume indicator label."""
-        if muted:
-            self._volume_label.setText("Muted")
-        else:
-            self._volume_label.setText(f"Vol: {round(volume * 100)}%")
-
     def _on_slider_moved(self, value: int) -> None:
         timestamp = (value / 10000.0) * self._duration
         self._time_label.setText(_format_time(timestamp))

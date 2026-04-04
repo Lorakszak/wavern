@@ -119,7 +119,7 @@ class ProjectSettingsPanel(QWidget):
         self._update_settings()
 
     def _on_browse_output(self) -> None:
-        default_dir = str(Path(__file__).resolve().parents[3] / "video")
+        default_dir = str(Path.home() / "Videos")
         path = QFileDialog.getExistingDirectory(
             self, "Select Output Directory", default_dir,
         )
