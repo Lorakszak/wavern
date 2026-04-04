@@ -64,7 +64,7 @@ class TextOverlay:
             return
 
         vert_src = load_shader("common.vert")
-        frag_src = load_shader("background.frag")
+        frag_src = load_shader("text.frag")
         self._program = self.ctx.program(
             vertex_shader=vert_src, fragment_shader=frag_src,
         )
@@ -141,7 +141,8 @@ class TextOverlay:
         self.ctx.enable(moderngl.BLEND)
         self.ctx.blend_func = (moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA)
         self._texture.use(location=0)
-        self._program["u_background"].value = 0  # type: ignore[reportAttributeAccessIssue]
+        if "u_texture" in self._program:
+            self._program["u_texture"].value = 0  # type: ignore[reportAttributeAccessIssue]
         self._vao.render(moderngl.TRIANGLE_STRIP)
 
     def _render_text_image(

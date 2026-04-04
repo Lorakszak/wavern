@@ -4,6 +4,7 @@ import logging
 import math
 import struct
 from collections.abc import Callable
+from typing import Any
 
 import moderngl
 import numpy as np
@@ -210,6 +211,18 @@ class Renderer:
         # but still rendered during export.
         self.skip_bg_preview: bool = False
         self.skip_overlay_preview: bool = False
+
+    @staticmethod
+    def _set_uniform(prog: moderngl.Program, name: str, value: Any) -> None:
+        """Set a uniform value safely, skipping if the uniform was optimized out."""
+        if name in prog:
+            prog[name].value = value  # type: ignore[reportAttributeAccessIssue]
+
+    @staticmethod
+    def _write_uniform(prog: moderngl.Program, name: str, data: bytes) -> None:
+        """Write raw bytes to a uniform safely, skipping if optimized out."""
+        if name in prog:
+            prog[name].write(data)  # type: ignore[reportAttributeAccessIssue]
 
     def _ensure_bg_quad(self) -> None:
         """Lazily create the fullscreen quad shader and VAO for background rendering."""
@@ -630,7 +643,7 @@ class Renderer:
 
     def _render_bg_quad(self, fbo: moderngl.Framebuffer, frame: FrameAnalysis) -> None:
         """Render the background texture as a fullscreen quad, with optional effects pass."""
-        if self._bg_texture is None or self._bg_vao is None:
+        if self._bg_texture is None or self._bg_vao is None or self._bg_program is None:
             return
 
         # Upload video frame if using video background
@@ -661,18 +674,15 @@ class Renderer:
             self.ctx.clear(0.0, 0.0, 0.0, 0.0)
 
         self._bg_texture.use(location=0)
-        self._bg_program["u_background"].value = 0  # type: ignore[reportAttributeAccessIssue]
+        self._set_uniform(self._bg_program, "u_background", 0)
 
         if self._preset is not None:
             bg = self._preset.background
             self._set_bg_movement_uniforms(bg.movements, frame)
 
-            if "u_rotation" in self._bg_program:  # type: ignore[reportOperatorIssue]
-                self._bg_program["u_rotation"].value = math.radians(bg.rotation)  # type: ignore[reportAttributeAccessIssue]
-            if "u_mirror_x" in self._bg_program:  # type: ignore[reportOperatorIssue]
-                self._bg_program["u_mirror_x"].value = int(bg.mirror_x)  # type: ignore[reportAttributeAccessIssue]
-            if "u_mirror_y" in self._bg_program:  # type: ignore[reportOperatorIssue]
-                self._bg_program["u_mirror_y"].value = int(bg.mirror_y)  # type: ignore[reportAttributeAccessIssue]
+            self._set_uniform(self._bg_program, "u_rotation", math.radians(bg.rotation))
+            self._set_uniform(self._bg_program, "u_mirror_x", int(bg.mirror_x))
+            self._set_uniform(self._bg_program, "u_mirror_y", int(bg.mirror_y))
 
             if bg.movements.drift.enabled and self._bg_texture is not None:
                 self._bg_texture.repeat_x = True
@@ -691,7 +701,7 @@ class Renderer:
             self.ctx.viewport = (0, 0, fbo.width, fbo.height)
 
             self._bg_effects_texture.use(location=0)
-            self._bg_effects_prog["u_background"].value = 0  # type: ignore[reportAttributeAccessIssue]
+            self._set_uniform(self._bg_effects_prog, "u_background", 0)
 
             resolution = (fbo.width, fbo.height)
             self._set_bg_effects_uniforms(self._preset.background.effects, frame, resolution)
@@ -725,7 +735,7 @@ class Renderer:
         self.ctx.viewport = (0, 0, resolution[0], resolution[1])
 
         self._bg_effects_texture.use(location=0)
-        self._bg_effects_prog["u_background"].value = 0  # type: ignore[reportAttributeAccessIssue]
+        self._set_uniform(self._bg_effects_prog, "u_background", 0)
 
         self._set_bg_effects_uniforms(self._preset.background.effects, frame, resolution)
 
@@ -1032,11 +1042,11 @@ class Renderer:
                 for i in range(7)
             ]
 
-            self._composite_prog["u_layer_count"].value = n  # type: ignore[reportAttributeAccessIssue]
-            self._composite_prog["u_layers"].write(struct.pack("7i", *sampler_values))  # type: ignore[reportAttributeAccessIssue]
-            self._composite_prog["u_opacities"].write(struct.pack("7f", *opacities))  # type: ignore[reportAttributeAccessIssue]
-            self._composite_prog["u_blend_modes"].write(struct.pack("7i", *blend_modes))  # type: ignore[reportAttributeAccessIssue]
-            self._composite_prog["u_visible"].write(struct.pack("7i", *visible))  # type: ignore[reportAttributeAccessIssue]
+            self._set_uniform(self._composite_prog, "u_layer_count", n)
+            self._write_uniform(self._composite_prog, "u_layers", struct.pack("7i", *sampler_values))
+            self._write_uniform(self._composite_prog, "u_opacities", struct.pack("7f", *opacities))
+            self._write_uniform(self._composite_prog, "u_blend_modes", struct.pack("7i", *blend_modes))
+            self._write_uniform(self._composite_prog, "u_visible", struct.pack("7i", *visible))
 
             self._composite_vao.render(moderngl.TRIANGLE_STRIP)
 
@@ -1155,7 +1165,7 @@ class Renderer:
         frame_data = self._overlay_video_source.get_frame(frame.timestamp)
         self._overlay_texture.write(frame_data.tobytes())
         self._overlay_texture.use(location=0)
-        self._overlay_program["u_overlay"].value = 0  # type: ignore[reportAttributeAccessIssue]
+        self._set_uniform(self._overlay_program, "u_overlay", 0)
 
         if "u_opacity" in self._overlay_program:
             self._overlay_program["u_opacity"].value = overlay_cfg.opacity  # type: ignore[reportAttributeAccessIssue]
@@ -1282,3 +1292,6 @@ class Renderer:
         if self._overlay_program is not None:
             self._overlay_program.release()
             self._overlay_program = None
+        for prog in self._program_cache.values():
+            prog.release()
+        self._program_cache.clear()

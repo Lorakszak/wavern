@@ -220,15 +220,14 @@ def get_font(
         except Exception:
             continue
 
-    # Nothing cached at all — must download synchronously as last resort
-    path = _download_font(entry.filename, entry.url)
-    if path is not None:
-        try:
-            return _load_font(path, size, bold, entry.variable)
-        except Exception as e:
-            logger.warning("Failed to load font %s: %s", path, e)
-
-    # Absolute last resort: PIL default
+    # Nothing cached at all -- fall back to PIL default rather than blocking
+    # the render loop with a synchronous download.  preload_all_fonts() should
+    # have cached everything at startup; if we reach here, something went wrong.
+    logger.warning(
+        "Font '%s' is not cached and cannot be loaded without a blocking download; "
+        "falling back to PIL default.  Ensure preload_all_fonts() ran at startup.",
+        family,
+    )
     return ImageFont.load_default()
 
 

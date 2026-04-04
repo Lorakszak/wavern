@@ -73,7 +73,7 @@ class AudioAnalyzer:
         self._prev_magnitudes: NDArray[np.float32] | None = None
         self._prev_raw_magnitudes: NDArray[np.float32] | None = None
         self._beat_timestamps: list[tuple[float, float]] = []
-        self._beat_threshold_window: list[float] = []
+        self._beat_times: list[float] = []
 
         # Running-peak normalization state
         self._running_peak: float = 1e-10

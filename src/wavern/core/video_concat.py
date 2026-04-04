@@ -160,7 +160,7 @@ def resolve_audio_codec(container: str, config_audio_codec: str) -> str:
     if container == "webm":
         return "libopus"
     if container == "mov":
-        return "aac"
+        return "pcm_s16le"
     return config_audio_codec
 
 

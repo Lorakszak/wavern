@@ -177,8 +177,8 @@ class TestResolveAudioCodec:
     def test_webm_returns_libopus(self) -> None:
         assert resolve_audio_codec("webm", "aac") == "libopus"
 
-    def test_mov_returns_aac(self) -> None:
-        assert resolve_audio_codec("mov", "libopus") == "aac"
+    def test_mov_returns_pcm(self) -> None:
+        assert resolve_audio_codec("mov", "libopus") == "pcm_s16le"
 
     def test_mp4_passthrough(self) -> None:
         assert resolve_audio_codec("mp4", "aac") == "aac"
