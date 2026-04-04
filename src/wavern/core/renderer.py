@@ -1292,6 +1292,6 @@ class Renderer:
         if self._overlay_program is not None:
             self._overlay_program.release()
             self._overlay_program = None
-        for prog in self._program_cache.values():
-            prog.release()
+        # Only clear references -- the programs themselves are released by
+        # viz.cleanup() above (they share the same moderngl.Program objects).
         self._program_cache.clear()
