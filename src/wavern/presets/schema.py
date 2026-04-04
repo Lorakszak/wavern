@@ -285,7 +285,7 @@ class VisualizationLayer(BaseModel):
     opacity: float = Field(default=1.0, ge=0.0, le=1.0)
     visible: bool = True
     name: str = ""
-    colors: list[str] = Field(default=["#00FFAA", "#FF00AA", "#FFAA00"])
+    colors: list[str] = Field(default_factory=lambda: ["#00FFAA", "#FF00AA", "#FFAA00"])
 
 
 class Preset(BaseModel):
@@ -299,7 +299,7 @@ class Preset(BaseModel):
     layers: list[VisualizationLayer] = Field(min_length=1, max_length=7)
 
     color_palette: list[str] = Field(
-        default=["#00FFAA", "#FF00AA", "#FFAA00"],
+        default_factory=lambda: ["#00FFAA", "#FF00AA", "#FFAA00"],
         description="Ordered list of hex colors the visualization cycles through",
     )
 

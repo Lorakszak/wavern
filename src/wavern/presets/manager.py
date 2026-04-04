@@ -24,7 +24,7 @@ def _migrate_preset_data(raw_data: dict[str, Any]) -> dict[str, Any]:
         raw_data.pop("color_gradient", None)
         raw_data["layers"] = [
             {
-                "visualization_type": viz["visualization_type"],
+                "visualization_type": viz.get("visualization_type", ""),
                 "params": viz.get("params", {}),
                 "blend_mode": old_blend,
                 "opacity": 1.0,
@@ -143,6 +143,7 @@ class PresetManager:
                 layers = raw.get("layers", [])
                 viz_type = layers[0]["visualization_type"] if layers else ""
             except Exception:
+                logger.warning("Failed to read visualization type from preset %s", entry["path"], exc_info=True)
                 viz_type = ""
             result.append({**entry, "visualization_type": viz_type})
 
@@ -174,7 +175,7 @@ class PresetManager:
                     data = _migrate_preset_data(data)
                     return Preset.model_validate(data)
             except Exception:
-                logger.warning("Failed to load user preset %s: %s", f, exc_info=True)
+                logger.warning("Failed to load user preset %s", f, exc_info=True)
                 continue
 
         # Check built-in dir
@@ -198,7 +199,7 @@ class PresetManager:
             data = json.loads(path.read_text(encoding="utf-8"))
             data = _migrate_preset_data(data)
             return Preset.model_validate(data)
-        except (json.JSONDecodeError, Exception) as e:
+        except Exception as e:
             raise PresetError(f"Failed to load preset from {path}: {e}") from e
 
     def save(self, preset: Preset) -> Path:
