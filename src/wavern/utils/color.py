@@ -3,6 +3,21 @@
 import colorsys
 
 
+def _validate_hex(hex_color: str) -> str:
+    """Strip leading '#' and validate hex color length.
+
+    Returns:
+        The stripped hex string (6 or 8 characters).
+
+    Raises:
+        ValueError: If the hex string is not 6 or 8 hex digits.
+    """
+    stripped = hex_color.lstrip("#")
+    if len(stripped) not in (6, 8):
+        raise ValueError(f"Invalid hex color: '{hex_color}' (expected 6 or 8 hex digits)")
+    return stripped
+
+
 def hex_to_rgb(hex_color: str) -> tuple[float, float, float]:
     """Convert hex color string to normalized RGB tuple (0.0-1.0).
 
@@ -11,8 +26,11 @@ def hex_to_rgb(hex_color: str) -> tuple[float, float, float]:
 
     Returns:
         Tuple of (r, g, b) floats in [0.0, 1.0].
+
+    Raises:
+        ValueError: If hex_color is not a valid 6 or 8 digit hex string.
     """
-    hex_color = hex_color.lstrip("#")
+    hex_color = _validate_hex(hex_color)
     r = int(hex_color[0:2], 16) / 255.0
     g = int(hex_color[2:4], 16) / 255.0
     b = int(hex_color[4:6], 16) / 255.0
@@ -24,7 +42,7 @@ def hex_to_rgba(hex_color: str) -> tuple[float, float, float, float]:
 
     Accepts "#RRGGBB" (alpha defaults to 1.0) or "#RRGGBBAA".
     """
-    hex_color = hex_color.lstrip("#")
+    hex_color = _validate_hex(hex_color)
     r = int(hex_color[0:2], 16) / 255.0
     g = int(hex_color[2:4], 16) / 255.0
     b = int(hex_color[4:6], 16) / 255.0

@@ -1,10 +1,13 @@
 """CLI interface for Wavern — GUI launch and headless rendering."""
 
+import logging
 import sys
 from pathlib import Path
 from typing import Any
 
 import click
+
+logger = logging.getLogger(__name__)
 
 
 def _logging_kwargs(ctx: click.Context, default_level: str) -> dict[str, Any]:
@@ -294,6 +297,7 @@ def render(
         pipeline.run()
         click.echo(f"\nDone: {output}")
     except Exception as e:
+        logger.exception("Render failed")
         click.echo(f"\nError: {e}", err=True)
         sys.exit(1)
 

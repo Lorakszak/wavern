@@ -11,9 +11,11 @@ import platform
 import sys
 from pathlib import Path
 
+from typing import Any
+
 from wavern.config import get_config_directory
 
-_SENTINEL: Path | None = Path("__sentinel__")
+_SENTINEL: Any = object()
 
 _LOG_FORMAT_CONSOLE = "%(asctime)s %(levelname)-7s %(name)s: %(message)s"
 _LOG_FORMAT_FILE = (
@@ -23,7 +25,7 @@ _DATEFMT_CONSOLE = "%H:%M:%S"
 _DATEFMT_FILE = "%Y-%m-%d %H:%M:%S"
 
 _MAX_BYTES = 5_242_880  # 5 MB
-_BACKUP_COUNT = 3
+_BACKUP_COUNT = 3  # 3 backups + 1 active = 4 total files (20 MB max)
 
 
 def setup_logging(
@@ -52,13 +54,16 @@ def setup_logging(
     logger.addHandler(console)
 
     # File handler
+    resolved_log_file: Path | None
     if log_file is _SENTINEL:
-        log_file = get_config_directory() / "wavern.log"
+        resolved_log_file = get_config_directory() / "wavern.log"
+    else:
+        resolved_log_file = log_file  # type: ignore[assignment]
 
-    if log_file is not None:
-        log_file.parent.mkdir(parents=True, exist_ok=True)
+    if resolved_log_file is not None:
+        resolved_log_file.parent.mkdir(parents=True, exist_ok=True)
         file_handler = logging.handlers.RotatingFileHandler(
-            log_file,
+            resolved_log_file,
             maxBytes=_MAX_BYTES,
             backupCount=_BACKUP_COUNT,
             encoding="utf-8",

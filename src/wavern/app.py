@@ -2,6 +2,7 @@
 
 import logging
 import sys
+from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
 from PySide6.QtGui import QIcon, QPixmap, QSurfaceFormat
@@ -22,11 +23,17 @@ def create_app() -> QApplication:
 
     app = QApplication(sys.argv)
     app.setApplicationName("Wavern")
-    app.setApplicationVersion("0.1.0")
+    try:
+        app.setApplicationVersion(_pkg_version("wavern"))
+    except Exception:  # noqa: BLE001
+        app.setApplicationVersion("unknown")
 
-    icon_path = Path(__file__).parent.parent.parent / "assets" / "logo.png"
+    icon_path = Path(__file__).resolve().parents[3] / "assets" / "logo.png"
     pixmap = QPixmap(str(icon_path))
-    app.setWindowIcon(QIcon(pixmap))
+    if pixmap.isNull():
+        logger.warning("Application icon not found at %s", icon_path)
+    else:
+        app.setWindowIcon(QIcon(pixmap))
 
     return app
 
